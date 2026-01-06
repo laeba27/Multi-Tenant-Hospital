@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Smile Returns - Hospital Management System
+
+This is a multi-tenant hospital management system built with Next.js 15, Supabase, and TailwindCSS.
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+ 
+- npm or yarn
+- Supabase account (https://supabase.com)
+- Cloudinary account (https://cloudinary.com)
+
+### Installation
+
+1. **Install dependencies**
+```bash
+npm install
+```
+
+2. **Set up environment variables**
+Copy `.env.local.example` to `.env.local` and fill in your credentials:
+```bash
+cp .env.local.example .env.local
+```
+
+3. **Configure Supabase**
+   - Create a new Supabase project
+   - Go to Project Settings → API Keys and copy:
+     - Project URL
+     - Anon (public) key
+   - Paste these in `.env.local`
+
+4. **Set up database**
+   - In Supabase, go to SQL Editor
+   - Run the migration from `supabase/migrations/001_initial_schema.sql`
+
+5. **Configure Cloudinary**
+   - Create a Cloudinary account
+   - Copy your cloud name, API key, and API secret
+   - Paste these in `.env.local`
+
+## Running the Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/                      # Next.js App Router
+│   ├── auth/                # Authentication pages
+│   ├── dashboards/          # Role-based dashboards
+│   └── api/                 # API endpoints
+├── components/              # React components
+│   ├── ui/                 # shadcn/ui components
+│   ├── features/           # Feature-specific components
+│   └── layout/             # Layout components
+├── lib/                     # Utilities and helpers
+│   ├── supabase/          # Supabase clients
+│   ├── validations/       # Zod schemas
+│   └── utils/             # Helper functions
+├── hooks/                   # Custom React hooks
+└── config/                  # Configuration files
+```
 
-## Learn More
+## Features
 
-To learn more about Next.js, take a look at the following resources:
+- **Multi-tenant Architecture**: Complete data isolation between hospitals
+- **Role-Based Access Control**: 5 roles with different permissions
+- **Authentication**: Email/password with Supabase Auth
+- **Responsive Design**: Mobile-friendly UI with Tailwind CSS
+- **Form Validation**: Client and server-side with Zod
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Roles
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Super Admin**: Manage all hospitals
+- **Hospital Admin**: Manage departments, staff, inventory, finance
+- **Doctor**: Manage appointments, patients, prescriptions
+- **Reception**: Book appointments, register patients, billing
+- **Patient**: View appointments, medical records, prescriptions
 
-## Deploy on Vercel
+## Building for Production
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run build
+npm run start
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deployment
+
+Deploy to Vercel:
+```bash
+vercel
+```
+
+Set environment variables in Vercel dashboard before deploying.
+# Multi-Tenant-Hospital
