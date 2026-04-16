@@ -33,6 +33,7 @@ const roleBasedSidebarItems = {
   doctor: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/doctor' },
     { icon: Calendar, label: 'Appointments', href: '/dashboard/doctor/appointments' },
+    { icon: ClipboardPlus, label: 'Prescriptions', href: '/dashboard/doctor/prescriptions' },
     { icon: Clock, label: 'Calendar', href: '/dashboard/doctor/calendar' },
     { icon: Bell, label: 'Notifications', href: '/dashboard/doctor/notifications' },
     { icon: UserCircle, label: 'My Profile', href: '/dashboard/profiles' },
