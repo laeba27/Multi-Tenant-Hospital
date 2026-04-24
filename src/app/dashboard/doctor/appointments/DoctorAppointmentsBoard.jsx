@@ -169,7 +169,7 @@ function AppointmentRow({ appointment, onReschedule, onDelete, onViewProfile }) 
           variant="outline"
           className="text-indigo-700 border-indigo-200 hover:bg-indigo-50"
         >
-          <Link href={`/dashboard/doctor/prescriptions/new?appointmentId=${appointment.id}`}>
+          <Link href={`/dashboard/doctor/appointments/new?appointmentId=${appointment.id}`}>
             Prescribe
           </Link>
         </Button>

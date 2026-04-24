@@ -22,6 +22,7 @@ import {
   UserRoundCog,
   X,
   ChevronLeft,
+  Pill,
 } from 'lucide-react'
 import { useUserDetails } from '@/hooks/use-user-details'
 
@@ -33,6 +34,7 @@ const roleBasedSidebarItems = {
   doctor: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/doctor' },
     { icon: Calendar, label: 'Appointments', href: '/dashboard/doctor/appointments' },
+    { icon: Pill, label: 'Prescriptions', href: '/dashboard/doctor/prescriptions' },
     { icon: Clock, label: 'Calendar', href: '/dashboard/doctor/calendar' },
     { icon: Bell, label: 'Notifications', href: '/dashboard/doctor/notifications' },
     { icon: UserCircle, label: 'My Profile', href: '/dashboard/profiles' },
@@ -88,7 +90,8 @@ export function Sidebar({ isOpen = false, onClose = () => {} }) {
     setMounted(true)
   }, [])
 
-  const sidebarItems = roleBasedSidebarItems[profile?.role] || []
+  // Only set sidebarItems after profile is loaded and mounted to prevent hydration mismatch
+  const sidebarItems = mounted && !isLoading ? (roleBasedSidebarItems[profile?.role] || []) : []
 
   // Helper function to determine if a route is active
   // Returns the length of the matching href for specificity, or -1 if no match
@@ -120,7 +123,7 @@ export function Sidebar({ isOpen = false, onClose = () => {} }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-16 bottom-0 bg-white border-r border-gray-200 overflow-y-auto transition-all duration-300 ease-in-out z-40 lg:relative lg:top-0 ${
+        className={`fixed left-0 top-16 bottom-0 bg-white border-r border-gray-200 transition-all duration-300 ease-in-out z-40 lg:relative lg:top-0 ${
           isCollapsed ? 'w-20' : 'w-64'
         } ${mounted && isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
@@ -134,10 +137,10 @@ export function Sidebar({ isOpen = false, onClose = () => {} }) {
           </button>
         )}
 
-        {/* Toggle Button - Absolute positioned at edge */}
+        {/* Toggle Button - Positioned to be visible on top */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="hidden lg:flex absolute -right-5 top-8 items-center justify-center w-10 h-10 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-all shadow-lg z-50"
+          className="hidden lg:flex absolute -right-5 top-8 items-center justify-center w-10 h-10 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-all shadow-lg z-50 pointer-events-auto"
           title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <ChevronLeft
@@ -148,55 +151,57 @@ export function Sidebar({ isOpen = false, onClose = () => {} }) {
           />
         </button>
 
-        {/* Sidebar Content */}
-        <div className={`${isCollapsed ? 'p-2' : 'p-4'} pt-4`}>
-          {/* User Info Card */}
-          {!isLoading && profile && !isCollapsed && (
-            <div className="mb-6 p-4 bg-indigo-50 flex  gap-2 rounded-lg">
-              <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center text-white font-semibold mb-3">
-                {profile.name?.charAt(0).toUpperCase()}
+        {/* Scrollable Sidebar Content */}
+        <div className="h-full overflow-y-auto flex flex-col">
+          <div className={`${isCollapsed ? 'p-2' : 'p-4'} pt-4 flex-1`}>
+            {/* User Info Card */}
+            {!isLoading && profile && !isCollapsed && (
+              <div className="mb-6 p-4 bg-indigo-50 flex  gap-2 rounded-lg">
+                <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center text-white font-semibold mb-3">
+                  {profile.name?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">{profile.name}</p>
+                  <p className="text-xs text-gray-600 capitalize">{profile.role?.replace('_', ' ')}</p>
+                </div>
               </div>
-              <div>
-                <p className="font-semibold text-gray-900 text-sm">{profile.name}</p>
-                <p className="text-xs text-gray-600 capitalize">{profile.role?.replace('_', ' ')}</p>
+            )}
+
+            {/* Collapsed User Avatar */}
+            {!isLoading && profile && isCollapsed && (
+              <div className="mb-4 flex justify-center">
+                <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
+                  {profile.name?.charAt(0).toUpperCase()}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Collapsed User Avatar */}
-          {!isLoading && profile && isCollapsed && (
-            <div className="mb-4 flex justify-center">
-              <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
-                {profile.name?.charAt(0).toUpperCase()}
-              </div>
-            </div>
-          )}
+            {/* Navigation Items */}
+            <nav className="space-y-1">
+              {sidebarItems.map((item) => {
+                const IconComponent = item.icon
+                // An item is active only if its href matches the longest match found
+                const isActive = activeMatch === item.href.length && getActiveMatch(item.href) !== -1
 
-          {/* Navigation Items */}
-          <nav className="space-y-1">
-            {sidebarItems.map((item) => {
-              const IconComponent = item.icon
-              // An item is active only if its href matches the longest match found
-              const isActive = activeMatch === item.href.length && getActiveMatch(item.href) !== -1
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onClose}
-                  className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-4 py-3 rounded-lg font-medium transition-colors ${
-                    isActive
-                      ? 'bg-indigo-100 text-indigo-600'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                  title={isCollapsed ? item.label : ''}
-                >
-                  <IconComponent size={20} />
-                  {!isCollapsed && <span className="text-sm">{item.label}</span>}
-                </Link>
-              )
-            })}
-          </nav>
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={onClose}
+                    className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-4 py-3 rounded-lg font-medium transition-colors ${
+                      isActive
+                        ? 'bg-indigo-100 text-indigo-600'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                    title={isCollapsed ? item.label : ''}
+                  >
+                    <IconComponent size={20} />
+                    {!isCollapsed && <span className="text-sm">{item.label}</span>}
+                  </Link>
+                )
+              })}
+            </nav>
+          </div>
         </div>
       </aside>
     </>
