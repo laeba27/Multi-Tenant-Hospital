@@ -9,6 +9,9 @@ export async function POST(request) {
     const transcriptOverride = formData.get('transcript')
     const appointmentId = formData.get('appointmentId')
     let transcript = ''
+    let structured = null
+    let extractionMode = 'seq2seq'
+    let extractionWarning = ''
 
     if (transcriptOverride) {
       transcript = String(transcriptOverride)
@@ -40,12 +43,35 @@ export async function POST(request) {
       transcript = data.text || data.transcript || ''
     }
 
-    const structured = buildPrescriptionDraft({ transcript })
+    const structureUrl = process.env.AI_STRUCTURE_URL || 'http://localhost:8001/structure'
+
+    try {
+      const response = await fetch(structureUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: transcript }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || 'Structure endpoint failed')
+      }
+
+      const data = await response.json()
+      structured = data?.structured || null
+      extractionMode = data?.meta?.mode || 'seq2seq'
+    } catch (error) {
+      structured = buildPrescriptionDraft({ transcript })
+      extractionMode = 'rules-fallback'
+      extractionWarning = String(error?.message || 'Structure endpoint unavailable')
+    }
 
     return NextResponse.json({
       appointmentId,
       transcript,
       structured,
+      extractionMode,
+      extractionWarning,
     })
   } catch (error) {
     return NextResponse.json(

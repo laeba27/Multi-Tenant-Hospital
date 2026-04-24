@@ -2,3 +2,8 @@ fastapi
 uvicorn
 openai-whisper
 python-multipart
+torch
+transformers
+sentencepiece
+pydantic
+datasets

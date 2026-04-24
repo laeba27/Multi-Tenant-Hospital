@@ -14,8 +14,45 @@ export function AiPrescribePanel({ appointmentId }) {
   const [recordings, setRecordings] = useState([])
   const [transcript, setTranscript] = useState('')
   const [structured, setStructured] = useState(null)
+  const [originalTranscript, setOriginalTranscript] = useState('')
+  const [originalStructured, setOriginalStructured] = useState(null)
+  const [extractionMode, setExtractionMode] = useState('')
+  const [extractionWarning, setExtractionWarning] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState('')
+
+  const extractFromTranscript = async (rawTranscript, preserveOriginal = false) => {
+    const text = String(rawTranscript || '').trim()
+    if (!text) {
+      throw new Error('Transcript is empty')
+    }
+
+    const formData = new FormData()
+    formData.append('transcript', text)
+    formData.append('appointmentId', appointmentId)
+
+    const response = await fetch('/api/ai/prescribe', {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const payload = await response.json()
+      throw new Error(payload?.error || 'Failed to extract structured fields')
+    }
+
+    const payload = await response.json()
+    const draft = payload?.structured || buildPrescriptionDraft({ transcript: text })
+    setTranscript(text)
+    setStructured(draft)
+    setExtractionMode(payload?.extractionMode || '')
+    setExtractionWarning(payload?.extractionWarning || '')
+
+    if (preserveOriginal || !originalStructured) {
+      setOriginalTranscript(text)
+      setOriginalStructured(draft)
+    }
+  }
 
   const addRecording = (blob, sourceLabel = 'recording') => {
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -147,14 +184,27 @@ export function AiPrescribePanel({ appointmentId }) {
       return
     }
 
-    setTranscript(combined)
-    const draft = buildPrescriptionDraft({ transcript: combined })
-    setStructured(draft)
+    setIsProcessing(true)
+    setError('')
+    extractFromTranscript(combined, true)
+      .catch((err) => {
+        setError(err.message || 'Failed to combine and extract')
+      })
+      .finally(() => {
+        setIsProcessing(false)
+      })
   }
 
   const handleReextract = () => {
-    const draft = buildPrescriptionDraft({ transcript })
-    setStructured(draft)
+    setIsProcessing(true)
+    setError('')
+    extractFromTranscript(transcript, false)
+      .catch((err) => {
+        setError(err.message || 'Failed to re-extract')
+      })
+      .finally(() => {
+        setIsProcessing(false)
+      })
   }
 
   const handleSaveDraft = async () => {
@@ -174,6 +224,10 @@ export function AiPrescribePanel({ appointmentId }) {
           appointmentId,
           transcript,
           structured,
+          originalTranscript: originalTranscript || transcript,
+          originalStructured: originalStructured || structured,
+          extractionMode,
+          extractionWarning,
         }),
       })
 
@@ -293,6 +347,12 @@ export function AiPrescribePanel({ appointmentId }) {
           <Button variant="outline" onClick={handleReextract}>
             Re-extract fields
           </Button>
+          {(extractionMode || extractionWarning) && (
+            <p className="text-xs text-gray-500">
+              Mode: {extractionMode || 'unknown'}
+              {extractionWarning ? ` | Warning: ${extractionWarning}` : ''}
+            </p>
+          )}
         </CardContent>
       </Card>
 

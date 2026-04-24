@@ -1,0 +1,647 @@
+[
+  {
+    "id": "case-001",
+    "transcript": "Cough for one week, diagnosis acute bronchitis. Give azithromycin 500 mg once daily for 3 days. Advise steam inhalation and warm fluids.",
+    "expected": {
+      "diagnosis": "acute bronchitis",
+      "complaints": [{ "symptom": "cough", "duration": "1 week" }],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["cough for one week"],
+      "advice": ["Steam inhalation", "Warm fluids"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "azithromycin", "dosage": "500 mg", "frequency": "once daily", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-002",
+    "transcript": "Headache for 2 days, diagnosis tension headache. Prescribe paracetamol 650 mg SOS. Advise proper sleep and stress reduction.",
+    "expected": {
+      "diagnosis": "tension headache",
+      "complaints": [{ "symptom": "headache", "duration": "2 days" }],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["headache for 2 days"],
+      "advice": ["Proper sleep", "Stress reduction"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "paracetamol", "dosage": "650 mg", "frequency": "as needed", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-003",
+    "transcript": "Sore throat with fever for 3 days. Diagnosis viral pharyngitis. Start amoxicillin 500 mg three times daily for 5 days. Advise warm saline gargles and rest.",
+    "expected": {
+      "diagnosis": "viral pharyngitis",
+      "complaints": [
+        { "symptom": "sore throat", "duration": "3 days" },
+        { "symptom": "fever", "duration": "3 days" }
+      ],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["sore throat with fever for 3 days"],
+      "advice": ["Warm saline gargles", "Rest"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "amoxicillin", "dosage": "500 mg", "frequency": "three times daily", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-004",
+    "transcript": "Headache, BP 160/100. Diagnosis uncontrolled hypertension. Start amlodipine 5 mg once daily. Advise low salt diet and monitor BP at home.",
+    "expected": {
+      "diagnosis": "uncontrolled hypertension",
+      "complaints": [{ "symptom": "headache", "duration": "" }],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["headache"],
+      "advice": ["Low salt diet"],
+      "treatment": [],
+      "investigations": ["Home blood pressure monitoring"],
+      "prescribed_medicines": [
+        { "name": "amlodipine", "dosage": "5 mg", "frequency": "once daily", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-005",
+    "transcript": "Epigastric pain for 4 days, diagnosis gastritis. Give pantoprazole 40 mg once daily before food for 14 days. Advise avoid spicy food.",
+    "expected": {
+      "diagnosis": "gastritis",
+      "complaints": [{ "symptom": "epigastric pain", "duration": "4 days" }],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["epigastric pain for 4 days"],
+      "advice": ["Avoid spicy food"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "pantoprazole", "dosage": "40 mg", "frequency": "once daily", "timing": "before food" }
+      ]
+    }
+  },
+  {
+    "id": "case-006",
+    "transcript": "Sneezing and runny nose for one week. Diagnosis allergic rhinitis. Prescribe levocetirizine 5 mg at night for 5 days. Advise avoid dust and saline nasal wash.",
+    "expected": {
+      "diagnosis": "allergic rhinitis",
+      "complaints": [{ "symptom": "sneezing", "duration": "1 week" }],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["sneezing and runny nose for one week"],
+      "advice": ["Avoid dust", "Saline nasal wash"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "levocetirizine", "dosage": "5 mg", "frequency": "", "timing": "at night" }
+      ]
+    }
+  },
+  {
+    "id": "case-007",
+    "transcript": "No significant history and not on medications. Common cold for 2 days. Give paracetamol 500 mg SOS. Advise hydration and rest.",
+    "expected": {
+      "diagnosis": "common cold",
+      "complaints": [{ "symptom": "cold", "duration": "2 days" }],
+      "medical_history": ["No significant past medical history"],
+      "current_medications": ["No current medications"],
+      "history_present_illness": ["common cold for 2 days"],
+      "advice": ["Hydration", "Rest"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "paracetamol", "dosage": "500 mg", "frequency": "as needed", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-008",
+    "transcript": "Fever and body ache for 2 days, likely dengue. Give paracetamol 650 mg SOS. Advise hydration. Order CBC and platelet count.",
+    "expected": {
+      "diagnosis": "dengue",
+      "complaints": [
+        { "symptom": "fever", "duration": "2 days" },
+        { "symptom": "body ache", "duration": "2 days" }
+      ],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["fever and body ache for 2 days"],
+      "advice": ["Hydration"],
+      "treatment": [],
+      "investigations": ["Complete blood count (CBC)", "Platelet count"],
+      "prescribed_medicines": [
+        { "name": "paracetamol", "dosage": "650 mg", "frequency": "as needed", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-009",
+    "transcript": "Known type 2 diabetes, sugars high on follow up. Continue metformin 500 mg twice daily. Order HbA1c and fasting blood sugar.",
+    "expected": {
+      "diagnosis": "type 2 diabetes mellitus",
+      "complaints": [],
+      "medical_history": ["Type 2 diabetes mellitus"],
+      "current_medications": ["metformin"],
+      "history_present_illness": ["sugars high on follow up"],
+      "advice": [],
+      "treatment": ["Continue current antidiabetic therapy"],
+      "investigations": ["Blood glucose profile (FBS/RBS/HbA1c)"],
+      "prescribed_medicines": [
+        { "name": "metformin", "dosage": "500 mg", "frequency": "twice daily", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-010",
+    "transcript": "Cough with breathlessness for 3 days. Diagnosis asthma exacerbation. Start salbutamol inhaler SOS. Advise avoid smoke.",
+    "expected": {
+      "diagnosis": "asthma exacerbation",
+      "complaints": [
+        { "symptom": "cough", "duration": "3 days" },
+        { "symptom": "breathlessness", "duration": "3 days" }
+      ],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["cough with breathlessness for 3 days"],
+      "advice": ["Avoid smoke"],
+      "treatment": ["Inhalation bronchodilator therapy"],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "salbutamol inhaler", "dosage": "", "frequency": "as needed", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-011",
+    "transcript": "Burning urination for 5 days, diagnosis urinary tract infection. Prescribe nitrofurantoin 100 mg twice daily for 5 days. Advise hydration. Urine routine test.",
+    "expected": {
+      "diagnosis": "urinary tract infection",
+      "complaints": [{ "symptom": "burning urination", "duration": "5 days" }],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["burning urination for 5 days"],
+      "advice": ["Hydration"],
+      "treatment": [],
+      "investigations": ["Urine routine"],
+      "prescribed_medicines": [
+        { "name": "nitrofurantoin", "dosage": "100 mg", "frequency": "twice daily", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-012",
+    "transcript": "Recurrent migraine with nausea. Give sumatriptan 50 mg SOS. Advise sleep hygiene and trigger diary.",
+    "expected": {
+      "diagnosis": "migraine",
+      "complaints": [
+        { "symptom": "headache", "duration": "" },
+        { "symptom": "nausea", "duration": "" }
+      ],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["recurrent migraine with nausea"],
+      "advice": ["Sleep hygiene", "Trigger diary"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "sumatriptan", "dosage": "50 mg", "frequency": "as needed", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-013",
+    "transcript": "Ear pain for 4 days, diagnosis otitis externa. Start ciprofloxacin drops 3 drops three times daily for 7 days. Advise keep ear dry.",
+    "expected": {
+      "diagnosis": "otitis externa",
+      "complaints": [{ "symptom": "ear pain", "duration": "4 days" }],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["ear pain for 4 days"],
+      "advice": ["Keep ear dry"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "ciprofloxacin drops", "dosage": "", "frequency": "three times daily", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-014",
+    "transcript": "Red eye with discharge for 2 days, diagnosis conjunctivitis. Prescribe moxifloxacin eye drops four times daily for 5 days. Advise hand hygiene.",
+    "expected": {
+      "diagnosis": "conjunctivitis",
+      "complaints": [{ "symptom": "red eye", "duration": "2 days" }],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["red eye with discharge for 2 days"],
+      "advice": ["Hand hygiene"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "moxifloxacin eye drops", "dosage": "", "frequency": "four times daily", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-015",
+    "transcript": "Low back pain for one week due to strain. Give ibuprofen 400 mg twice daily after food for 5 days. Advise hot fomentation and rest.",
+    "expected": {
+      "diagnosis": "lumbar strain",
+      "complaints": [{ "symptom": "back pain", "duration": "1 week" }],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["low back pain for one week"],
+      "advice": ["Hot fomentation", "Rest"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "ibuprofen", "dosage": "400 mg", "frequency": "twice daily", "timing": "after food" }
+      ]
+    }
+  },
+  {
+    "id": "case-016",
+    "transcript": "Known hypothyroidism with fatigue on follow up. Continue thyroxine 50 mcg once daily. Order TSH.",
+    "expected": {
+      "diagnosis": "hypothyroidism",
+      "complaints": [{ "symptom": "fatigue", "duration": "" }],
+      "medical_history": ["Hypothyroidism"],
+      "current_medications": ["thyroxine"],
+      "history_present_illness": ["fatigue on follow up"],
+      "advice": [],
+      "treatment": ["Continue thyroid replacement therapy"],
+      "investigations": ["Thyroid profile (TSH)"],
+      "prescribed_medicines": [
+        { "name": "thyroxine", "dosage": "50 mcg", "frequency": "once daily", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-017",
+    "transcript": "Weakness and pallor, diagnosis iron deficiency anemia. Start ferrous ascorbate once daily for 3 months. Order CBC.",
+    "expected": {
+      "diagnosis": "iron deficiency anemia",
+      "complaints": [{ "symptom": "weakness", "duration": "" }],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["weakness and pallor"],
+      "advice": [],
+      "treatment": [],
+      "investigations": ["Complete blood count (CBC)"],
+      "prescribed_medicines": [
+        { "name": "ferrous ascorbate", "dosage": "", "frequency": "once daily", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-018",
+    "transcript": "Fever and sore throat for 4 days, diagnosis tonsillitis. Give amoxiclav 625 mg twice daily for 5 days. Advise warm saline gargles.",
+    "expected": {
+      "diagnosis": "tonsillitis",
+      "complaints": [
+        { "symptom": "fever", "duration": "4 days" },
+        { "symptom": "sore throat", "duration": "4 days" }
+      ],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["fever and sore throat for 4 days"],
+      "advice": ["Warm saline gargles"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "amoxiclav", "dosage": "625 mg", "frequency": "twice daily", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-019",
+    "transcript": "Tooth pain for one week due to dental caries. Prescribe amoxicillin 500 mg TDS for 5 days and paracetamol 500 mg SOS. Advise dental consultation.",
+    "expected": {
+      "diagnosis": "dental caries",
+      "complaints": [{ "symptom": "tooth pain", "duration": "1 week" }],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["tooth pain for one week"],
+      "advice": ["Dental consultation"],
+      "treatment": ["Dental procedure planning"],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "amoxicillin", "dosage": "500 mg", "frequency": "three times daily", "timing": "" },
+        { "name": "paracetamol", "dosage": "500 mg", "frequency": "as needed", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-020",
+    "transcript": "Loose stools and vomiting since yesterday, diagnosis acute gastroenteritis. Give ORS and ondansetron SOS. Advise hydration.",
+    "expected": {
+      "diagnosis": "acute gastroenteritis",
+      "complaints": [
+        { "symptom": "diarrhea", "duration": "1 day" },
+        { "symptom": "vomiting", "duration": "1 day" }
+      ],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["loose stools and vomiting since yesterday"],
+      "advice": ["Hydration"],
+      "treatment": ["Oral rehydration"],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "ondansetron", "dosage": "", "frequency": "as needed", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-021",
+    "transcript": "Facial pain and nasal blockage for 6 days, diagnosis acute sinusitis. Start cefixime 200 mg twice daily for 5 days. Advise steam inhalation.",
+    "expected": {
+      "diagnosis": "acute sinusitis",
+      "complaints": [{ "symptom": "facial pain", "duration": "6 days" }],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["facial pain and nasal blockage for 6 days"],
+      "advice": ["Steam inhalation"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "cefixime", "dosage": "200 mg", "frequency": "twice daily", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-022",
+    "transcript": "Insomnia with stress. Not on medications. Advise sleep hygiene and no caffeine at night. Give melatonin 3 mg at night if needed.",
+    "expected": {
+      "diagnosis": "insomnia",
+      "complaints": [{ "symptom": "insomnia", "duration": "" }],
+      "medical_history": [],
+      "current_medications": ["No current medications"],
+      "history_present_illness": ["insomnia with stress"],
+      "advice": ["Sleep hygiene", "No caffeine at night"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "melatonin", "dosage": "3 mg", "frequency": "as needed", "timing": "at night" }
+      ]
+    }
+  },
+  {
+    "id": "case-023",
+    "transcript": "Known CKD with edema and breathlessness. Continue furosemide 40 mg once daily. Advise salt restriction. Order creatinine and potassium.",
+    "expected": {
+      "diagnosis": "chronic kidney disease",
+      "complaints": [
+        { "symptom": "breathlessness", "duration": "" },
+        { "symptom": "edema", "duration": "" }
+      ],
+      "medical_history": ["Chronic kidney disease"],
+      "current_medications": ["furosemide"],
+      "history_present_illness": ["edema and breathlessness"],
+      "advice": ["Salt restriction"],
+      "treatment": ["Continue diuretic therapy"],
+      "investigations": ["Serum creatinine", "Serum potassium"],
+      "prescribed_medicines": [
+        { "name": "furosemide", "dosage": "40 mg", "frequency": "once daily", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-024",
+    "transcript": "Pregnancy 8 weeks with nausea. Give doxylamine plus pyridoxine at night. Advise small frequent meals and avoid self medication.",
+    "expected": {
+      "diagnosis": "pregnancy with nausea",
+      "complaints": [{ "symptom": "nausea", "duration": "" }],
+      "medical_history": ["Pregnancy 8 weeks"],
+      "current_medications": [],
+      "history_present_illness": ["pregnancy with nausea"],
+      "advice": ["Small frequent meals", "Avoid self medication"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "doxylamine", "dosage": "", "frequency": "", "timing": "at night" },
+        { "name": "pyridoxine", "dosage": "", "frequency": "", "timing": "at night" }
+      ]
+    }
+  },
+  {
+    "id": "case-025",
+    "transcript": "Itching in groin for 2 weeks, diagnosis tinea cruris. Prescribe clotrimazole cream twice daily. Advise keep area dry.",
+    "expected": {
+      "diagnosis": "tinea cruris",
+      "complaints": [{ "symptom": "itching", "duration": "2 weeks" }],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["itching in groin for 2 weeks"],
+      "advice": ["Keep area dry"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "clotrimazole cream", "dosage": "", "frequency": "twice daily", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-026",
+    "transcript": "Child with ear pain and fever for 2 days, diagnosis otitis media. Start amoxicillin 250 mg three times daily for 5 days. Advise warm compress.",
+    "expected": {
+      "diagnosis": "otitis media",
+      "complaints": [
+        { "symptom": "ear pain", "duration": "2 days" },
+        { "symptom": "fever", "duration": "2 days" }
+      ],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["ear pain and fever for 2 days"],
+      "advice": ["Warm compress"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "amoxicillin", "dosage": "250 mg", "frequency": "three times daily", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-027",
+    "transcript": "Fever, cough and breathlessness for 5 days, diagnosis pneumonia. Start azithromycin 500 mg once daily and amoxiclav 625 mg twice daily. Order chest xray and CBC.",
+    "expected": {
+      "diagnosis": "pneumonia",
+      "complaints": [
+        { "symptom": "fever", "duration": "5 days" },
+        { "symptom": "cough", "duration": "5 days" },
+        { "symptom": "breathlessness", "duration": "5 days" }
+      ],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["fever cough and breathlessness for 5 days"],
+      "advice": [],
+      "treatment": [],
+      "investigations": ["Chest X-ray", "Complete blood count (CBC)"],
+      "prescribed_medicines": [
+        { "name": "azithromycin", "dosage": "500 mg", "frequency": "once daily", "timing": "" },
+        { "name": "amoxiclav", "dosage": "625 mg", "frequency": "twice daily", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-028",
+    "transcript": "Anxiety with palpitations, vitals normal. Advise breathing exercises and sleep hygiene. No medicines now.",
+    "expected": {
+      "diagnosis": "anxiety",
+      "complaints": [{ "symptom": "palpitations", "duration": "" }],
+      "medical_history": [],
+      "current_medications": ["No current medications"],
+      "history_present_illness": ["anxiety with palpitations"],
+      "advice": ["Breathing exercises", "Sleep hygiene"],
+      "treatment": ["Conservative management"],
+      "investigations": [],
+      "prescribed_medicines": []
+    }
+  },
+  {
+    "id": "case-029",
+    "transcript": "Heartburn for one month, diagnosis GERD. Start pantoprazole 40 mg once daily before breakfast. Advise avoid late meals and spicy food.",
+    "expected": {
+      "diagnosis": "GERD",
+      "complaints": [{ "symptom": "heartburn", "duration": "1 month" }],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["heartburn for one month"],
+      "advice": ["Avoid late meals", "Avoid spicy food"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "pantoprazole", "dosage": "40 mg", "frequency": "once daily", "timing": "before food" }
+      ]
+    }
+  },
+  {
+    "id": "case-030",
+    "transcript": "Smoker with COPD and cough with sputum for 2 weeks. Continue bronchodilator inhaler as needed. Advise stop smoking. Chest xray advised.",
+    "expected": {
+      "diagnosis": "COPD",
+      "complaints": [{ "symptom": "cough", "duration": "2 weeks" }],
+      "medical_history": ["COPD"],
+      "current_medications": ["bronchodilator inhaler"],
+      "history_present_illness": ["cough with sputum for 2 weeks"],
+      "advice": ["Stop smoking"],
+      "treatment": ["Continue inhalation therapy"],
+      "investigations": ["Chest X-ray"],
+      "prescribed_medicines": [
+        { "name": "bronchodilator inhaler", "dosage": "", "frequency": "as needed", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-031",
+    "transcript": "No significant history, not on medications. Tension type headache. Give paracetamol 500 mg SOS and advise hydration and sleep.",
+    "expected": {
+      "diagnosis": "tension type headache",
+      "complaints": [{ "symptom": "headache", "duration": "" }],
+      "medical_history": ["No significant past medical history"],
+      "current_medications": ["No current medications"],
+      "history_present_illness": ["tension type headache"],
+      "advice": ["Hydration", "Sleep"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "paracetamol", "dosage": "500 mg", "frequency": "as needed", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-032",
+    "transcript": "Hypertension follow up, BP 128/82 and pulse normal. Continue amlodipine 5 mg once daily. Advise low salt diet and regular exercise.",
+    "expected": {
+      "diagnosis": "hypertension",
+      "complaints": [],
+      "medical_history": ["Hypertension"],
+      "current_medications": ["amlodipine"],
+      "history_present_illness": ["hypertension follow up"],
+      "advice": ["Low salt diet", "Regular exercise"],
+      "treatment": ["Continue antihypertensive therapy"],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "amlodipine", "dosage": "5 mg", "frequency": "once daily", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-033",
+    "transcript": "Fever with chills for 3 days, diagnosis malaria. Start artemether lumefantrine as per protocol. Advise hydration. CBC and peripheral smear.",
+    "expected": {
+      "diagnosis": "malaria",
+      "complaints": [{ "symptom": "fever", "duration": "3 days" }],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["fever with chills for 3 days"],
+      "advice": ["Hydration"],
+      "treatment": [],
+      "investigations": ["Complete blood count (CBC)", "Peripheral smear"],
+      "prescribed_medicines": [
+        { "name": "artemether lumefantrine", "dosage": "", "frequency": "", "timing": "" }
+      ]
+    }
+  },
+  {
+    "id": "case-034",
+    "transcript": "Neck pain after long computer use for 10 days. Give diclofenac 50 mg twice daily after food. Advise posture correction and stretching exercises.",
+    "expected": {
+      "diagnosis": "cervical strain",
+      "complaints": [{ "symptom": "neck pain", "duration": "10 days" }],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["neck pain after long computer use for 10 days"],
+      "advice": ["Posture correction", "Stretching exercises"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "diclofenac", "dosage": "50 mg", "frequency": "twice daily", "timing": "after food" }
+      ]
+    }
+  },
+  {
+    "id": "case-035",
+    "transcript": "No prior chronic illness. Not taking medications. Dry cough at night for 5 days. Give dextromethorphan syrup 10 ml at night and advise steam inhalation.",
+    "expected": {
+      "diagnosis": "acute cough",
+      "complaints": [{ "symptom": "cough", "duration": "5 days" }],
+      "medical_history": ["No significant past medical history"],
+      "current_medications": ["No current medications"],
+      "history_present_illness": ["dry cough at night for 5 days"],
+      "advice": ["Steam inhalation"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "dextromethorphan syrup", "dosage": "10 ml", "frequency": "", "timing": "at night" }
+      ]
+    }
+  },
+  {
+    "id": "case-036",
+    "transcript": "Assessment: viral upper respiratory infection. Complaining of cough and cold for 4 days. Prescribe levocetirizine 5 mg at night and paracetamol 500 mg SOS. Advise rest and fluids.",
+    "expected": {
+      "diagnosis": "viral upper respiratory infection",
+      "complaints": [
+        { "symptom": "cough", "duration": "4 days" },
+        { "symptom": "cold", "duration": "4 days" }
+      ],
+      "medical_history": [],
+      "current_medications": [],
+      "history_present_illness": ["cough and cold for 4 days"],
+      "advice": ["Rest", "Fluids"],
+      "treatment": [],
+      "investigations": [],
+      "prescribed_medicines": [
+        { "name": "levocetirizine", "dosage": "5 mg", "frequency": "", "timing": "at night" },
+        { "name": "paracetamol", "dosage": "500 mg", "frequency": "as needed", "timing": "" }
+      ]
+    }
+  }
+]

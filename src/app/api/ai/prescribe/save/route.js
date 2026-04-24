@@ -3,9 +3,47 @@ import { createClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
+function stableStringify(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(',')}]`
+  }
+  if (value && typeof value === 'object') {
+    const keys = Object.keys(value).sort()
+    return `{${keys
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
+      .join(',')}}`
+  }
+  return JSON.stringify(value)
+}
+
+function getChangedFields(originalStructured, finalStructured) {
+  const original = originalStructured && typeof originalStructured === 'object' ? originalStructured : {}
+  const final = finalStructured && typeof finalStructured === 'object' ? finalStructured : {}
+  const keys = new Set([...Object.keys(original), ...Object.keys(final)])
+  const changed = []
+
+  for (const key of keys) {
+    const before = stableStringify(original[key])
+    const after = stableStringify(final[key])
+    if (before !== after) {
+      changed.push(key)
+    }
+  }
+
+  return changed.sort()
+}
+
 export async function POST(request) {
   try {
-    const { appointmentId, transcript, structured } = await request.json()
+    const {
+      appointmentId,
+      transcript,
+      structured,
+      originalTranscript,
+      originalStructured,
+      extractionMode,
+      extractionWarning,
+    } = await request.json()
 
     if (!appointmentId || !structured) {
       return NextResponse.json(
@@ -114,9 +152,35 @@ export async function POST(request) {
           payload: {
             appointment_id: appointmentId,
             transcript_length: transcript.length,
+            extraction_mode: extractionMode || 'unknown',
+            extraction_warning: extractionWarning || '',
           },
         },
       ])
+
+    const hasOriginalBaseline = originalStructured && typeof originalStructured === 'object'
+    const changedFields = hasOriginalBaseline
+      ? getChangedFields(originalStructured, structured)
+      : []
+    if (hasOriginalBaseline && changedFields.length > 0) {
+      await supabase
+        .from('prescription_audit_logs')
+        .insert([
+          {
+            prescription_id: prescription.id,
+            actor_id: user.id,
+            event_type: 'ai_output_corrected',
+            payload: {
+              appointment_id: appointmentId,
+              changed_fields: changedFields,
+              original_transcript: originalTranscript || transcript,
+              final_transcript: transcript,
+              original_ai_output: originalStructured || null,
+              final_output: structured,
+            },
+          },
+        ])
+    }
 
     return NextResponse.json({
       success: true,
