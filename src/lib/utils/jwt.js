@@ -50,6 +50,55 @@ export function verifyStaffInviteToken(token) {
   }
 }
 
+// Generate a password reset token (own flow -- not Supabase's email reset)
+export function generatePasswordResetToken({ user_id, email, registration_no }) {
+  assertJwtSecret()
+  const payload = {
+    user_id,
+    email,
+    registration_no,
+    type: 'password_reset',
+  }
+
+  return jwt.sign(payload, JWT_SECRET, {
+    expiresIn: '1h', // short-lived reset link
+    issuer: 'smile-returns',
+    audience: 'password-reset',
+  })
+}
+
+// Verify and decode a password reset token (server-side only)
+export function verifyPasswordResetToken(token) {
+  try {
+    assertJwtSecret()
+    const decoded = jwt.verify(token, JWT_SECRET, {
+      issuer: 'smile-returns',
+      audience: 'password-reset',
+    })
+
+    if (decoded.type !== 'password_reset') {
+      throw new Error('Invalid token type')
+    }
+
+    return { valid: true, data: decoded }
+  } catch (error) {
+    return { valid: false, error: error.message }
+  }
+}
+
+// Decode a password reset token without verifying signature (client display only)
+export function decodePasswordResetToken(token) {
+  try {
+    const decoded = jwt.decode(token)
+    if (!decoded || decoded.type !== 'password_reset') {
+      throw new Error('Invalid reset token')
+    }
+    return { valid: true, data: decoded }
+  } catch (error) {
+    return { valid: false, error: error.message }
+  }
+}
+
 // Decode token payload without verifying signature (for client-side display only)
 export function decodeStaffInviteToken(token) {
   try {

@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 import { useUserDetails } from '@/hooks/use-user-details'
 import { Button } from '@/components/ui/button'
 
-export default function DashboardLayout({ children }) {
+export default function DashboardLayout({ children, showHeader = false }) {
   const router = useRouter()
   const { profile, hospital, isLoading } = useUserDetails()
 
@@ -40,6 +40,7 @@ export default function DashboardLayout({ children }) {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* ===== Page Header ===== */}
+        {showHeader && (
         <div className="mb-8 bg-white rounded-xl border shadow-sm p-6">
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -78,6 +79,7 @@ export default function DashboardLayout({ children }) {
             </div>
           </div>
         </div>
+        )}
         {/* ===== End Header ===== */}
 
         {children}

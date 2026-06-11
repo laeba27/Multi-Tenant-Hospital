@@ -89,7 +89,7 @@ export default function ReceptionDashboardPage() {
 
   if (userLoading || loadingStaff) {
     return (
-      <DashboardLayout>
+      <DashboardLayout showHeader>
         <div className="flex items-center justify-center h-screen">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
@@ -126,7 +126,7 @@ export default function ReceptionDashboardPage() {
   ]
 
   return (
-    <DashboardLayout>
+    <DashboardLayout showHeader>
       <div className="space-y-6">
         {/* Welcome Section */}
         <div>

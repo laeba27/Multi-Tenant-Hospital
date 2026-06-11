@@ -1,17 +1,52 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Menu, X, LogOut, Bell, Settings } from 'lucide-react'
+import { Menu, LogOut, Bell, Settings, MessageSquare, Megaphone } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatDistanceToNow } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
 import { useUserDetails } from '@/hooks/use-user-details'
+import { getNavNotifications } from '@/actions/notifications'
+import { ResetPasswordDialog } from './ResetPasswordDialog'
 
 export function Navbar({ onMenuToggle }) {
   const router = useRouter()
   const { profile, hospital, isLoading } = useUserDetails()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [openMenu, setOpenMenu] = useState(null) // 'notifications' | 'settings' | null
+  const [notifications, setNotifications] = useState([])
+  const [notifLoading, setNotifLoading] = useState(false)
+  const [showResetDialog, setShowResetDialog] = useState(false)
+  const menuRef = useRef(null)
+
+  const loadNotifications = useCallback(async () => {
+    setNotifLoading(true)
+    try {
+      const res = await getNavNotifications()
+      setNotifications(res.items || [])
+    } catch (e) {
+      console.error('Failed to load notifications', e)
+    } finally {
+      setNotifLoading(false)
+    }
+  }, [])
+
+  // Load once the user is known so the bell badge reflects real content.
+  useEffect(() => {
+    if (profile) loadNotifications()
+  }, [profile, loadNotifications])
+
+  // Close any open icon menu on outside click.
+  useEffect(() => {
+    const onClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpenMenu(null)
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [])
+
+  const toggleMenu = (name) => setOpenMenu((cur) => (cur === name ? null : name))
 
   const handleLogout = async () => {
     try {
@@ -25,12 +60,15 @@ export function Navbar({ onMenuToggle }) {
     }
   }
 
+  const hasNotifications = notifications.length > 0
+
   const userInitial = profile?.name?.charAt(0).toUpperCase() || '?'
   const userName = profile?.name || 'User'
   const userRole = profile?.role?.replace('_', ' ') || 'Loading...'
   const hospitalName = hospital?.name || 'Hospital Management Portal'
 
   return (
+    <>
     <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
@@ -55,16 +93,121 @@ export function Navbar({ onMenuToggle }) {
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-4">
-            {/* Notifications */}
-            <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg relative">
-              <Bell size={20} />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
+            <div ref={menuRef} className="flex items-center gap-2">
+              {/* Notifications */}
+              <div className="relative">
+                <button
+                  onClick={() => toggleMenu('notifications')}
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg relative"
+                  title="Notifications"
+                >
+                  <Bell size={20} />
+                  {hasNotifications && (
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+                  )}
+                </button>
 
-            {/* Settings */}
-            <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
-              <Settings size={20} />
-            </button>
+                {openMenu === 'notifications' && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                      <p className="text-sm font-semibold text-gray-900">Notifications</p>
+                      {hasNotifications && (
+                        <span className="text-[11px] text-gray-400">{notifications.length}</span>
+                      )}
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
+                      {notifLoading ? (
+                        <p className="px-4 py-6 text-sm text-gray-400 text-center">Loading…</p>
+                      ) : !hasNotifications ? (
+                        <p className="px-4 py-8 text-sm text-gray-400 text-center">
+                          You&apos;re all caught up.
+                        </p>
+                      ) : (
+                        notifications.map((n) => (
+                          <div
+                            key={n.id}
+                            className="px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50"
+                          >
+                            <div className="flex items-start gap-2.5">
+                              <span
+                                className={`mt-0.5 inline-flex rounded-md p-1.5 ${
+                                  n.kind === 'issue'
+                                    ? 'bg-amber-50 text-amber-600'
+                                    : 'bg-indigo-50 text-indigo-600'
+                                }`}
+                              >
+                                {n.kind === 'issue' ? (
+                                  <MessageSquare size={14} />
+                                ) : (
+                                  <Megaphone size={14} />
+                                )}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[13px] font-medium text-gray-900 truncate">
+                                  {n.title}
+                                </p>
+                                {n.body && (
+                                  <p className="text-[12px] text-gray-500 line-clamp-2">{n.body}</p>
+                                )}
+                                <div className="flex items-center gap-2 mt-1">
+                                  {n.badge && (
+                                    <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400 capitalize">
+                                      {n.badge}
+                                    </span>
+                                  )}
+                                  {n.at && (
+                                    <span className="text-[10px] text-gray-300">
+                                      {formatDistanceToNow(new Date(n.at), { addSuffix: true })}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Settings */}
+              <div className="relative">
+                <button
+                  onClick={() => toggleMenu('settings')}
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                  title="Settings"
+                >
+                  <Settings size={20} />
+                </button>
+
+                {openMenu === 'settings' && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-gray-900">Settings</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setOpenMenu(null)
+                        setShowResetDialog(true)
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Reset Password
+                    </button>
+                    <button
+                      onClick={() => {
+                        setOpenMenu(null)
+                        router.push('/dashboard/profiles')
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 border-t border-gray-100"
+                    >
+                      Profile Settings
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* User Dropdown */}
             <div className="relative">
@@ -108,5 +251,8 @@ export function Navbar({ onMenuToggle }) {
         </div>
       </div>
     </nav>
+
+    <ResetPasswordDialog open={showResetDialog} onClose={() => setShowResetDialog(false)} />
+    </>
   )
 }

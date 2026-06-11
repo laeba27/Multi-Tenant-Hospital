@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
+import { ForgotPasswordDialog } from './ForgotPasswordDialog'
 
 const signInSchema = z.object({
   registrationNo: z.string().min(1, 'Registration number is required'),
@@ -18,6 +20,8 @@ const signInSchema = z.object({
 export default function SignInPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showForgot, setShowForgot] = useState(false)
   const hasShownStatusToast = useRef(false)
   const {
     register,
@@ -130,6 +134,7 @@ export default function SignInPage() {
   }
 
   return (
+    <>
     <div className="space-y-6">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
@@ -148,16 +153,35 @@ export default function SignInPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Password
-          </label>
-          <Input
-            {...register('password')}
-            type="password"
-            placeholder="••••••••"
-            disabled={isLoading}
-            className="h-11 text-base border-gray-300 focus:border-indigo-500"
-          />
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Password
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowForgot(true)}
+              className="text-sm text-indigo-600 hover:underline font-medium"
+            >
+              Forgot password?
+            </button>
+          </div>
+          <div className="relative">
+            <Input
+              {...register('password')}
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              disabled={isLoading}
+              className="h-11 text-base border-gray-300 focus:border-indigo-500 pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((s) => !s)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            </button>
+          </div>
           {errors.password && (
             <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
           )}
@@ -166,8 +190,9 @@ export default function SignInPage() {
         <Button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 h-11 text-base font-semibold"
+          className="w-full bg-indigo-600 hover:bg-indigo-700 h-11 text-base font-semibold flex items-center justify-center gap-2"
         >
+          {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
           {isLoading ? 'Signing in...' : 'Sign In'}
         </Button>
       </form>
@@ -179,5 +204,8 @@ export default function SignInPage() {
         </a>
       </p>
     </div>
+
+    <ForgotPasswordDialog open={showForgot} onClose={() => setShowForgot(false)} />
+    </>
   )
 }
