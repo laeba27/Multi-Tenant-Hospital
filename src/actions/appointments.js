@@ -202,6 +202,12 @@ export async function getDoctorAppointments(doctorId) {
         departments:department_id (
           id,
           name
+        ),
+        prescriptions:prescriptions!appointment_id (
+          id,
+          status,
+          issued_at,
+          created_at
         )
       `)
       .eq('doctor_id', doctorId)
@@ -210,7 +216,19 @@ export async function getDoctorAppointments(doctorId) {
 
     if (error) throw error
 
-    return data || []
+    // Derive a single prescription state per appointment from its prescriptions.
+    return (data || []).map((appt) => {
+      const list = Array.isArray(appt.prescriptions) ? appt.prescriptions : []
+      const active = list
+        .filter((p) => p.status !== 'cancelled')
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+      return {
+        ...appt,
+        prescription_state: active ? active.status || 'draft' : 'pending',
+        has_prescription: Boolean(active),
+        prescription_id: active?.id || null,
+      }
+    })
   } catch (error) {
     console.error('Error fetching doctor appointments:', error)
     throw error

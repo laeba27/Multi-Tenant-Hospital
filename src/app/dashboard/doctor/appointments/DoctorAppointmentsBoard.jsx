@@ -53,6 +53,28 @@ const STATUS_META = {
   cancelled: { label: 'Cancelled', className: 'bg-rose-50 text-rose-700 border border-rose-100' },
 }
 
+const RX_META = {
+  pending: { label: 'Not prescribed', className: 'bg-slate-100 text-slate-600 border border-slate-200' },
+  draft: { label: 'Draft', className: 'bg-sky-50 text-sky-700 border border-sky-200' },
+  issued: { label: 'Issued', className: 'bg-emerald-50 text-emerald-700 border border-emerald-200' },
+  amended: { label: 'Updated', className: 'bg-violet-50 text-violet-700 border border-violet-200' },
+  cancelled: { label: 'Cancelled', className: 'bg-rose-50 text-rose-700 border border-rose-200' },
+}
+
+function getRxMeta(state) {
+  return RX_META[state] || RX_META.pending
+}
+
+function initialsOf(name) {
+  return (name || '?')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join('')
+    .toUpperCase()
+}
+
 const SUMMARY_CARDS = [
   {
     id: 'total',
@@ -118,8 +140,9 @@ function categorizeAppointments(appointments) {
 
   appointments.forEach((appointment) => {
     const status = appointment.status || 'scheduled'
+    const hasRx = appointment.has_prescription || status === 'prescribed' || status === 'completed'
 
-    if (status === 'prescribed' || status === 'completed') {
+    if (hasRx) {
       prescribed.push(appointment)
     }
 
@@ -138,7 +161,7 @@ function categorizeAppointments(appointments) {
 
     if (isToday(appointmentDate)) {
       today.push(appointment)
-    } else if (isAfter(appointmentDate, todayStart) && status !== 'prescribed') {
+    } else if (isAfter(appointmentDate, todayStart) && !hasRx) {
       upcoming.push(appointment)
     }
   })
@@ -149,33 +172,64 @@ function categorizeAppointments(appointments) {
 function AppointmentRow({ appointment, onReschedule, onDelete, onViewProfile }) {
   const patient = getPatientProfile(appointment)
   const statusMeta = getStatusMeta(appointment.status)
+  const rxState = appointment.prescription_state || (appointment.has_prescription ? 'issued' : 'pending')
+  const rxMeta = getRxMeta(rxState)
+  const hasRx = appointment.has_prescription
 
   return (
-    <div className="grid grid-cols-12 items-center gap-4 border-b border-gray-100 py-4 last:border-b-0">
-      <div className="col-span-4">
-        <p className="font-semibold text-gray-900">{patient.name}</p>
-        <p className="text-sm text-gray-500">{patient.registrationNo || '—'}</p>
+    <div className="grid grid-cols-12 items-center gap-4 px-4 py-3.5 transition-colors hover:bg-slate-50/70">
+      {/* Patient */}
+      <div className="col-span-4 flex items-center gap-3 min-w-0">
+        <div className="h-9 w-9 shrink-0 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[12px] font-semibold">
+          {initialsOf(patient.name)}
+        </div>
+        <div className="min-w-0">
+          <p className="font-semibold text-gray-900 truncate">{patient.name}</p>
+          <p className="text-xs text-gray-500 font-mono truncate">{patient.registrationNo || '—'}</p>
+        </div>
       </div>
+
+      {/* Date & time */}
       <div className="col-span-3">
         <p className="text-sm font-medium text-gray-900">{formatAppointmentDate(appointment.appointment_date)}</p>
-        <p className="text-sm text-gray-500">{appointment.appointment_slot || '—'}</p>
+        <p className="text-xs text-gray-500">{appointment.appointment_slot || '—'}</p>
       </div>
-      <div className="col-span-2">
-        <Badge className={cn('capitalize', statusMeta.className)}>{statusMeta.label}</Badge>
+
+      {/* Status + prescription state */}
+      <div className="col-span-2 flex flex-col items-start gap-1.5">
+        <Badge className={cn('capitalize text-[11px] font-medium', statusMeta.className)}>
+          {statusMeta.label}
+        </Badge>
+        <span
+          className={cn(
+            'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+            rxMeta.className
+          )}
+        >
+          <span className={cn('h-1.5 w-1.5 rounded-full', hasRx ? 'bg-current' : 'bg-slate-400')} />
+          {rxMeta.label}
+        </span>
       </div>
+
+      {/* Actions */}
       <div className="col-span-3 flex items-center gap-2 justify-end">
         <Button
           asChild
-          variant="outline"
-          className="text-indigo-700 border-indigo-200 hover:bg-indigo-50"
+          size="sm"
+          className={cn(
+            'h-9 font-semibold',
+            hasRx
+              ? 'bg-violet-600 hover:bg-violet-700 text-white'
+              : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+          )}
         >
-          <Link href={`/dashboard/doctor/appointments/new?appointmentId=${appointment.id}`}>
-            Prescribe
+          <Link href={`/dashboard/doctor/appointments/${appointment.id}/prescribe`}>
+            {hasRx ? 'Update Rx' : 'Prescribe'}
           </Link>
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="border border-gray-200">
+            <Button variant="ghost" size="sm" className="h-9 border border-gray-200">
               Manage
             </Button>
           </DropdownMenuTrigger>
@@ -269,11 +323,11 @@ export function DoctorAppointmentsBoard({ appointments = [] }) {
     }
 
     return (
-      <div className="divide-y divide-gray-100 rounded-xl border border-gray-100 bg-white">
-        <div className="grid grid-cols-12 gap-4 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+      <div className="divide-y divide-gray-100 rounded-xl border border-gray-100 bg-white overflow-hidden">
+        <div className="grid grid-cols-12 gap-4 bg-slate-50/80 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
           <span className="col-span-4">Patient</span>
-          <span className="col-span-3">Date & Time</span>
-          <span className="col-span-2">Status</span>
+          <span className="col-span-3">Date &amp; Time</span>
+          <span className="col-span-2">Status / Rx</span>
           <span className="col-span-3 text-right">Actions</span>
         </div>
         {items.map((appointment) => (

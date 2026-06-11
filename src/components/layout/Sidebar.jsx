@@ -23,18 +23,25 @@ import {
   X,
   ChevronLeft,
   Pill,
+  Hospital,
+  TriangleAlert,
+  UserPlus,
 } from 'lucide-react'
 import { useUserDetails } from '@/hooks/use-user-details'
 
 const roleBasedSidebarItems = {
   super_admin: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/super-admin' },
+    { icon: Hospital, label: 'Hospitals', href: '/dashboard/super-admin/hospitals' },
+    { icon: TriangleAlert, label: 'Issues', href: '/dashboard/super-admin/issues' },
+    { icon: UserPlus, label: 'Add Member', href: '/dashboard/super-admin/add-member' },
     { icon: UserCircle, label: 'My Profile', href: '/dashboard/profiles' },
   ],
   doctor: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/doctor' },
     { icon: Calendar, label: 'Appointments', href: '/dashboard/doctor/appointments' },
     { icon: Pill, label: 'Prescriptions', href: '/dashboard/doctor/prescriptions' },
+    { icon: Users, label: 'Patients', href: '/dashboard/doctor/patients' },
     { icon: Clock, label: 'Calendar', href: '/dashboard/doctor/calendar' },
     { icon: Bell, label: 'Notifications', href: '/dashboard/doctor/notifications' },
     { icon: UserCircle, label: 'My Profile', href: '/dashboard/profiles' },
@@ -52,6 +59,7 @@ const roleBasedSidebarItems = {
     { icon: ClipboardPlus, label: 'Treatments', href: '/dashboard/hospital/treatments' },
     { icon: BarChart3, label: 'Data Analytics', href: '/dashboard/hospital/analytics' },
     { icon: NotebookPen, label: 'Inventory', href: '/dashboard/hospital/inventory' },
+    { icon: TriangleAlert, label: 'Issues', href: '/dashboard/hospital/issues' },
   ],
   receptionist: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/reception' },

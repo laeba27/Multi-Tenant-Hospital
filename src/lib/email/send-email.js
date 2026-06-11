@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer'
-import { generateStaffInviteToken } from '@/lib/utils/jwt'
+import { generateStaffInviteToken, generatePasswordResetToken } from '@/lib/utils/jwt'
 
 // Create email transporter
 const createTransporter = () => {
@@ -470,6 +470,81 @@ This invitation was sent from Smile Returns Hospital Management System.
     return { success: true }
   } catch (error) {
     console.error('Error sending staff invite email:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Send a password reset email (own JWT flow -- not Supabase's email reset)
+export async function sendPasswordResetEmail({ email, name, registration_no, user_id, token }) {
+  try {
+    const transporter = createTransporter()
+
+    const jwtToken =
+      token || generatePasswordResetToken({ user_id, email, registration_no })
+    const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${jwtToken}`
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #000; background: #fff; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+            .header h1 { font-size: 18px; font-weight: bold; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+            .link { color: #000; text-decoration: underline; }
+            .footer { border-top: 1px solid #ddd; padding-top: 15px; margin-top: 30px; font-size: 11px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Reset Your Password</h1>
+            </div>
+
+            <p>Hello ${name || 'there'},</p>
+
+            <p>We received a request to reset the password for your Smile Returns account
+              (registration <strong>${registration_no || ''}</strong>).</p>
+
+            <p>To choose a new password, please visit:</p>
+            <p><a href="${resetLink}" class="link">${resetLink}</a></p>
+
+            <p style="margin-top: 20px; font-size: 12px; color: #666;">
+              This reset link is valid for 1 hour. If you did not request a password
+              reset, you can safely ignore this email -- your password will not change.
+            </p>
+
+            <div class="footer">
+              <p>This email was sent from Smile Returns Hospital Management System.</p>
+              <p>&copy; 2024 Smile Returns. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM || 'noreply@smile-returns.com',
+      to: email,
+      subject: 'Reset your Smile Returns password',
+      html: htmlContent,
+      text: `Hello ${name || 'there'},
+
+We received a request to reset the password for your Smile Returns account (registration ${registration_no || ''}).
+
+To choose a new password, visit:
+${resetLink}
+
+This reset link is valid for 1 hour. If you did not request a password reset, you can safely ignore this email.
+
+© 2024 Smile Returns. All rights reserved.`,
+    })
+
+    console.log('Password reset email sent to:', email)
+    return { success: true }
+  } catch (error) {
+    console.error('Error sending password reset email:', error)
     return { success: false, error: error.message }
   }
 }

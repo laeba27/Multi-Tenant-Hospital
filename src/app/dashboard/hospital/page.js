@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function HospitalAdminPage() {
   return (
-    <DashboardLayout roleLabel="Hospital Administrator">
+    <DashboardLayout roleLabel="Hospital Administrator" showHeader>
       <div className="bg-white rounded-lg shadow p-8">
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Hospital Administrator Dashboard</h2>
         <p className="text-gray-600">Welcome to your hospital management dashboard</p>
