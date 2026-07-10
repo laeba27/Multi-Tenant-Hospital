@@ -60,6 +60,25 @@ export function generatePatientRegistrationNo() {
   return `PATIENT-${randomNum}`
 }
 
+/** Domain used for accounts that have no real email address yet. */
+export const PLACEHOLDER_EMAIL_DOMAIN = 'patients.internal'
+
+/**
+ * Build the placeholder address for a patient registered without an email.
+ * profiles.id references auth.users(id), so an auth user must exist even for a
+ * walk-in; Supabase requires an address to create one. Derived from the
+ * registration number so it inherits that column's uniqueness.
+ * @param {string} registrationNo - e.g. PATIENT-123456
+ */
+export function buildPlaceholderEmail(registrationNo) {
+  return `${String(registrationNo).toLowerCase()}@${PLACEHOLDER_EMAIL_DOMAIN}`
+}
+
+/** True when `email` is a system-issued placeholder rather than the patient's own. */
+export function isPlaceholderEmail(email) {
+  return String(email || '').endsWith(`@${PLACEHOLDER_EMAIL_DOMAIN}`)
+}
+
 /**
  * Format registration number for display
  * @param {string} registrationNo - Registration number

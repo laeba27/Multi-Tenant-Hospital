@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useUser } from '@/hooks/use-user'
 import { getStaffByUserId } from '@/actions/staff-details'
 import { useRbac } from '@/hooks/use-rbac'
@@ -11,15 +12,27 @@ import { Lock, Loader2 } from 'lucide-react'
 import PatientManagementPage from '@/app/dashboard/hospital/patient-management/page'
 
 export default function ReceptionPatientManagementPage() {
+  const router = useRouter()
   const { user, loading: userLoading } = useUser()
   const [staffDetails, setStaffDetails] = useState(null)
   const [loadingStaff, setLoadingStaff] = useState(true)
   const { can, loading: loadingRbac } = useRbac()
 
+  // No authenticated session → send to sign-in (defensive; middleware also
+  // guards this on navigation/refresh).
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.replace('/auth/sign-in')
+    }
+  }, [userLoading, user, router])
+
   // Fetch staff details to get hospital_id
   useEffect(() => {
     if (user?.id && user?.profile?.role === 'receptionist') {
       fetchStaffDetails()
+    } else if (user?.id) {
+      // Authenticated but not a receptionist → nothing to load here.
+      setLoadingStaff(false)
     }
   }, [user])
 
@@ -40,7 +53,9 @@ export default function ReceptionPatientManagementPage() {
     }
   }
 
-  if (userLoading || loadingStaff || loadingRbac) {
+  // While auth resolves, while redirecting an unauthenticated visitor, or while
+  // role data loads — show a spinner rather than erroring.
+  if (userLoading || !user || (user?.profile?.role === 'receptionist' && loadingStaff) || loadingRbac) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-96">

@@ -163,7 +163,7 @@ export default function ReceptionBillingPage() {
       const result = await createInvoice(invoiceData, user.id)
 
       if (result.error) {
-        toast.error('Failed to create invoice')
+        toast.error(result.error || 'Failed to create invoice')
       } else {
         toast.success('Invoice created successfully')
         setShowCreateDialog(false)
@@ -188,9 +188,9 @@ export default function ReceptionBillingPage() {
       const paymentData = {
         invoice_id: selectedInvoice.id,
         hospital_id: staffDetails.hospitals.registration_no,
-        payment_method: paymentForm.payment_method,
+        method: paymentForm.payment_method,
         amount: parseFloat(paymentForm.amount),
-        reference_id: paymentForm.reference_id || null,
+        referenceId: paymentForm.reference_id || null,
       }
 
       const result = await recordPayment(
@@ -199,8 +199,8 @@ export default function ReceptionBillingPage() {
         user.id
       )
 
-      if (result.error) {
-        toast.error('Failed to record payment')
+      if (!result.success) {
+        toast.error(result.error || 'Failed to record payment')
       } else {
         toast.success('Payment recorded successfully')
         setShowPaymentDialog(false)

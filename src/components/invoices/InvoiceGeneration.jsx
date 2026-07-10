@@ -126,6 +126,8 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
       if (res.success) {
         toast.success('Invoice generated!')
         onSuccess({ ...res.invoice, payments: paymentEntries, hospital: hospitalDetails, patient: patientDetails })
+      } else {
+        toast.error(res.error || 'Failed to generate invoice')
       }
     } catch (e) {
       toast.error('Failed')
@@ -192,15 +194,15 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
 
         {/* Tax + Discount */}
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label className="text-xs">Tax (2.5%)</Label>
-            <Input value={taxAmount.toFixed(2)} disabled className="h-8 text-sm bg-gray-50" />
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-gray-700">Tax (2.5%)</Label>
+            <Input value={taxAmount.toFixed(2)} disabled className="h-9 w-full text-sm bg-gray-50" />
           </div>
-          <div>
-            <Label className="text-xs">Discount</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-gray-700">Discount</Label>
             <div className="flex gap-2">
               <Select value={discountType} onValueChange={setDiscountType}>
-                <SelectTrigger className="h-8 w-16 text-xs">
+                <SelectTrigger className="h-9 w-20 text-sm shrink-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -215,7 +217,7 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
                 value={discountValue}
                 onChange={(e) => setDiscountValue(e.target.value)}
                 placeholder="0.00"
-                className="h-8 text-sm flex-1"
+                className="h-9 text-sm flex-1"
               />
             </div>
           </div>
@@ -240,10 +242,10 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
           </div>
 
           <div className="grid grid-cols-12 gap-2 items-end">
-            <div className="col-span-4">
-              <Label className="text-[10px] text-gray-500">Method</Label>
+            <div className="col-span-3 space-y-1">
+              <Label className="text-[11px] font-medium text-gray-500">Method</Label>
               <Select value={newPayment.payment_method} onValueChange={(val) => setNewPayment({ ...newPayment, payment_method: val })}>
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-9 w-full text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -255,8 +257,8 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-3">
-              <Label className="text-[10px] text-gray-500">Amount</Label>
+            <div className="col-span-3 space-y-1">
+              <Label className="text-[11px] font-medium text-gray-500">Amount</Label>
               <Input
                 type="number"
                 placeholder={amountClickCount === 1 ? 'Click again' : (dueAmount > 0 ? `₹${dueAmount.toFixed(2)}` : '0.00')}
@@ -273,21 +275,21 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
                   const clamped = Number.isNaN(parsed) ? '' : Math.min(parsed, dueAmount)
                   setNewPayment({ ...newPayment, amount: clamped.toString() })
                 }}
-                className="h-8 text-sm"
+                className="h-9 w-full text-sm"
               />
             </div>
-            <div className="col-span-3">
-              <Label className="text-[10px] text-gray-500">Reference</Label>
+            <div className="col-span-4 space-y-1">
+              <Label className="text-[11px] font-medium text-gray-500">Reference</Label>
               <Input
                 placeholder="Optional"
                 value={newPayment.reference_id}
                 onChange={(e) => setNewPayment({ ...newPayment, reference_id: e.target.value })}
-                className="h-8 text-sm"
+                className="h-9 w-full text-sm"
               />
             </div>
             <div className="col-span-2">
-              <Button onClick={addPaymentEntry} className="w-full h-8 text-xs bg-gray-900 hover:bg-gray-800" disabled={dueAmount <= 0}>
-                <Plus className="w-3 h-3" />
+              <Button onClick={addPaymentEntry} className="w-full h-9 text-sm gap-1 bg-gray-900 hover:bg-gray-800" disabled={dueAmount <= 0}>
+                <Plus className="w-3.5 h-3.5" /> Add
               </Button>
             </div>
           </div>
@@ -330,14 +332,14 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
         )}
 
         {/* Notes */}
-        <div className="space-y-1">
-          <Label className="text-xs">Notes</Label>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-gray-700">Notes</Label>
           <Textarea
             placeholder="Additional notes..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            rows={1}
-            className="resize-none text-sm"
+            rows={2}
+            className="resize-none text-sm min-h-[64px]"
           />
         </div>
 
@@ -385,22 +387,22 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
 
         <div className="flex gap-2 pt-1">
           {onBack && (
-            <Button variant="outline" onClick={onBack} className="flex-1 h-8 text-xs">
-              <ArrowLeft className="w-3 h-3 mr-1" />
+            <Button variant="outline" onClick={onBack} className="flex-1 h-9 text-sm">
+              <ArrowLeft className="w-3.5 h-3.5 mr-1" />
               Back
             </Button>
           )}
-          <Button variant="outline" onClick={onSkip} className="flex-1 h-8 text-xs">
+          <Button variant="outline" onClick={onSkip} className="flex-1 h-9 text-sm">
             Cancel
           </Button>
           <Button
             onClick={handleGenerateInvoice}
             disabled={isLoading || paymentEntries.length === 0}
-            className="flex-1 h-8 text-xs bg-gray-900 hover:bg-gray-800 flex items-center justify-center gap-1"
+            className="flex-1 h-9 text-sm bg-gray-900 hover:bg-gray-800 flex items-center justify-center gap-1.5"
           >
             {isLoading ? (
               <>
-                <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none">
+                <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                 </svg>
@@ -408,7 +410,7 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
               </>
             ) : (
               <>
-                <Check className="w-3 h-3" />
+                <Check className="w-3.5 h-3.5" />
                 Generate
               </>
             )}

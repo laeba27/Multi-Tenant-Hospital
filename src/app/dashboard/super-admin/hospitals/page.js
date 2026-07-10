@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Search, Mail, Phone, MapPin, User, BadgeCheck, Ban, Plus, Building2, RefreshCcw, BarChart3,
@@ -40,7 +40,7 @@ function initials(n) {
   return (n || '?').split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
 }
 
-export default function HospitalsPage() {
+function HospitalsPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
@@ -162,6 +162,22 @@ export default function HospitalsPage() {
 
       <CreateHospitalDialog open={showCreate} onClose={() => setShowCreate(false)} onCreated={load} />
     </DashboardLayout>
+  )
+}
+
+export default function HospitalsPage() {
+  return (
+    <Suspense
+      fallback={
+        <DashboardLayout>
+          <div className="flex items-center justify-center py-24">
+            <p className="text-gray-600">Loading hospitals...</p>
+          </div>
+        </DashboardLayout>
+      }
+    >
+      <HospitalsPageContent />
+    </Suspense>
   )
 }
 

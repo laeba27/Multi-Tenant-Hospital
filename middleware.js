@@ -10,6 +10,16 @@ export async function middleware(request) {
     },
   })
 
+  // Redirect helper that preserves any auth cookies set on `response` so the
+  // session stays in sync across the redirect.
+  const redirectTo = (path) => {
+    const redirect = NextResponse.redirect(new URL(path, request.url))
+    response.cookies.getAll().forEach((cookie) => {
+      redirect.cookies.set(cookie)
+    })
+    return redirect
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -27,36 +37,52 @@ export async function middleware(request) {
     }
   )
 
-  // Get current user
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Get current user. If the session cookie is missing/stale/corrupt this can
+  // throw — treat any failure as "not authenticated" and send dashboard
+  // requests to sign-in instead of surfacing an error page.
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data?.user || null
+  } catch (error) {
+    console.error('Middleware auth check failed:', error)
+    if (pathname.startsWith('/dashboard')) {
+      return redirectTo('/auth/sign-in')
+    }
+    return response
+  }
 
   // If no user, redirect to sign-in
   if (!user && pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/auth/sign-in', request.url))
+    return redirectTo('/auth/sign-in')
   }
 
   let profile = null
 
   if (user && (pathname.startsWith('/dashboard') || pathname.startsWith('/auth/'))) {
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select(
+    try {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select(
+          `
+          role,
+          status,
+          access_granted,
+          hospital_id,
+          must_complete_profile,
+          hospitals:hospital_id(
+            account_status
+          )
         `
-        role,
-        status,
-        access_granted,
-        hospital_id,
-        hospitals:hospital_id(
-          account_status
         )
-      `
-      )
-      .eq('id', user.id)
-      .single()
+        .eq('id', user.id)
+        .single()
 
-    profile = profileData
+      profile = profileData
+    } catch (error) {
+      console.error('Middleware profile lookup failed:', error)
+      profile = null
+    }
   }
 
   const profileStatus = (profile?.status || '').toLowerCase()
@@ -71,19 +97,39 @@ export async function middleware(request) {
   // If logged in but access is revoked/pending, force back to sign-in for dashboard routes.
   if (user && pathname.startsWith('/dashboard') && (!profile || !hasHospitalAccess || !hasProfileAccess)) {
     const reason = isHospitalAdmin && !hasHospitalAccess ? 'pending-approval' : 'access-revoked'
-    return NextResponse.redirect(new URL(`/auth/sign-in?reason=${reason}`, request.url))
+    return redirectTo(`/auth/sign-in?reason=${reason}`)
   }
 
   // If user is authenticated and tries to access auth pages, redirect to dashboard
   if (user && pathname.startsWith('/auth/') && profile && hasHospitalAccess && hasProfileAccess) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    return redirectTo('/dashboard')
+  }
+
+  // A patient onboarded by reception holds a placeholder email and the phone
+  // number as their password. Force them to supply + verify a real email and
+  // set a password before anything else in the portal is reachable. Exclude the
+  // completion page itself, or this redirects to itself forever.
+  const completePath = '/dashboard/patient/complete-profile'
+  if (
+    user &&
+    profile?.role === 'patient' &&
+    profile?.must_complete_profile === true &&
+    pathname.startsWith('/dashboard') &&
+    pathname !== completePath
+  ) {
+    return redirectTo(completePath)
+  }
+
+  // Once complete, the completion page has nothing left to do.
+  if (user && pathname === completePath && profile && profile.must_complete_profile !== true) {
+    return redirectTo('/dashboard/patient')
   }
 
   // If user is accessing dashboard, verify they have access to their role's pages
   if (user && pathname.startsWith('/dashboard/')) {
     try {
       if (!profile) {
-        return NextResponse.redirect(new URL('/auth/sign-in', request.url))
+        return redirectTo('/auth/sign-in')
       }
 
       // Get the requested dashboard route
@@ -103,21 +149,17 @@ export async function middleware(request) {
       const userDashboardPath = roleToPath[profile.role]
 
       // If user tries to access a dashboard that's not theirs, redirect to their dashboard
-      if (requestedRole && requestedRole !== userDashboardPath) {
-        return NextResponse.redirect(
-          new URL(`/dashboard/${userDashboardPath}`, request.url)
-        )
+      if (requestedRole && userDashboardPath && requestedRole !== userDashboardPath) {
+        return redirectTo(`/dashboard/${userDashboardPath}`)
       }
 
       // If accessing /dashboard without a specific role, redirect to user's dashboard
       if (pathname === '/dashboard' || pathname === '/dashboard/') {
-        return NextResponse.redirect(
-          new URL(`/dashboard/${userDashboardPath}`, request.url)
-        )
+        return redirectTo(`/dashboard/${userDashboardPath || ''}`)
       }
     } catch (error) {
       console.error('Middleware error:', error)
-      return NextResponse.redirect(new URL('/auth/sign-in', request.url))
+      return redirectTo('/auth/sign-in')
     }
   }
 

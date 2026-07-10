@@ -474,6 +474,73 @@ This invitation was sent from Smile Returns Hospital Management System.
   }
 }
 
+// Send a 6-digit code confirming a patient owns the email they just supplied
+export async function sendPatientEmailOtp({ email, name, code, expiresInMinutes = 10 }) {
+  try {
+    const transporter = createTransporter()
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #000; background: #fff; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+            .header h1 { font-size: 18px; font-weight: bold; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+            .code { font-family: 'Courier New', monospace; font-size: 32px; font-weight: bold; letter-spacing: 8px; background: #f5f5f5; padding: 18px 24px; display: inline-block; margin: 18px 0; }
+            .footer { border-top: 1px solid #ddd; padding-top: 15px; margin-top: 30px; font-size: 11px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Verify Your Email</h1>
+            </div>
+
+            <p>Hello ${name || 'there'},</p>
+
+            <p>Use this code to confirm your email address on your Smile Returns patient account:</p>
+
+            <center><div class="code">${code}</div></center>
+
+            <p style="margin-top: 20px; font-size: 12px; color: #666;">
+              This code expires in ${expiresInMinutes} minutes. If you did not request it,
+              you can safely ignore this email.
+            </p>
+
+            <div class="footer">
+              <p>This email was sent from Smile Returns Hospital Management System.</p>
+              <p>&copy; 2024 Smile Returns. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM || 'noreply@smile-returns.com',
+      to: email,
+      subject: `${code} is your Smile Returns verification code`,
+      html: htmlContent,
+      text: `Hello ${name || 'there'},
+
+Use this code to confirm your email address on your Smile Returns patient account:
+
+${code}
+
+This code expires in ${expiresInMinutes} minutes. If you did not request it, you can safely ignore this email.
+
+© 2024 Smile Returns. All rights reserved.`,
+    })
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error sending patient email OTP:', error)
+    return { success: false, error: error.message }
+  }
+}
+
 // Send a password reset email (own JWT flow -- not Supabase's email reset)
 export async function sendPasswordResetEmail({ email, name, registration_no, user_id, token }) {
   try {

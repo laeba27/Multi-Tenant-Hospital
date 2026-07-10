@@ -28,14 +28,22 @@ import { onboardPatient } from '@/actions/patients'
 import { ChevronDown } from 'lucide-react'
 
 const patientSchema = z.object({
-  // Required fields
+  // Required. The patient supplies and verifies their own email on first
+  // login, so reception never collects one here.
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  mobile: z.string().min(10, 'Mobile must be at least 10 characters'),
-  
+  mobile: z
+    .string()
+    .refine((m) => m.replace(/[^\d]/g, '').length >= 10, 'Enter a valid 10-digit phone number'),
+  gender: z.enum(['Male', 'Female', 'Other'], { message: 'Gender is required' }),
+  date_of_birth: z
+    .string()
+    .min(1, 'Date of birth is required')
+    .refine((d) => {
+      const parsed = new Date(d)
+      return !Number.isNaN(parsed.valueOf()) && parsed <= new Date()
+    }, 'Date of birth must be a valid past date'),
+
   // Optional fields
-  email: z.string().email('Invalid email address').optional().or(z.literal('')),
-  gender: z.enum(['Male', 'Female', 'Other']).optional(),
-  date_of_birth: z.string().optional(),
   blood_group: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).optional(),
   height: z.string().optional(),
   weight: z.string().optional(),
@@ -64,7 +72,6 @@ export function PatientForm({ onSuccess, currentUser }) {
     defaultValues: {
       name: '',
       mobile: '',
-      email: '',
       gender: undefined,
       date_of_birth: '',
       blood_group: undefined,
@@ -153,12 +160,57 @@ export function PatientForm({ onSuccess, currentUser }) {
                   <Input placeholder="e.g., +91 9876543210" {...field} />
                 </FormControl>
                 <FormDescription>
-                  Used for communication and appointment reminders
+                  Used for appointment reminders, and as the patient&apos;s temporary
+                  password for their first portal login.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="gender"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Gender *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="date_of_birth"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date of Birth *</FormLabel>
+                  <FormControl>
+                    <Input type="date" max={new Date().toISOString().slice(0, 10)} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <p className="text-sm text-blue-800">
+            The patient adds their email address and sets a password themselves when
+            they first sign in to the portal.
+          </p>
         </div>
 
         {/* Optional Information Toggle */}
@@ -181,59 +233,6 @@ export function PatientForm({ onSuccess, currentUser }) {
                 <h4 className="font-semibold text-gray-900">Personal Details</h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email Address</FormLabel>
-                        <FormControl>
-                          <Input placeholder="john@example.com" type="email" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="gender"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Gender</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select gender" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Male">Male</SelectItem>
-                            <SelectItem value="Female">Female</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="date_of_birth"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Date of Birth</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
                   <FormField
                     control={form.control}
                     name="marital_status"

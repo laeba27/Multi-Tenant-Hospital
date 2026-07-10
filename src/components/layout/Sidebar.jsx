@@ -78,11 +78,9 @@ const roleBasedSidebarItems = {
   ],
   patient: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/patient' },
-    { icon: Calendar, label: 'Calendar', href: '/dashboard/patient/calendar' },
-    { icon: Calendar, label: 'Appointments', href: '/dashboard/patient/appointments' },
-    { icon: ClipboardPlus, label: 'Medical Records', href: '/dashboard/patient/records' },
-    { icon: ClipboardPlus, label: 'Prescriptions', href: '/dashboard/patient/prescriptions' },
-    { icon: BarChart3, label: 'Lab Reports', href: '/dashboard/patient/lab-reports' },
+    { icon: Hospital, label: 'My Hospitals', href: '/dashboard/patient/hospitals' },
+    { icon: Calendar, label: 'My Appointments', href: '/dashboard/patient/appointments' },
+    { icon: Clock, label: 'My History', href: '/dashboard/patient/history' },
     { icon: UserCircle, label: 'My Profile', href: '/dashboard/profiles' },
   ],
 }

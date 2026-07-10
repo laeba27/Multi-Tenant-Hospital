@@ -93,6 +93,32 @@ export async function generateInvoice(data, currentUserId) {
       throw new Error(`Hospital with registration number "${data.hospital_id}" not found`)
     }
 
+    // ---- Overpayment prevention (authoritative, server-side) ----------------
+    // Recompute the paid total from the actual payment records rather than
+    // trusting the client's paid_amount/due_amount, and reject if the payments
+    // exceed the invoice total (which would otherwise create a negative due).
+    const totalAmount = parseFloat(data.total_amount) || 0
+    const payments = Array.isArray(data.payments) ? data.payments : []
+    const paymentsSum = payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0)
+    // Fall back to the client paid_amount only when no itemized payments exist.
+    const paidTotal = payments.length > 0 ? paymentsSum : parseFloat(data.paid_amount || 0) || 0
+
+    if (paidTotal > totalAmount + 0.01) {
+      return {
+        success: false,
+        error: `Payments of ₹${paidTotal.toFixed(2)} exceed the invoice total of ₹${totalAmount.toFixed(2)}.`,
+      }
+    }
+
+    const paidAmount = Math.min(totalAmount, Math.max(0, paidTotal))
+    const dueAmount = Math.max(0, totalAmount - paidAmount)
+    const paymentStatus =
+      paidAmount >= totalAmount && totalAmount > 0
+        ? 'paid'
+        : paidAmount > 0
+          ? 'partially_paid'
+          : 'unpaid'
+
     // Insert invoice with registration_no as hospital_id (matches foreign key constraint)
     const { data: invoice, error } = await adminClient
       .from('invoices')
@@ -106,10 +132,10 @@ export async function generateInvoice(data, currentUserId) {
         discount_value: data.discount_value || 0,
         discount_amount: data.discount_amount || 0,
         tax_amount: data.tax_amount || 0,
-        total_amount: data.total_amount,
-        paid_amount: data.paid_amount || 0,
-        due_amount: data.due_amount || 0,
-        payment_status: data.payment_status || 'unpaid',
+        total_amount: totalAmount,
+        paid_amount: paidAmount,
+        due_amount: dueAmount,
+        payment_status: paymentStatus,
         notes: data.notes || null,
         created_by: currentUserId
       })
@@ -168,6 +194,29 @@ export async function recordPayment(invoiceId, paymentData, currentUserId) {
     if (invoiceError) throw invoiceError
     if (!invoice) throw new Error('Invoice not found')
 
+    // ---- Overpayment prevention (authoritative, server-side) ----------------
+    // The UI clamps the amount, but that can be bypassed (stale page, direct
+    // call, concurrent payments). Re-derive the remaining balance from the live
+    // invoice and reject anything that isn't a positive amount within the due.
+    const totalAmount = parseFloat(invoice.total_amount) || 0
+    const alreadyPaid = parseFloat(invoice.paid_amount || 0) || 0
+    const remainingDue = Math.max(0, totalAmount - alreadyPaid)
+    const amount = parseFloat(paymentData.amount)
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return { success: false, error: 'Enter a valid payment amount.' }
+    }
+    if (remainingDue <= 0) {
+      return { success: false, error: 'This invoice is already fully paid.' }
+    }
+    // Allow a tiny rounding tolerance so exact-balance payments aren't rejected.
+    if (amount > remainingDue + 0.01) {
+      return {
+        success: false,
+        error: `Payment of ₹${amount.toFixed(2)} exceeds the due amount of ₹${remainingDue.toFixed(2)}.`,
+      }
+    }
+
     // Insert payment record
     const { data: payment, error: paymentError } = await adminClient
       .from('invoice_payments')
@@ -175,7 +224,7 @@ export async function recordPayment(invoiceId, paymentData, currentUserId) {
         invoice_id: invoiceId,
         hospital_id: invoice.hospital_id,
         payment_method: paymentData.method || 'cash', // Ensure payment_method has a default value
-        amount: parseFloat(paymentData.amount),
+        amount,
         reference_id: paymentData.referenceId || null,
         created_by: currentUserId
       })
@@ -183,11 +232,11 @@ export async function recordPayment(invoiceId, paymentData, currentUserId) {
 
     if (paymentError) throw paymentError
 
-    // Update invoice paid_amount and due_amount
-    const newPaidAmount = parseFloat(invoice.paid_amount || 0) + parseFloat(paymentData.amount)
-    const newDueAmount = parseFloat(invoice.total_amount) - newPaidAmount
-    const newPaymentStatus = newPaidAmount >= parseFloat(invoice.total_amount) 
-      ? 'paid' 
+    // Update invoice paid_amount and due_amount (clamped so it never goes negative)
+    const newPaidAmount = Math.min(totalAmount, alreadyPaid + amount)
+    const newDueAmount = Math.max(0, totalAmount - newPaidAmount)
+    const newPaymentStatus = newPaidAmount >= totalAmount
+      ? 'paid'
       : (newPaidAmount > 0 ? 'partially_paid' : 'unpaid')
 
     const { error: updateError } = await adminClient
@@ -479,6 +528,24 @@ export async function createInvoice(invoiceData, userId) {
     // Generate invoice ID
     const invoiceId = `INV-${Math.floor(100000 + Math.random() * 900000)}`
 
+    // ---- Overpayment prevention (server-side) -------------------------------
+    const totalAmount = parseFloat(invoiceData.total_amount) || 0
+    const requestedPaid = parseFloat(invoiceData.paid_amount || 0) || 0
+    if (requestedPaid > totalAmount + 0.01) {
+      return {
+        data: null,
+        error: `Paid amount of ₹${requestedPaid.toFixed(2)} exceeds the invoice total of ₹${totalAmount.toFixed(2)}.`,
+      }
+    }
+    const paidAmount = Math.min(totalAmount, Math.max(0, requestedPaid))
+    const dueAmount = Math.max(0, totalAmount - paidAmount)
+    const paymentStatus =
+      paidAmount >= totalAmount && totalAmount > 0
+        ? 'paid'
+        : paidAmount > 0
+          ? 'partially_paid'
+          : 'unpaid'
+
     const invoice = {
       id: invoiceId,
       hospital_id: invoiceData.hospital_id,
@@ -489,10 +556,10 @@ export async function createInvoice(invoiceData, userId) {
       discount_value: invoiceData.discount_value || null,
       discount_amount: invoiceData.discount_amount || 0,
       tax_amount: invoiceData.tax_amount || 0,
-      total_amount: invoiceData.total_amount,
-      paid_amount: invoiceData.paid_amount || 0,
-      due_amount: invoiceData.due_amount || invoiceData.total_amount,
-      payment_status: invoiceData.payment_status || 'unpaid',
+      total_amount: totalAmount,
+      paid_amount: paidAmount,
+      due_amount: dueAmount,
+      payment_status: paymentStatus,
       notes: invoiceData.notes || null,
       created_by: userId,
     }

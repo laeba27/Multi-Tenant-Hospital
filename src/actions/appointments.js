@@ -300,6 +300,24 @@ export async function bookAppointment(data, currentUserId) {
     const adminClient = await createAdminClient()
     const appointmentId = `APT${Math.floor(100000 + Math.random() * 900000)}`
 
+    // Normalize the selected treatments (catalog + manually-added custom ones)
+    // into a clean JSONB array persisted on the appointment. Each entry keeps
+    // its price + discount so billing can build the invoice from this snapshot.
+    const treatmentDetails = Array.isArray(data.treatment_details)
+      ? data.treatment_details.map((t) => ({
+          id: t.id,
+          name: t.name,
+          price: Number(t.price) || 0,
+          discount: Number(t.discount) || 0,
+          isCustom: Boolean(t.isCustom) || String(t.id || '').startsWith('custom-'),
+        }))
+      : []
+
+    // First non-custom catalog treatment id (the table has a singular
+    // treatment_id FK to treatments); custom entries live only in the JSONB.
+    const primaryTreatmentId =
+      treatmentDetails.find((t) => !t.isCustom && t.id)?.id || null
+
     const { data: appointment, error } = await adminClient
       .from('appointments')
       .insert({
@@ -313,6 +331,8 @@ export async function bookAppointment(data, currentUserId) {
         appointment_type: data.appointment_type || 'consultation',
         reason: data.reason || null,
         consultation_fee_snapshot: data.consultation_fee_snapshot,
+        treatment_id: primaryTreatmentId,
+        treatment_details: treatmentDetails,
         booked_by: currentUserId,
         status: 'scheduled'
       })

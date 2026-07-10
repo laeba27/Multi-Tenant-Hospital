@@ -1126,77 +1126,113 @@ function PrescriptionPreviewModal({
     iframe.style.height = `${doc.documentElement.scrollHeight + 40}px`
 
     try {
-      const target = doc.body
       const scale = 2
-      const canvas = await html2canvas(target, {
-        scale,
-        backgroundColor: '#ffffff',
-        useCORS: true,
-        windowWidth: 794,
-        width: 794,
-        height: target.scrollHeight,
-      })
+      const snap = (el) =>
+        el
+          ? html2canvas(el, { scale, backgroundColor: '#ffffff', useCORS: true, windowWidth: 794 })
+          : null
+
+      // Capture the header, footer and each body block as SEPARATE canvases so
+      // we can pin the footer to the bottom of every page and break only between
+      // whole blocks — the body image is never sliced through a section/signature.
+      const headEl = doc.querySelector('.rx-head-inner')
+      const footEl = doc.querySelector('.rx-foot-inner')
+      const blockEls = Array.from(doc.querySelectorAll('.rx-body-cell > .rx-block'))
+
+      const [headCanvas, footCanvas, ...blockCanvases] = await Promise.all([
+        snap(headEl),
+        snap(footEl),
+        ...blockEls.map(snap),
+      ])
 
       const pdf = new jsPDF({ unit: 'pt', format: 'a4' })
       const pageW = pdf.internal.pageSize.getWidth()
       const pageH = pdf.internal.pageSize.getHeight()
-      const margin = 18 // pt — small top/bottom breathing room
-      const usableH = pageH - margin * 2
+      const sideMargin = 16
+      const topMargin = 14
+      const bottomMargin = 12
+      const contentW = pageW - sideMargin * 2
 
-      // px → pt scale (canvas pixels to PDF points), and the px height that
-      // fills one usable page band.
-      const pxToPt = pageW / canvas.width
-      const pageBandPx = usableH / pxToPt
-
-      // Cut boundaries (in canvas px) at the bottom edge of each top-level block,
-      // so a page break never falls through the middle of a section/row.
-      const bodyTop = target.getBoundingClientRect().top
-      const blocks = Array.from(doc.querySelectorAll('.rx-block'))
-      const boundaries = blocks
-        .map((el) => (el.getBoundingClientRect().bottom - bodyTop) * scale)
-        .filter((b) => b > 0)
-        .sort((a, b) => a - b)
-
-      const totalPx = canvas.height
-      // Pick the lowest block-boundary that still fits within the next page band.
-      const nextCut = (start) => {
-        const limit = start + pageBandPx
-        let cut = 0
-        for (const b of boundaries) {
-          if (b > start && b <= limit) cut = b
-        }
-        // No block boundary fits (a single block taller than a page): hard-cut
-        // at the page band so we still make progress.
-        if (!cut) cut = Math.min(limit, totalPx)
-        return cut
+      const ptH = (cv) => (cv ? (cv.height * contentW) / cv.width : 0)
+      const place = (cv, y) => {
+        if (!cv) return 0
+        const h = ptH(cv)
+        pdf.addImage(cv.toDataURL('image/jpeg', 0.95), 'JPEG', sideMargin, y, contentW, h)
+        return h
       }
 
-      let start = 0
-      let first = true
-      while (start < totalPx - 1) {
-        const end = nextCut(start)
-        const sliceH = end - start
+      const headH = ptH(headCanvas)
+      const footH = ptH(footCanvas)
+      const gap = 8 // gap above the footer
 
-        // Copy this slice into its own canvas, then place it on a fresh page.
-        const slice = document.createElement('canvas')
-        slice.width = canvas.width
-        slice.height = Math.ceil(sliceH)
-        const ctx = slice.getContext('2d')
-        ctx.fillStyle = '#ffffff'
-        ctx.fillRect(0, 0, slice.width, slice.height)
-        ctx.drawImage(canvas, 0, start, canvas.width, sliceH, 0, 0, canvas.width, sliceH)
+      // Vertical band available for body content on each page.
+      const bodyTopY = topMargin + headH + 6
+      const bodyBottomY = pageH - bottomMargin - footH - gap
+      const bodyBandH = bodyBottomY - bodyTopY
 
-        if (!first) pdf.addPage()
-        first = false
-        pdf.addImage(
-          slice.toDataURL('image/jpeg', 0.95),
-          'JPEG',
-          0,
-          margin,
-          pageW,
-          sliceH * pxToPt
+      const drawFrameAndChrome = () => {
+        // Page border frame in the prescription accent color.
+        const [fr, fg, fb] = hexToRgb('#1d4ed8')
+        pdf.setDrawColor(fr, fg, fb)
+        pdf.setLineWidth(1)
+        pdf.roundedRect(
+          sideMargin - 6,
+          topMargin - 6,
+          contentW + 12,
+          pageH - topMargin - bottomMargin + 12,
+          6,
+          6
         )
-        start = end
+        place(headCanvas, topMargin)
+        if (footCanvas) place(footCanvas, pageH - bottomMargin - footH)
+      }
+
+      // The signature is the last block — pin it to the bottom of the page
+      // (just above the footer) instead of letting it float with a large gap.
+      const sigCanvas = blockCanvases.length ? blockCanvases[blockCanvases.length - 1] : null
+      const contentCanvases = blockCanvases.slice(0, -1).filter(Boolean)
+      const sigH = ptH(sigCanvas)
+
+      let y = bodyTopY
+      drawFrameAndChrome()
+
+      for (const cv of contentCanvases) {
+        const h = ptH(cv)
+
+        // If this block doesn't fit in the remaining band, start a new page.
+        if (y + h > bodyBottomY && y > bodyTopY) {
+          pdf.addPage()
+          y = bodyTopY
+          drawFrameAndChrome()
+        }
+
+        // A single block taller than a full band: scale it down to fit so it is
+        // never clipped by the footer (rare — only huge free-text blocks).
+        if (h > bodyBandH) {
+          const fitW = contentW * (bodyBandH / h)
+          pdf.addImage(
+            cv.toDataURL('image/jpeg', 0.95),
+            'JPEG',
+            sideMargin + (contentW - fitW) / 2,
+            y,
+            fitW,
+            bodyBandH
+          )
+          y += bodyBandH
+        } else {
+          place(cv, y)
+          y += h + 6
+        }
+      }
+
+      // Place the signature pinned just above the footer. If it can't fit below
+      // the last content on this page, move it to a fresh page first.
+      if (sigCanvas) {
+        if (y + 8 > bodyBottomY - sigH) {
+          pdf.addPage()
+          drawFrameAndChrome()
+        }
+        place(sigCanvas, Math.max(y, bodyBottomY - sigH))
       }
 
       return pdf.output('blob')
@@ -1395,6 +1431,14 @@ function esc(s) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
+}
+
+// Parse a #rrggbb hex into an [r, g, b] tuple for jsPDF drawing colors.
+function hexToRgb(hex) {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec(String(hex || ''))
+  if (!m) return [29, 78, 216] // blue-700 fallback
+  const n = parseInt(m[1], 16)
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
 }
 
 /**
@@ -1598,10 +1642,10 @@ function buildPrescriptionHtml({
   <div class="rx-frame">
     <table class="rx-doc">
       <thead>
-        <tr><td class="rx-head-cell">${headerCell}</td></tr>
+        <tr><td class="rx-head-cell"><div class="rx-head-inner">${headerCell}</div></td></tr>
       </thead>
       <tfoot>
-        <tr><td class="rx-foot-cell">${footerCell}</td></tr>
+        <tr><td class="rx-foot-cell"><div class="rx-foot-inner">${footerCell}</div></td></tr>
       </tfoot>
       <tbody>
         <tr><td class="rx-body-cell">

@@ -23,6 +23,15 @@ export function useUserDetails() {
           },
         })
 
+        // Not signed in (or session expired): quietly send to sign-in instead
+        // of surfacing an "Unauthorized" error toast.
+        if (response.status === 401) {
+          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth')) {
+            window.location.replace('/auth/sign-in')
+          }
+          return
+        }
+
         const data = await response.json()
 
         if (!response.ok) {

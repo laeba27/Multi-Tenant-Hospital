@@ -9,11 +9,17 @@ import { Label } from "@/components/ui/label"
 
 const Form = FormProvider
 
+// Carries the active field's name down to FormMessage so it can look up that
+// field's validation error without each caller wiring it through by hand.
+const FormFieldContext = React.createContext({ name: undefined })
+
 const FormField = ({
     ...props
 }) => {
     return (
-        <Controller {...props} />
+        <FormFieldContext.Provider value={{ name: props.name }}>
+            <Controller {...props} />
+        </FormFieldContext.Provider>
     )
 }
 
@@ -61,28 +67,29 @@ const FormDescription = React.forwardRef(({ className, ...props }, ref) => {
 FormDescription.displayName = "FormDescription"
 
 const FormMessage = React.forwardRef(({ className, children, ...props }, ref) => {
-    const { formState } = useFormContext()
-    const fieldState = formState
+    const { name } = React.useContext(FormFieldContext)
+    const { getFieldState, formState } = useFormContext()
 
-    // This is a simplified version, usually we context logic to get field name
-    // But for now, we leave it simple or improved if needed.
-    // Actually, Shadcn's implementation uses a context provider to pass field id and name.
-    // Let's implement a simplified robust version or the full context version if possible.
+    // getFieldState needs formState read during render to subscribe to updates.
+    const error = name ? getFieldState(name, formState).error : undefined
+    const body = error ? String(error.message) : children
+
+    // Render nothing when the field is valid, so the layout doesn't shift.
+    if (!body) return null
 
     return (
         <p
             ref={ref}
-            className={cn("text-sm font-medium text-destructive", className)}
+            className={cn("text-sm font-medium text-red-500", className)}
             {...props}
         >
-            {children}
+            {body}
         </p>
     )
 })
 FormMessage.displayName = "FormMessage"
 
 export {
-    useForm,
     Form,
     FormItem,
     FormLabel,
