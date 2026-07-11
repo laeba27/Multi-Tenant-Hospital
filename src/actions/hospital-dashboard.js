@@ -138,6 +138,111 @@ function monthKey(dateStr) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
+/**
+ * The hospital admin's landing summary: what happened today, what needs
+ * attention, and the notices currently running.
+ */
+export async function getHospitalDashboardSummary() {
+  const { supabase, profile, hospital } = await getHospitalContext()
+
+  const empty = {
+    hospital: { name: hospital?.name || 'Hospital', registration_no: hospital?.registration_no },
+    admin: { name: profile?.name || '' },
+    today: {
+      patientsRegistered: 0,
+      appointments: 0,
+      pendingRequests: 0,
+      revenue: 0,
+    },
+    totals: { patients: 0, staff: 0, departments: 0 },
+    notices: [],
+  }
+  if (!hospital?.registration_no) return empty
+
+  const reg = hospital.registration_no
+  // Day boundaries in the server's zone. appointment_date is a plain date, but
+  // patients.created_at is a timestamp -- so they need different comparisons.
+  const now = new Date()
+  const todayStr = now.toISOString().slice(0, 10)
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+
+  const [
+    registeredToday,
+    apptsToday,
+    pendingRequests,
+    totalPatients,
+    totalStaff,
+    departments,
+    notices,
+    invoicesToday,
+  ] = await Promise.all([
+    supabase
+      .from('patients')
+      .select('id', { count: 'exact', head: true })
+      .eq('hospital_id', reg)
+      .gte('created_at', startOfDay),
+    supabase
+      .from('appointments')
+      .select('id', { count: 'exact', head: true })
+      .eq('hospital_id', reg)
+      .eq('appointment_date', todayStr),
+    supabase
+      .from('appointments')
+      .select('id', { count: 'exact', head: true })
+      .eq('hospital_id', reg)
+      .eq('status', 'pending_confirmation'),
+    supabase
+      .from('patients')
+      .select('id', { count: 'exact', head: true })
+      .eq('hospital_id', reg)
+      .eq('is_active', true),
+    supabase
+      .from('staff')
+      .select('id', { count: 'exact', head: true })
+      .eq('hospital_id', reg)
+      .eq('is_active', true),
+    supabase.from('departments').select('id', { count: 'exact', head: true }).eq('hospital_id', hospital.id),
+    supabase
+      .from('notices')
+      .select('id, title, body, category, audience_roles, is_pinned, published_at, expires_at')
+      .eq('hospital_id', reg)
+      .order('is_pinned', { ascending: false })
+      .order('published_at', { ascending: false })
+      .limit(5),
+    supabase
+      .from('invoices')
+      .select('paid_amount')
+      .eq('hospital_id', reg)
+      .gte('created_at', startOfDay),
+  ])
+
+  const revenue = (invoicesToday.data || []).reduce(
+    (sum, i) => sum + (Number(i.paid_amount) || 0),
+    0
+  )
+
+  return {
+    hospital: { name: hospital.name, registration_no: reg },
+    admin: { name: profile.name },
+    today: {
+      patientsRegistered: registeredToday.count || 0,
+      appointments: apptsToday.count || 0,
+      pendingRequests: pendingRequests.count || 0,
+      revenue,
+    },
+    totals: {
+      patients: totalPatients.count || 0,
+      staff: totalStaff.count || 0,
+      departments: departments.count || 0,
+    },
+    // Expired notices are filtered here rather than in SQL so a notice expiring
+    // mid-session disappears on the next load without a page-specific query.
+    notices: (notices.data || []).filter(
+      (n) => !n.expires_at || new Date(n.expires_at) > now
+    ),
+  }
+}
+
 function lastSixMonths() {
   const out = []
   const now = new Date()

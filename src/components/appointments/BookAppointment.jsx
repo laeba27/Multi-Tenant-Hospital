@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { getDoctorAvailableSlots } from '@/actions/appointments'
+import SlotPicker from '@/components/appointments/SlotPicker'
 import { getTreatments } from '@/actions/treatments'
 import { useHospitalDoctorsAndDepartments } from '@/hooks/useHospitalDoctorsAndDepartments'
 import { usePatientDetails } from '@/hooks/usePatientDetails'
@@ -55,6 +56,8 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
 
   const [filteredDoctors, setFilteredDoctors] = useState([])
   const [availableSlots, setAvailableSlots] = useState([])
+  // Why there are no slots: on leave, hospital holiday, doesn't work Sundays…
+  const [slotsReason, setSlotsReason] = useState(null)
   const [selectedDept, setSelectedDept] = useState('')
   const [selectedDoc, setSelectedDoc] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
@@ -82,13 +85,22 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
 
   useEffect(() => {
     async function fetchSlots() {
-      if (!selectedDoc || !selectedDate || !hospitalId) return
+      if (!selectedDoc || !selectedDate || !hospitalId) {
+        setAvailableSlots([])
+        setSlotsReason(null)
+        return
+      }
       setIsFetchingSlots(true)
+      // The doctor or the date changed -- a slot picked against the old pair is
+      // meaningless, and could book a time the new doctor doesn't even work.
+      setSelectedSlot('')
       try {
         const result = await getDoctorAvailableSlots(selectedDoc, selectedDate, hospitalId)
         setAvailableSlots(result.slots || [])
+        setSlotsReason(result.reason || null)
       } catch (e) {
         toast.error('Failed to load slots')
+        setAvailableSlots([])
       } finally {
         setIsFetchingSlots(false)
       }
@@ -417,30 +429,28 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-gray-700">Time Slot *</Label>
-                  <Select
+              </div>
+
+              {/* Slots. Reception sees remaining capacity ("3/5 booked");
+                  the patient-facing picker hides it. */}
+              <div className="space-y-1.5 mt-4">
+                <Label className="text-xs font-medium text-gray-700">Time Slot *</Label>
+                {!selectedDoc || !selectedDate ? (
+                  <div className="rounded-lg border border-gray-100 bg-gray-50 p-6 text-center">
+                    <p className="text-sm text-gray-400">
+                      Pick a doctor and a date to see available slots.
+                    </p>
+                  </div>
+                ) : (
+                  <SlotPicker
+                    slots={availableSlots}
                     value={selectedSlot}
-                    onValueChange={setSelectedSlot}
-                    disabled={!selectedDate || availableSlots.length === 0 || isFetchingSlots}
-                  >
-                    <SelectTrigger className="h-9 w-full text-sm">
-                      <SelectValue placeholder={
-                        !selectedDate ? 'Select date' : isFetchingSlots ? 'Loading...' : availableSlots.length === 0 ? 'No slots' : 'Select'
-                      } />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableSlots.map(s => (
-                        <SelectItem key={s} value={s}>
-                          <div className="flex items-center gap-1.5">
-                            <Clock className="w-3 h-3 text-gray-400" />
-                            <span className="text-sm">{s}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    onChange={setSelectedSlot}
+                    loading={isFetchingSlots}
+                    reason={slotsReason}
+                    showCapacity
+                  />
+                )}
               </div>
 
               {/* Consultation Fee Display */}

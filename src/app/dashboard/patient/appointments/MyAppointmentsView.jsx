@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { CalendarDays, Clock, Plus } from 'lucide-react'
+import { CalendarDays, Clock, Plus, Hourglass } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { getMyAppointments } from '@/actions/patients'
+import { getMyAppointments, cancelMyAppointmentRequest } from '@/actions/patients'
 import { Section, Empty, AppointmentRow, splitAppointments } from '@/components/patients/portal-ui'
 
 export default function MyAppointmentsView() {
@@ -21,7 +21,24 @@ export default function MyAppointmentsView() {
 
   useEffect(() => { load() }, [])
 
-  const { upcoming, past } = useMemo(() => splitAppointments(appointments), [appointments])
+  // Requests the hospital hasn't confirmed yet get their own section. They are
+  // not appointments, and listing them under "Upcoming" would imply they are
+  // settled.
+  const { pending, upcoming, past } = useMemo(() => {
+    const pending = appointments.filter((a) => a.status === 'pending_confirmation')
+    const rest = appointments.filter((a) => a.status !== 'pending_confirmation')
+    return { pending, ...splitAppointments(rest) }
+  }, [appointments])
+
+  const handleCancel = async (appointment) => {
+    const res = await cancelMyAppointmentRequest(appointment.id)
+    if (!res.success) {
+      toast.error(res.error || 'Could not cancel that request')
+      return
+    }
+    toast.success(res.message || 'Booking request cancelled')
+    await load()
+  }
 
   if (loading) {
     return <div className="py-16 text-center text-sm text-gray-400">Loading your appointments…</div>
@@ -42,6 +59,16 @@ export default function MyAppointmentsView() {
           </Button>
         </Link>
       </div>
+
+      {pending.length > 0 && (
+        <Section title={`Awaiting Confirmation (${pending.length})`} icon={Hourglass}>
+          <div className="space-y-2">
+            {pending.map((a) => (
+              <AppointmentRow key={a.id} a={a} onCancel={handleCancel} />
+            ))}
+          </div>
+        </Section>
+      )}
 
       <Section title={`Upcoming (${upcoming.length})`} icon={CalendarDays}>
         {upcoming.length === 0 ? (

@@ -24,17 +24,17 @@ import {
 import { toast } from 'sonner'
 import { Calendar, Clock, User, Stethoscope, Search, X } from 'lucide-react'
 
-export function AppointmentsList({ hospitalId, onAppointmentSelect }) {
+export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveRequest, refreshKey }) {
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterStatus, setFilterStatus] = useState('all') // 'all', 'scheduled', 'completed', 'cancelled'
+  const [filterStatus, setFilterStatus] = useState('all') // 'all' | 'pending_confirmation' | 'scheduled' | 'completed' | 'cancelled'
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   const [showModal, setShowModal] = useState(false)
 
   useEffect(() => {
     fetchAppointments()
-  }, [hospitalId])
+  }, [hospitalId, refreshKey])
 
   const fetchAppointments = async () => {
     try {
@@ -81,6 +81,8 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect }) {
 
   const getStatusColor = (status) => {
     switch (status) {
+      case 'pending_confirmation':
+        return 'bg-amber-100 text-amber-800'
       case 'scheduled':
         return 'bg-blue-100 text-blue-800'
       case 'completed':
@@ -92,6 +94,27 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect }) {
     }
   }
 
+  const getStatusLabel = (status) =>
+    status === 'pending_confirmation'
+      ? 'Awaiting approval'
+      : status
+        ? status.charAt(0).toUpperCase() + status.slice(1)
+        : 'Unknown'
+
+  const getPaymentColor = (paymentStatus) => {
+    switch (paymentStatus) {
+      case 'paid':
+        return 'bg-green-100 text-green-800'
+      case 'partially_paid':
+        return 'bg-amber-100 text-amber-800'
+      default:
+        return 'bg-red-100 text-red-800'
+    }
+  }
+
+  const getPaymentLabel = (paymentStatus) =>
+    paymentStatus === 'paid' ? 'Paid' : paymentStatus === 'partially_paid' ? 'Partial' : 'Unpaid'
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
       year: 'numeric',
@@ -99,6 +122,8 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect }) {
       day: 'numeric'
     })
   }
+
+  const money = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`
 
   if (loading) {
     return (
@@ -143,16 +168,25 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect }) {
 
           {/* Filter Buttons */}
           <div className="flex gap-2 flex-wrap">
-            {['all', 'scheduled', 'completed', 'cancelled'].map(status => (
-              <Button
-                key={status}
-                variant={filterStatus === status ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterStatus(status)}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </Button>
-            ))}
+            {['all', 'pending_confirmation', 'scheduled', 'completed', 'cancelled'].map(status => {
+              const pendingCount =
+                status === 'pending_confirmation'
+                  ? appointments.filter(a => a.status === 'pending_confirmation').length
+                  : 0
+              return (
+                <Button
+                  key={status}
+                  variant={filterStatus === status ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFilterStatus(status)}
+                >
+                  {status === 'all' ? 'All' : getStatusLabel(status)}
+                  {pendingCount > 0 && (
+                    <Badge className="ml-2 bg-amber-100 text-amber-800">{pendingCount}</Badge>
+                  )}
+                </Button>
+              )
+            })}
           </div>
         </div>
 
@@ -173,6 +207,8 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect }) {
                   <TableHead>Date</TableHead>
                   <TableHead>Time</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Booked By</TableHead>
+                  <TableHead>Payment</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Action</TableHead>
                 </TableRow>
@@ -214,18 +250,43 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect }) {
                       </Badge>
                     </TableCell>
                     <TableCell>
+                      {apt.booked_by_type === 'patient' ? (
+                        <Badge className="bg-purple-100 text-purple-800">Patient</Badge>
+                      ) : (
+                        <Badge variant="outline">Hospital</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getPaymentColor(apt.payment_status)}>
+                        {getPaymentLabel(apt.payment_status)}
+                      </Badge>
+                      {Number(apt.amount_due) > 0 && (
+                        <div className="text-xs text-gray-500 mt-1">{money(apt.amount_due)}</div>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <Badge className={getStatusColor(apt.status)}>
-                        {apt.status.charAt(0).toUpperCase() + apt.status.slice(1)}
+                        {getStatusLabel(apt.status)}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => handleViewAppointment(apt)}
-                      >
-                        View
-                      </Button>
+                      {apt.status === 'pending_confirmation' ? (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => onApproveRequest?.(apt)}
+                        >
+                          View &amp; Approve
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewAppointment(apt)}
+                        >
+                          View
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

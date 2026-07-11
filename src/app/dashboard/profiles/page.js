@@ -5,6 +5,7 @@ import { Mail, Phone, Building2, User, Edit2, Save, X, Upload, AlertCircle, Load
 import { useUserDetails } from '@/hooks/use-user-details'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import { uploadDocument, getDocumentUrl } from '@/actions/documents'
 
 export default function ProfilePage() {
   const { profile, hospital, isLoading, error } = useUserDetails()
@@ -12,6 +13,7 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
   const [profileData, setProfileData] = useState({
     name: '',
@@ -105,28 +107,38 @@ export default function ProfilePage() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    // Show the picked image straight away; the upload is the slow part and the
+    // user shouldn't stare at a stale avatar while it runs.
+    const localPreview = URL.createObjectURL(file)
+    setAvatarPreview(localPreview)
+    setUploadingAvatar(true)
+
     try {
-      const supabase = createClient()
-      const fileName = `avatar-${Date.now()}-${file.name}`
-      const { data, error } = await supabase.storage
-        .from('hospital')
-        .upload(`avatar/${fileName}`, file)
+      const form = new FormData()
+      form.append('file', file)
+      form.append('scope', 'avatar')
 
-      if (error) throw error
+      const res = await uploadDocument(form)
+      if (!res.success) {
+        toast.error(res.error || 'Could not upload that image')
+        setAvatarPreview(profileData.avatar_url || null)
+        return
+      }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('hospital')
-        .getPublicUrl(`avatar/${fileName}`)
-
-      setProfileData(prev => ({
-        ...prev,
-        avatar_url: publicUrl,
-      }))
-      setAvatarPreview(publicUrl)
-      toast.success('Avatar uploaded successfully')
+      const urlRes = await getDocumentUrl(res.document.id)
+      if (urlRes.success) {
+        setProfileData((prev) => ({ ...prev, avatar_url: urlRes.url }))
+        setAvatarPreview(urlRes.url)
+      }
+      toast.success('Profile picture updated')
     } catch (error) {
-      toast.error('Error uploading avatar')
       console.error(error)
+      toast.error('Could not upload that image')
+      setAvatarPreview(profileData.avatar_url || null)
+    } finally {
+      setUploadingAvatar(false)
+      URL.revokeObjectURL(localPreview)
+      e.target.value = ''
     }
   }
 
@@ -307,11 +319,30 @@ export default function ProfilePage() {
                     </div>
                   )}
                   {isEditing && (
-                    <label className="flex items-center gap-2 cursor-pointer px-4 py-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200 transition">
-                      <Upload size={16} />
-                      Upload Avatar
-                      <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
-                    </label>
+                    <>
+                      <label
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+                          uploadingAvatar
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200 cursor-pointer'
+                        }`}
+                      >
+                        {uploadingAvatar ? (
+                          <Loader size={16} className="animate-spin" />
+                        ) : (
+                          <Upload size={16} />
+                        )}
+                        {uploadingAvatar ? 'Uploading…' : 'Upload Avatar'}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={handleAvatarUpload}
+                          disabled={uploadingAvatar}
+                          className="hidden"
+                        />
+                      </label>
+                      <p className="text-xs text-gray-400 mt-2">JPG, PNG or WebP · max 5 MB</p>
+                    </>
                   )}
                 </div>
               </div>

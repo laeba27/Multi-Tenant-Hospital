@@ -6,12 +6,20 @@ import {
 import { Badge } from '@/components/ui/badge'
 
 export const STATUS_BADGE = {
+  pending_confirmation: 'bg-amber-100 text-amber-800 border border-amber-200',
   scheduled: 'bg-blue-100 text-blue-800 border border-blue-200',
   completed: 'bg-green-100 text-green-800 border border-green-200',
   cancelled: 'bg-rose-100 text-rose-800 border border-rose-200',
   'no-show': 'bg-amber-100 text-amber-800 border border-amber-200',
   no_show: 'bg-amber-100 text-amber-800 border border-amber-200',
 }
+
+export const STATUS_LABEL = {
+  pending_confirmation: 'Awaiting confirmation',
+  scheduled: 'Confirmed',
+}
+
+export const money = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`
 
 export function fmtDate(d) {
   if (!d) return '—'
@@ -73,10 +81,15 @@ export function Info({ icon: Icon, label, value, mono }) {
   )
 }
 
-export function AppointmentRow({ a }) {
+export function AppointmentRow({ a, onCancel }) {
   const badge = STATUS_BADGE[a.status] || 'bg-gray-100 text-gray-700 border border-gray-200'
+  const label = STATUS_LABEL[a.status] || (a.status || 'scheduled').replace('_', ' ')
+  const isPending = a.status === 'pending_confirmation'
+  const due = Number(a.amount_due) || 0
+  const unpaid = due > 0 && a.payment_status !== 'paid'
+
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-gray-100 bg-white px-4 py-3">
+    <div className="flex items-start gap-3 rounded-lg border border-gray-100 bg-white px-4 py-3">
       <div className="h-10 w-10 rounded-lg bg-indigo-50 text-indigo-600 flex flex-col items-center justify-center shrink-0">
         <CalendarDays className="h-4 w-4" />
       </div>
@@ -84,9 +97,7 @@ export function AppointmentRow({ a }) {
         <div className="flex items-center gap-2 flex-wrap">
           <p className="text-sm font-semibold text-gray-900">{fmtDate(a.appointment_date)}</p>
           <span className="text-xs text-gray-500">{a.appointment_slot}</span>
-          <Badge className={`text-[10px] uppercase ${badge}`}>
-            {(a.status || 'scheduled').replace('_', ' ')}
-          </Badge>
+          <Badge className={`text-[10px] uppercase ${badge}`}>{label}</Badge>
         </div>
         <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-2 flex-wrap">
           <span className="flex items-center gap-1">
@@ -100,7 +111,36 @@ export function AppointmentRow({ a }) {
           )}
           {a.department?.name && <span>· {a.department.name}</span>}
         </p>
+
+        {isPending && (
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded px-2 py-1.5 mt-2">
+            The hospital will confirm this shortly. You&apos;ll be notified once it&apos;s approved.
+          </p>
+        )}
+
+        {unpaid && (
+          <p className="text-xs text-gray-600 mt-1.5">
+            <span className="font-semibold text-gray-900">{money(due)}</span> payable at the
+            reception counter. We don&apos;t take online payments yet.
+          </p>
+        )}
+
+        {a.status === 'cancelled' && a.cancellation_reason && (
+          <p className="text-xs text-rose-700 bg-rose-50 border border-rose-100 rounded px-2 py-1.5 mt-2">
+            {a.cancellation_reason}
+          </p>
+        )}
       </div>
+
+      {isPending && onCancel && (
+        <button
+          type="button"
+          onClick={() => onCancel(a)}
+          className="text-xs text-gray-500 hover:text-rose-600 shrink-0 underline"
+        >
+          Cancel
+        </button>
+      )}
     </div>
   )
 }

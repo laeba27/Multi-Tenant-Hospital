@@ -11,6 +11,7 @@ import { AppointmentConfirmation } from '@/components/appointments/AppointmentCo
 import { InvoiceGeneration } from '@/components/invoices/InvoiceGeneration'
 import { AppointmentInvoicePrint } from '@/components/appointments/AppointmentInvoicePrint'
 import { AppointmentsList } from '@/components/appointments/AppointmentsList'
+import { BookingRequestsList } from '@/components/appointments/BookingRequestsList'
 import { PatientPreview } from '@/components/patients/PatientPreview'
 import {
   Card,
@@ -39,9 +40,11 @@ import {
 import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Info, Lock, Calendar } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { PatientLookup } from '@/components/patients/PatientLookup'
 import { PatientTypeChoice } from '@/components/patients/PatientTypeChoice'
 import { bookAppointment } from '@/actions/appointments'
+import { getPendingRequestCount } from '@/actions/notifications'
 
 export default function PatientManagementPage() {
   const { user, loading: userLoading } = useUser()
@@ -49,7 +52,23 @@ export default function PatientManagementPage() {
   const [showForm, setShowForm] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [editingPatient, setEditingPatient] = useState(null)
-  
+
+  // Booking requests: patients who booked themselves and are awaiting approval.
+  const [activeTab, setActiveTab] = useState('list')
+  const [pendingCount, setPendingCount] = useState(0)
+  const hospitalId = user?.profile?.hospital_id
+
+  useEffect(() => {
+    if (!hospitalId) return
+    getPendingRequestCount(hospitalId).then(setPendingCount)
+  }, [hospitalId, refreshKey])
+
+  // Approving from the Appointments tab hands off to the Requests tab, which
+  // owns the confirm dialog -- one approval flow, not two.
+  const handleApproveFromList = () => setActiveTab('requests')
+
+  const handleRequestsChanged = () => setRefreshKey((k) => k + 1)
+
   // Wizard States: choice -> lookup/register -> preview -> appointment -> appointmentConfirm -> invoice -> print
   const [wizardStep, setWizardStep] = useState('choice')
   // 'choice' | 'lookup' | 'register' | 'preview' | 'appointment' | 'appointmentConfirm' | 'invoice' | 'print'
@@ -283,10 +302,16 @@ export default function PatientManagementPage() {
         </Card>
       ) : (
         // Tabs View
-        <Tabs defaultValue="list" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList>
             <TabsTrigger value="list">Patient List</TabsTrigger>
             <TabsTrigger value="appointments">Appointments</TabsTrigger>
+            <TabsTrigger value="requests" className="gap-2">
+              Booking Requests
+              {pendingCount > 0 && (
+                <Badge className="bg-amber-100 text-amber-800">{pendingCount}</Badge>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           {/* Patient List Tab */}
@@ -433,11 +458,18 @@ export default function PatientManagementPage() {
           {/* Appointments Tab */}
           <TabsContent value="appointments">
             <AppointmentsList
-              hospitalId={user.profile?.hospital_id}
-              onAppointmentSelect={(appointment) => {
-                // Handle appointment selection if needed
-                console.log('Selected appointment:', appointment)
-              }}
+              hospitalId={hospitalId}
+              refreshKey={refreshKey}
+              onApproveRequest={handleApproveFromList}
+            />
+          </TabsContent>
+
+          {/* Booking Requests Tab -- patient self-bookings awaiting approval */}
+          <TabsContent value="requests">
+            <BookingRequestsList
+              hospitalId={hospitalId}
+              key={refreshKey}
+              onChange={handleRequestsChanged}
             />
           </TabsContent>
         </Tabs>

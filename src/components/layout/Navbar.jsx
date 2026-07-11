@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Menu, LogOut, Bell, Settings, MessageSquare, Megaphone } from 'lucide-react'
+import { Menu, LogOut, Bell, Settings, MessageSquare, Megaphone, CalendarCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
 import { useUserDetails } from '@/hooks/use-user-details'
-import { getNavNotifications } from '@/actions/notifications'
+import { getNavNotifications, markNotificationRead } from '@/actions/notifications'
 import { ResetPasswordDialog } from './ResetPasswordDialog'
 
 export function Navbar({ onMenuToggle }) {
@@ -16,6 +16,7 @@ export function Navbar({ onMenuToggle }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [openMenu, setOpenMenu] = useState(null) // 'notifications' | 'settings' | null
   const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
   const [notifLoading, setNotifLoading] = useState(false)
   const [showResetDialog, setShowResetDialog] = useState(false)
   const menuRef = useRef(null)
@@ -25,12 +26,27 @@ export function Navbar({ onMenuToggle }) {
     try {
       const res = await getNavNotifications()
       setNotifications(res.items || [])
+      setUnreadCount(res.count || 0)
     } catch (e) {
       console.error('Failed to load notifications', e)
     } finally {
       setNotifLoading(false)
     }
   }, [])
+
+  // Clicking a notification takes you to the thing it is about -- the booking
+  // request queue for reception, the appointment list for a patient.
+  const handleNotificationClick = useCallback(
+    async (n) => {
+      setOpenMenu(null)
+      if (n.notificationId && n.unread) {
+        await markNotificationRead(n.notificationId)
+        loadNotifications()
+      }
+      if (n.link) router.push(n.link)
+    },
+    [router, loadNotifications]
+  )
 
   // Load once the user is known so the bell badge reflects real content.
   useEffect(() => {
@@ -102,7 +118,9 @@ export function Navbar({ onMenuToggle }) {
                   title="Notifications"
                 >
                   <Bell size={20} />
-                  {hasNotifications && (
+                  {/* Unread, not merely present -- notices and issues have no
+                      read state and would keep the dot permanently lit. */}
+                  {unreadCount > 0 && (
                     <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
                   )}
                 </button>
@@ -111,8 +129,8 @@ export function Navbar({ onMenuToggle }) {
                   <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
                     <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                       <p className="text-sm font-semibold text-gray-900">Notifications</p>
-                      {hasNotifications && (
-                        <span className="text-[11px] text-gray-400">{notifications.length}</span>
+                      {unreadCount > 0 && (
+                        <span className="text-[11px] text-gray-400">{unreadCount} unread</span>
                       )}
                     </div>
                     <div className="max-h-96 overflow-y-auto">
@@ -124,20 +142,28 @@ export function Navbar({ onMenuToggle }) {
                         </p>
                       ) : (
                         notifications.map((n) => (
-                          <div
+                          <button
                             key={n.id}
-                            className="px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50"
+                            type="button"
+                            onClick={() => handleNotificationClick(n)}
+                            className={`w-full text-left px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 ${
+                              n.unread ? 'bg-indigo-50/40' : ''
+                            }`}
                           >
                             <div className="flex items-start gap-2.5">
                               <span
                                 className={`mt-0.5 inline-flex rounded-md p-1.5 ${
                                   n.kind === 'issue'
                                     ? 'bg-amber-50 text-amber-600'
-                                    : 'bg-indigo-50 text-indigo-600'
+                                    : n.kind?.startsWith('appointment')
+                                      ? 'bg-emerald-50 text-emerald-600'
+                                      : 'bg-indigo-50 text-indigo-600'
                                 }`}
                               >
                                 {n.kind === 'issue' ? (
                                   <MessageSquare size={14} />
+                                ) : n.kind?.startsWith('appointment') ? (
+                                  <CalendarCheck size={14} />
                                 ) : (
                                   <Megaphone size={14} />
                                 )}
@@ -163,7 +189,7 @@ export function Navbar({ onMenuToggle }) {
                                 </div>
                               </div>
                             </div>
-                          </div>
+                          </button>
                         ))
                       )}
                     </div>

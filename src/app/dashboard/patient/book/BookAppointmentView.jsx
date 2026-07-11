@@ -16,6 +16,7 @@ import {
   getMyProfileForBooking, updateMyProfileDetails,
 } from '@/actions/patients'
 import { getDoctorAvailableSlots } from '@/actions/appointments'
+import SlotPicker from '@/components/appointments/SlotPicker'
 import { getTreatments } from '@/actions/treatments'
 import { useHospitalDoctorsAndDepartments } from '@/hooks/useHospitalDoctorsAndDepartments'
 
@@ -185,6 +186,7 @@ function BookingForm({ hospital, onBack, onBooked }) {
   const [loadingDoctors, setLoadingDoctors] = useState(true)
 
   const [slots, setSlots] = useState([])
+  const [slotsReason, setSlotsReason] = useState(null)
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -247,13 +249,14 @@ function BookingForm({ hospital, onBack, onBooked }) {
   useEffect(() => { if (!needsTreatment) setSelectedTreatmentIds([]) }, [needsTreatment])
 
   useEffect(() => {
-    if (!doctorId || !date) { setSlots([]); return }
+    if (!doctorId || !date) { setSlots([]); setSlotsReason(null); return }
     let cancelled = false
     setLoadingSlots(true)
     getDoctorAvailableSlots(doctorId, date, hospitalId)
       .then((res) => {
         if (cancelled) return
-        setSlots(Array.isArray(res) ? res : res?.slots || [])
+        setSlots(res?.slots || [])
+        setSlotsReason(res?.reason || null)
       })
       .catch(() => { if (!cancelled) setSlots([]) })
       .finally(() => { if (!cancelled) setLoadingSlots(false) })
@@ -528,25 +531,23 @@ function BookingForm({ hospital, onBack, onBooked }) {
 
             <div>
               <Label className="mb-2 block">Time Slot *</Label>
-              <select
-                required
-                value={slot}
-                onChange={(e) => setSlot(e.target.value)}
-                disabled={!doctorId || !date || loadingSlots}
-                className="w-full h-10 rounded-md border border-gray-300 px-3 text-sm disabled:bg-gray-50"
-              >
-                <option value="">
-                  {loadingSlots
-                    ? 'Checking availability…'
-                    : slots.length === 0 && doctorId && date
-                      ? 'No slots available'
-                      : 'Select a time'}
-                </option>
-                {slots.map((s) => {
-                  const value = typeof s === 'string' ? s : s.slot || s.time
-                  return <option key={value} value={value}>{value}</option>
-                })}
-              </select>
+              {!doctorId || !date ? (
+                <div className="rounded-lg border border-gray-100 bg-gray-50 p-6 text-center">
+                  <p className="text-sm text-gray-400">
+                    Choose a doctor and a date to see the available times.
+                  </p>
+                </div>
+              ) : (
+                // showCapacity is deliberately off: a patient sees only whether
+                // a slot is open, never how full it is.
+                <SlotPicker
+                  slots={slots}
+                  value={slot}
+                  onChange={setSlot}
+                  loading={loadingSlots}
+                  reason={slotsReason}
+                />
+              )}
             </div>
 
             <div>

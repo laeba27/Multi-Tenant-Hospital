@@ -1,5 +1,6 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { createHash, randomInt } from 'crypto'
 import {
@@ -445,6 +446,10 @@ export async function getMyAppointments() {
       reason,
       consultation_fee_snapshot,
       treatment_details,
+      payment_status,
+      amount_due,
+      booked_by_type,
+      cancellation_reason,
       hospital:hospitals!appointments_hospital_fkey ( name, city ),
       department:departments!appointments_department_fkey ( name ),
       doctor:staff!appointments_doctor_fkey ( name )
@@ -610,8 +615,44 @@ export async function bookMyAppointment({
     return { success: false, error: 'Could not register you at that hospital. Please try again.' }
   }
 
+  // Price the appointment SERVER-SIDE. The patient's browser sent names only
+  // (prices were zeroed above); the real numbers come from the doctor's
+  // consultation fee and the hospital's treatment catalog. Reception can still
+  // adjust the total when they confirm.
+  const { data: doctor } = await adminClient
+    .from('staff')
+    .select('consultation_fee')
+    .eq('id', doctorId)
+    .eq('hospital_id', hospitalId)
+    .maybeSingle()
+
+  const consultationFee =
+    type === 'treatment' ? 0 : Number(doctor?.consultation_fee) || 0
+
+  let pricedTreatments = treatmentDetails
+  if (treatmentDetails.length > 0) {
+    const { data: catalog } = await adminClient
+      .from('treatments')
+      .select('id, name, price')
+      .eq('hospital_id', hospitalId)
+      .in(
+        'id',
+        treatmentDetails.map((t) => t.id)
+      )
+
+    const priceMap = Object.fromEntries((catalog || []).map((t) => [t.id, t]))
+    pricedTreatments = treatmentDetails.map((t) => ({
+      ...t,
+      name: priceMap[t.id]?.name || t.name,
+      price: Number(priceMap[t.id]?.price) || 0,
+    }))
+  }
+
+  const treatmentTotal = pricedTreatments.reduce((sum, t) => sum + (Number(t.price) || 0), 0)
+  const amountDue = consultationFee + treatmentTotal
+
   const { bookAppointment } = await import('@/actions/appointments')
-  return bookAppointment(
+  const result = await bookAppointment(
     {
       hospital_id: hospitalId,
       patient_id: link.id,
@@ -621,11 +662,96 @@ export async function bookMyAppointment({
       appointment_slot: slot,
       appointment_type: type,
       reason: reason || null,
-      consultation_fee_snapshot: null,
-      treatment_details: treatmentDetails,
+      consultation_fee_snapshot: consultationFee || null,
+      treatment_details: pricedTreatments,
+      // Marks this as a request, not a booking: bookAppointment writes it as
+      // 'pending_confirmation' and reception reviews it before it's real.
+      booked_by_type: 'patient',
+      amount_due: amountDue,
     },
     user.id
   )
+
+  if (!result?.success) return result
+
+  // Tell the desk. Role-addressed, so it reaches whoever is on shift without us
+  // having to know who that is. Failing to notify must not undo the booking --
+  // notify() swallows its own errors.
+  const [{ data: patientProfile }, { data: doctorRow }] = await Promise.all([
+    adminClient.from('profiles').select('name').eq('id', user.id).maybeSingle(),
+    adminClient.from('staff').select('name').eq('id', doctorId).maybeSingle(),
+  ])
+
+  const patientName = patientProfile?.name || 'A patient'
+  const doctorName = doctorRow?.name || 'a doctor'
+  const dueText = amountDue > 0 ? ` ₹${amountDue} due.` : ''
+  const body = `${patientName} requested ${doctorName} on ${date} at ${slot}.${dueText}`
+
+  const { notify } = await import('@/actions/notifications')
+  await Promise.all([
+    notify({
+      recipientRole: 'receptionist',
+      hospitalId,
+      kind: 'appointment_requested',
+      title: 'New appointment request',
+      body,
+      link: '/dashboard/reception/patient-management?tab=requests',
+      entityId: result.appointment?.id,
+    }),
+    notify({
+      recipientRole: 'hospital_admin',
+      hospitalId,
+      kind: 'appointment_requested',
+      title: 'New appointment request',
+      body,
+      link: '/dashboard/hospital/patient-management?tab=requests',
+      entityId: result.appointment?.id,
+    }),
+  ])
+
+  return {
+    ...result,
+    message: 'Request sent. The hospital will confirm your appointment shortly.',
+  }
+}
+
+/**
+ * Patient withdraws a booking request the hospital hasn't confirmed yet.
+ *
+ * Deliberately the ordinary (RLS-enforced) client, not the admin one: the
+ * policy from migration 028 only lets a patient update their own
+ * 'pending_confirmation' rows, and a trigger blocks them from changing anything
+ * but the status. The database is the guard here, not this function.
+ */
+export async function cancelMyAppointmentRequest(appointmentId) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Not signed in' }
+  if (!appointmentId) return { success: false, error: 'Appointment required' }
+
+  const { data, error } = await supabase
+    .from('appointments')
+    .update({ status: 'cancelled' })
+    .eq('id', appointmentId)
+    .eq('status', 'pending_confirmation')
+    .select('id, hospital_id')
+    .maybeSingle()
+
+  if (error) {
+    console.error('Error cancelling appointment request:', error)
+    return { success: false, error: 'Could not cancel that request.' }
+  }
+  if (!data) {
+    return {
+      success: false,
+      error: 'That request can no longer be cancelled — the hospital may have already confirmed it.',
+    }
+  }
+
+  revalidatePath('/dashboard/patient/appointments')
+  return { success: true, message: 'Booking request cancelled.' }
 }
 
 /**

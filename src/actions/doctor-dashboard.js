@@ -121,7 +121,13 @@ export async function getDoctorDashboard() {
 }
 
 /**
- * All notices for the hospital (for the full notifications page).
+ * The notices at this doctor's hospital that are ADDRESSED TO THEM.
+ *
+ * No audience filter here on purpose: the RLS policy on `notices` (migration
+ * 031) matches audience_roles against the caller's role, so a notice sent to
+ * pharmacists simply isn't returned. Before 031 this selected the old scalar
+ * `audience` column and ignored it, so doctors saw every notice at the hospital
+ * regardless of who it was for.
  */
 export async function getHospitalNotices() {
   const { supabase, doctorRecord } = await getDoctorContext()
@@ -129,7 +135,7 @@ export async function getHospitalNotices() {
 
   const { data, error } = await supabase
     .from('notices')
-    .select('id, title, body, category, audience, is_pinned, published_at, expires_at')
+    .select('id, title, body, category, audience_roles, is_pinned, published_at, expires_at')
     .eq('hospital_id', doctorRecord.hospital_id)
     .order('is_pinned', { ascending: false })
     .order('published_at', { ascending: false })
