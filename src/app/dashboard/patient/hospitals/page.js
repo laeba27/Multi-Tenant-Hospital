@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function MyHospitalsPage() {
   return (
-    <DashboardLayout roleLabel="Patient" showHeader>
+    <DashboardLayout roleLabel="Patient">
       <MyHospitalsView />
     </DashboardLayout>
   )

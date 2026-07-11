@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function MyHistoryPage() {
   return (
-    <DashboardLayout roleLabel="Patient" showHeader>
+    <DashboardLayout roleLabel="Patient">
       <MyHistoryView />
     </DashboardLayout>
   )

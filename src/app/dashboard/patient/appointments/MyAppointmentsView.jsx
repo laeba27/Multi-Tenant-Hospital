@@ -1,17 +1,16 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { CalendarDays, Clock, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { getMyAppointments } from '@/actions/patients'
 import { Section, Empty, AppointmentRow, splitAppointments } from '@/components/patients/portal-ui'
-import BookAppointmentDialog from './BookAppointmentDialog'
 
 export default function MyAppointmentsView() {
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
-  const [showBook, setShowBook] = useState(false)
 
   const load = async () => {
     const appts = await getMyAppointments()
@@ -37,12 +36,11 @@ export default function MyAppointmentsView() {
             Across every hospital you are registered at.
           </p>
         </div>
-        <Button
-          onClick={() => setShowBook(true)}
-          className="bg-indigo-600 hover:bg-indigo-700"
-        >
-          <Plus className="h-4 w-4" /> Book Appointment
-        </Button>
+        <Link href="/dashboard/patient/book">
+          <Button className="bg-indigo-600 hover:bg-indigo-700">
+            <Plus className="h-4 w-4" /> Book Appointment
+          </Button>
+        </Link>
       </div>
 
       <Section title={`Upcoming (${upcoming.length})`} icon={CalendarDays}>
@@ -65,11 +63,6 @@ export default function MyAppointmentsView() {
         )}
       </Section>
 
-      <BookAppointmentDialog
-        open={showBook}
-        onClose={() => setShowBook(false)}
-        onBooked={() => { setShowBook(false); load() }}
-      />
     </div>
   )
 }

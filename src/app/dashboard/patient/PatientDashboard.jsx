@@ -17,7 +17,6 @@ import { getMyHospitalRecords, getMyAppointments, changeMyPassword } from '@/act
 import QuickUpdates from '@/components/patients/QuickUpdates'
 import EmergencyContacts from '@/components/patients/EmergencyContacts'
 import WelcomeGuide from '@/components/patients/WelcomeGuide'
-import BookAppointmentDialog from './appointments/BookAppointmentDialog'
 import {
   Section, Empty, Stat, Info, AppointmentRow, HospitalCard, splitAppointments,
 } from '@/components/patients/portal-ui'
@@ -29,7 +28,6 @@ export default function PatientDashboard() {
   const [appointments, setAppointments] = useState([])
   const [mustChange, setMustChange] = useState(false)
   const [showPwDialog, setShowPwDialog] = useState(false)
-  const [showBook, setShowBook] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -80,12 +78,11 @@ export default function PatientDashboard() {
       <WelcomeGuide />
 
       {/* Book an appointment */}
-      <Button
-        onClick={() => setShowBook(true)}
-        className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-base font-semibold"
-      >
-        <CalendarPlus className="h-5 w-5" /> Book Appointment
-      </Button>
+      <Link href="/dashboard/patient/book" className="block">
+        <Button className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-base font-semibold">
+          <CalendarPlus className="h-5 w-5" /> Book Appointment
+        </Button>
+      </Link>
 
       {/* Quick stats */}
       <div className="grid grid-cols-3 gap-3">
@@ -150,12 +147,6 @@ export default function PatientDashboard() {
           </Button>
         </div>
       </Section>
-
-      <BookAppointmentDialog
-        open={showBook}
-        onClose={() => setShowBook(false)}
-        onBooked={() => { setShowBook(false); load() }}
-      />
 
       <ChangePasswordDialog
         open={showPwDialog}

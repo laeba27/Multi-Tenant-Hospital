@@ -26,6 +26,8 @@ import {
   Hospital,
   TriangleAlert,
   UserPlus,
+  CalendarPlus,
+  Megaphone,
 } from 'lucide-react'
 import { useUserDetails } from '@/hooks/use-user-details'
 
@@ -78,10 +80,12 @@ const roleBasedSidebarItems = {
   ],
   patient: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/patient' },
-    { icon: Hospital, label: 'My Hospitals', href: '/dashboard/patient/hospitals' },
-    { icon: Calendar, label: 'My Appointments', href: '/dashboard/patient/appointments' },
-    { icon: Clock, label: 'My History', href: '/dashboard/patient/history' },
-    { icon: UserCircle, label: 'My Profile', href: '/dashboard/profiles' },
+    { icon: CalendarPlus, label: 'Book Appointment', href: '/dashboard/patient/book' },
+    { icon: Megaphone, label: 'Quick Updates', href: '/dashboard/patient/updates' },
+    { icon: Hospital, label: 'Hospitals', href: '/dashboard/patient/hospitals' },
+    { icon: Calendar, label: 'Appointments', href: '/dashboard/patient/appointments' },
+    { icon: Clock, label: 'History', href: '/dashboard/patient/history' },
+    { icon: UserCircle, label: 'Profile', href: '/dashboard/profiles' },
   ],
 }
 

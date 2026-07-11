@@ -629,6 +629,156 @@ export async function bookMyAppointment({
 }
 
 /**
+ * Patient self-service: doctors at a hospital, split into ones this patient has
+ * seen before (with their most recent visit date) and the rest. Powers the
+ * "continue with your doctor vs see someone new" step of booking.
+ */
+export async function getMyDoctorsAtHospital(hospitalId) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Not signed in', seen: [], others: [] }
+  if (!hospitalId) return { success: false, error: 'Hospital required', seen: [], others: [] }
+
+  // Every active doctor at this hospital.
+  const { data: doctors, error } = await supabase
+    .from('staff')
+    .select('id, name, department_id, role, is_active, specialization')
+    .eq('hospital_id', hospitalId)
+    .eq('role', 'doctor')
+
+  if (error) {
+    console.error('Error loading hospital doctors:', error)
+    return { success: false, error: error.message, seen: [], others: [] }
+  }
+  const activeDoctors = (doctors || []).filter((d) => d.is_active !== false)
+
+  // This patient's link rows at the hospital, then their past appointments there
+  // to find which doctors they've seen and when.
+  const { data: links } = await supabase
+    .from('patients')
+    .select('id')
+    .eq('profile_id', user.id)
+    .eq('hospital_id', hospitalId)
+  const patientIds = (links || []).map((l) => l.id)
+
+  const lastVisit = new Map() // doctor_id -> most recent appointment_date
+  if (patientIds.length > 0) {
+    const { data: appts } = await supabase
+      .from('appointments')
+      .select('doctor_id, appointment_date')
+      .in('patient_id', patientIds)
+      .not('doctor_id', 'is', null)
+    for (const a of appts || []) {
+      const prev = lastVisit.get(a.doctor_id)
+      if (!prev || (a.appointment_date || '') > prev) {
+        lastVisit.set(a.doctor_id, a.appointment_date)
+      }
+    }
+  }
+
+  const seen = []
+  const others = []
+  for (const d of activeDoctors) {
+    if (lastVisit.has(d.id)) {
+      seen.push({ ...d, lastVisit: lastVisit.get(d.id) })
+    } else {
+      others.push(d)
+    }
+  }
+  // Most recently seen first.
+  seen.sort((a, b) => (b.lastVisit || '').localeCompare(a.lastVisit || ''))
+
+  return { success: true, seen, others }
+}
+
+/**
+ * Patient self-service: the demographic fields booking may prompt to complete,
+ * plus the emergency contact from any of the patient's hospital links. Lets the
+ * booking page show a "complete your details" section only for blank fields.
+ */
+export async function getMyProfileForBooking() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Not signed in', profile: null }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, name, blood_group, date_of_birth, gender, address, city, state, pincode')
+    .eq('id', user.id)
+    .single()
+
+  // Emergency contact lives on the patients link rows; surface the first set one.
+  const { data: links } = await supabase
+    .from('patients')
+    .select('emergency_contact_name, emergency_contact_mobile')
+    .eq('profile_id', user.id)
+  const withContact = (links || []).find((l) => l.emergency_contact_name || l.emergency_contact_mobile)
+
+  return {
+    success: true,
+    profile: {
+      ...(profile || {}),
+      emergency_contact_name: withContact?.emergency_contact_name || '',
+      emergency_contact_mobile: withContact?.emergency_contact_mobile || '',
+    },
+  }
+}
+
+/**
+ * Patient self-service: update ONLY the given profile fields for the signed-in
+ * patient. Derives the id from the session -- never trust a caller-supplied one.
+ * Recommended-not-mandatory: callers pass just the fields they want to set.
+ */
+export async function updateMyProfileDetails(details = {}) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Not signed in' }
+
+  // Whitelist: a patient may only edit these demographic fields about themselves.
+  const allowed = ['blood_group', 'date_of_birth', 'gender', 'address', 'city', 'state', 'pincode']
+  const patch = {}
+  for (const key of allowed) {
+    const v = details[key]
+    if (v !== undefined && v !== null && String(v).trim() !== '') patch[key] = v
+  }
+  // Emergency contact lives on the per-hospital patients row, handled separately.
+  const emergencyName = details.emergency_contact_name
+  const emergencyMobile = details.emergency_contact_mobile
+
+  const adminClient = await createAdminClient()
+
+  if (Object.keys(patch).length > 0) {
+    const { error } = await adminClient
+      .from('profiles')
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq('id', user.id)
+      .eq('role', 'patient')
+    if (error) return { success: false, error: error.message }
+  }
+
+  // Apply emergency contact to all of the patient's link rows so it's on record
+  // at every hospital they attend.
+  if ((emergencyName && emergencyName.trim()) || (emergencyMobile && emergencyMobile.trim())) {
+    await adminClient
+      .from('patients')
+      .update({
+        emergency_contact_name: emergencyName || null,
+        emergency_contact_mobile: emergencyMobile || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('profile_id', user.id)
+  }
+
+  return { success: true }
+}
+
+/**
  * Patient self-service: health advisories and announcements. RLS on
  * patient_notices already restricts rows to platform-wide notices plus the
  * hospitals this patient is registered at, and drops expired ones -- so a

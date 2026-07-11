@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function MyAppointmentsPage() {
   return (
-    <DashboardLayout roleLabel="Patient" showHeader>
+    <DashboardLayout roleLabel="Patient">
       <MyAppointmentsView />
     </DashboardLayout>
   )
