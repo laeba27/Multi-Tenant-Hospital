@@ -14,6 +14,7 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
 
   const [profileData, setProfileData] = useState({
     name: '',
@@ -142,31 +143,37 @@ export default function ProfilePage() {
     }
   }
 
+  // Goes to Cloudflare R2, like every other upload. Supabase Storage counts
+  // against the free tier's disk quota; R2 does not.
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
 
+    setUploadingLogo(true)
     try {
-      const supabase = createClient()
-      const fileName = `logo-${Date.now()}-${file.name}`
-      const { data, error } = await supabase.storage
-        .from('hospital')
-        .upload(`logo/${fileName}`, file)
+      const form = new FormData()
+      form.append('file', file)
+      form.append('scope', 'hospital_media')
+      form.append('hospitalId', profile?.hospital_id || '')
+      form.append('title', 'Hospital logo')
 
-      if (error) throw error
+      const res = await uploadDocument(form)
+      if (!res.success) {
+        toast.error(res.error || 'Could not upload the logo')
+        return
+      }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('hospital')
-        .getPublicUrl(`logo/${fileName}`)
-
-      setHospitalData(prev => ({
-        ...prev,
-        logo_url: publicUrl,
-      }))
-      toast.success('Logo uploaded successfully')
+      const urlRes = await getDocumentUrl(res.document.id)
+      if (urlRes.success) {
+        setHospitalData((prev) => ({ ...prev, logo_url: urlRes.url }))
+      }
+      toast.success('Logo updated')
     } catch (error) {
-      toast.error('Error uploading logo')
       console.error(error)
+      toast.error('Could not upload the logo')
+    } finally {
+      setUploadingLogo(false)
+      e.target.value = ''
     }
   }
 
