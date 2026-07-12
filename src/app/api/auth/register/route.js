@@ -41,12 +41,52 @@ export async function POST(request) {
       feedbackEnabled,
     } = body
 
-    // Validate required fields
-    if (!email || !password || !hospitalName || !licenseNumber) {
+    // Validate required fields.
+    // The Zod schema on the sign-up page runs in the BROWSER only, so it stops
+    // honest mistakes and nothing else -- a direct POST sails past it. These
+    // checks are the ones that actually hold.
+    const missing = []
+    if (!fullName) missing.push('your name')
+    if (!email) missing.push('your email')
+    if (!password) missing.push('a password')
+    if (!hospitalName) missing.push('the hospital name')
+    if (!licenseNumber) missing.push('the license number')
+    if (!administratorName) missing.push('the administrator name')
+    if (!administratorEmail) missing.push('the hospital email')
+    if (!administratorPhone) missing.push('the hospital phone')
+    if (!address) missing.push('the address')
+    if (!city) missing.push('the city')
+    if (!state) missing.push('the state')
+    if (!postalCode) missing.push('the postal code')
+
+    if (missing.length) {
       return Response.json(
-        { error: 'Missing required fields' },
+        { error: `Please provide ${missing.join(', ')}.` },
         { status: 400 }
       )
+    }
+
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ||
+        !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(administratorEmail)) {
+      return Response.json({ error: 'Please enter a valid email address.' }, { status: 400 })
+    }
+    if (String(password).length < 6) {
+      return Response.json(
+        { error: 'Password must be at least 6 characters.' },
+        { status: 400 }
+      )
+    }
+
+    const beds = totalBeds == null ? null : Number(totalBeds)
+    const icu = icuBeds == null ? null : Number(icuBeds)
+    if (beds !== null && (!Number.isInteger(beds) || beds < 0)) {
+      return Response.json({ error: 'Total beds must be a whole number.' }, { status: 400 })
+    }
+    if (icu !== null && (!Number.isInteger(icu) || icu < 0)) {
+      return Response.json({ error: 'ICU beds must be a whole number.' }, { status: 400 })
+    }
+    if (beds !== null && icu !== null && icu > beds) {
+      return Response.json({ error: 'ICU beds cannot exceed total beds.' }, { status: 400 })
     }
 
     // Create admin client
@@ -113,10 +153,24 @@ export async function POST(request) {
       console.error('Hospital creation error:', hospitalError)
       // Delete the auth user since hospital creation failed
       await adminClient.auth.admin.deleteUser(userId)
-      return Response.json(
-        { error: 'Failed to register hospital: ' + hospitalError.message },
-        { status: 400 }
-      )
+
+      // license_number, email and registration_no are all UNIQUE. Say which one
+      // clashed -- the raw Postgres text ("duplicate key value violates unique
+      // constraint hospitals_license_number_key") means nothing to a hospital
+      // administrator, and leaks the schema besides.
+      const detail = `${hospitalError.message || ''} ${hospitalError.details || ''}`
+      let message = 'Could not register the hospital. Please check the details and try again.'
+      if (hospitalError.code === '23505') {
+        if (detail.includes('license_number')) {
+          message = 'A hospital with that license number is already registered.'
+        } else if (detail.includes('email')) {
+          message = 'A hospital with that email address is already registered.'
+        } else {
+          message = 'A hospital with these details is already registered.'
+        }
+      }
+
+      return Response.json({ error: message }, { status: 400 })
     }
 
     // Step 3: Create profile record with hospital reference

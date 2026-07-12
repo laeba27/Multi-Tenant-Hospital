@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { Loader2, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react'
 import { decodePasswordResetToken } from '@/lib/utils/jwt'
+import AuthShell from '@/components/auth/AuthShell'
 
 function ResetPasswordContent() {
   const router = useRouter()
@@ -219,7 +220,7 @@ function ResetPasswordContent() {
   )
 }
 
-export default function ResetPasswordPage() {
+function ResetPasswordInner() {
   return (
     <Suspense
       fallback={
@@ -230,5 +231,15 @@ export default function ResetPasswordPage() {
     >
       <ResetPasswordContent />
     </Suspense>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <AuthShell headline="Reset password" sub="Choose a new password for your account.">
+      <div className="rounded-xl border border-slate-200 bg-white p-6">
+        <ResetPasswordInner />
+      </div>
+    </AuthShell>
   )
 }

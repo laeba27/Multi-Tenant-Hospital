@@ -1,284 +1,326 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Menu, X, Calendar, Building2, Users, Zap, Shield, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
+import { Menu, X, ArrowRight, Activity, Check } from 'lucide-react'
+
+/**
+ * Landing page.
+ *
+ * Deliberately not the usual template: no gradient hero, no six-icon feature
+ * grid, no purple CTA band, no stock photography. It also carries NO invented
+ * numbers -- the old page claimed "500+ Hospitals", "1M+ Patients Managed" and
+ * "15+ Countries", none of which are true, and all of which are a liability on
+ * a real client's public site.
+ *
+ * Instead: type, rules, and a mock of the actual product. The visual interest
+ * comes from structure and restraint rather than colour.
+ */
+
+const CAPABILITIES = [
+  {
+    n: '01',
+    title: 'Appointments',
+    body: 'Doctor shifts, slot capacity, breaks and leave. Patients book themselves; reception confirms.',
+  },
+  {
+    n: '02',
+    title: 'Prescriptions',
+    body: 'Digital prescriptions on hospital templates, with the full history attached to the patient.',
+  },
+  {
+    n: '03',
+    title: 'Records',
+    body: 'Lab reports, discharge summaries and scans. Available to the patient and their doctor.',
+  },
+  {
+    n: '04',
+    title: 'Staff & roles',
+    body: 'Departments, shifts, and per-role permissions — enforced, not just hidden in the UI.',
+  },
+  {
+    n: '05',
+    title: 'Billing',
+    body: 'Invoices, part-payments, and a daily view of what was collected at the counter.',
+  },
+  {
+    n: '06',
+    title: 'Announcements',
+    body: 'Notices targeted at exactly who should see them: all staff, one role, or patients.',
+  },
+]
+
+const AUDIENCES = [
+  {
+    role: 'Hospital administrators',
+    points: ['Departments, staff and shifts', 'Roles and permissions', 'Billing and analytics'],
+  },
+  {
+    role: 'Doctors',
+    points: ['Today’s appointments', 'Write prescriptions', 'Patient history at hand'],
+  },
+  {
+    role: 'Reception',
+    points: ['Register and book patients', 'Approve booking requests', 'Collect payments'],
+  },
+  {
+    role: 'Patients',
+    points: ['Book at any hospital', 'See prescriptions and reports', 'Track appointments'],
+  },
+]
 
 export default function LandingPage() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">SR</span>
-              </div>
-              <span className="text-lg font-bold text-gray-900 hidden sm:inline">
-                Smile Returns
-              </span>
+    <div className="min-h-screen bg-white text-slate-900 selection:bg-indigo-600 selection:text-white">
+      {/* ── Nav ── */}
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-slate-200">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+              <Activity className="h-4 w-4 text-white" />
             </div>
+            <span className="font-semibold tracking-tight">Smile Returns</span>
+          </Link>
 
-            {/* Desktop Menu */}
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-600 hover:text-gray-900 text-sm font-medium">
-                Features
-              </a>
-              <a href="#about" className="text-gray-600 hover:text-gray-900 text-sm font-medium">
-                About
-              </a>
-              <a href="#contact" className="text-gray-600 hover:text-gray-900 text-sm font-medium">
-                Contact
-              </a>
-              <Link href="/auth/sign-in">
-                <Button variant="outline" className="text-sm">
-                  Sign In
-                </Button>
-              </Link>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <button
-              className="md:hidden p-2"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          <div className="hidden md:flex items-center gap-8 text-sm">
+            <a href="#what" className="text-slate-500 hover:text-slate-900 transition">
+              What it does
+            </a>
+            <a href="#who" className="text-slate-500 hover:text-slate-900 transition">
+              Who it&apos;s for
+            </a>
+            <Link href="/auth/sign-in" className="text-slate-500 hover:text-slate-900 transition">
+              Sign in
+            </Link>
+            <Link
+              href="/auth/sign-up"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 text-white px-3.5 py-2 hover:bg-indigo-700 transition"
             >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+              Register hospital
+            </Link>
           </div>
 
-          {/* Mobile Menu */}
-          {mobileMenuOpen && (
-            <div className="md:hidden border-t border-gray-100 py-4 space-y-4">
-              <a href="#features" className="block text-gray-600 hover:text-gray-900 font-medium">
-                Features
-              </a>
-              <a href="#about" className="block text-gray-600 hover:text-gray-900 font-medium">
-                About
-              </a>
-              <a href="#contact" className="block text-gray-600 hover:text-gray-900 font-medium">
-                Contact
-              </a>
-              <Link href="/auth/sign-in">
-                <Button variant="outline" className="w-full justify-center">
-                  Sign In
-                </Button>
-              </Link>
-            </div>
-          )}
+          <button className="md:hidden p-2 -mr-2" onClick={() => setMenuOpen((o) => !o)}>
+            {menuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
+
+        {menuOpen && (
+          <div className="md:hidden border-t border-slate-200 px-6 py-4 space-y-3 text-sm bg-white">
+            <a href="#what" className="block text-slate-600" onClick={() => setMenuOpen(false)}>
+              What it does
+            </a>
+            <a href="#who" className="block text-slate-600" onClick={() => setMenuOpen(false)}>
+              Who it&apos;s for
+            </a>
+            <Link href="/auth/sign-in" className="block text-slate-600">
+              Sign in
+            </Link>
+            <Link
+              href="/auth/sign-up"
+              className="block rounded-lg bg-indigo-600 text-white px-4 py-2.5 text-center"
+            >
+              Register hospital
+            </Link>
+          </div>
+        )}
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
-            {/* Left Content */}
-            <div className="flex flex-col justify-center space-y-6">
-              <div className="space-y-4">
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight">
-                  Healthcare Made <span className="text-indigo-600">Simple</span>
-                </h1>
-                <p className="text-lg text-gray-600 leading-relaxed">
-                  A unified platform for hospitals to manage appointments, patients, and operations seamlessly. Built for modern healthcare.
-                </p>
-              </div>
+      {/* ── Hero ── */}
+      <section className="max-w-6xl mx-auto px-6 pt-20 pb-16 sm:pt-28 sm:pb-24">
+        <div className="max-w-3xl">
+          <p className="text-xs font-medium tracking-[0.14em] uppercase text-slate-400 mb-6">
+            Hospital Management System
+          </p>
+          <h1 className="text-4xl sm:text-[3.25rem] leading-[1.08] font-semibold tracking-tight">
+            One system for the
+            <br />
+            whole hospital.
+          </h1>
+          <p className="mt-6 text-lg text-slate-500 leading-relaxed max-w-xl">
+            Appointments, prescriptions, patient records, staff and billing — in one place, for
+            everyone who works there. And for the patients who visit.
+          </p>
 
-              {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Link href="/auth/sign-up" className="w-full sm:w-auto">
-                  <Button className="w-full bg-indigo-600 hover:bg-indigo-700 h-12 text-base">
-                    <Building2 size={20} className="mr-2" />
-                    Register Your Hospital
-                  </Button>
-                </Link>
-                <button className="w-full sm:w-auto h-12 border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 rounded-lg font-medium transition flex items-center justify-center">
-                  <Calendar size={20} className="mr-2" />
-                  Book Appointment
-                </button>
-              </div>
-
-              {/* Trust Badges */}
-              <div className="pt-8 flex flex-col sm:flex-row gap-4 sm:gap-8 text-sm text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <Shield size={18} className="text-green-600" />
-                  <span>HIPAA Compliant</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <TrendingUp size={18} className="text-blue-600" />
-                  <span>500+ Hospitals</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Visual */}
-            <div className="hidden md:flex items-center justify-center">
-              <div className="relative w-full h-96">
-                {/* Placeholder for dashboard preview */}
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl border border-gray-200 flex items-center justify-center">
-                  <div className="text-center space-y-4">
-                    <Users size={48} className="mx-auto text-indigo-600" />
-                    <p className="text-gray-600 font-medium">Dashboard Preview</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section id="features" className="bg-gray-50 px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center space-y-4 mb-12 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
-              Powerful Features for Modern Hospitals
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Everything you need to run a hospital efficiently
-            </p>
-          </div>
-
-          {/* Feature Grid */}
-          <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
-            {[
-              {
-                icon: Calendar,
-                title: 'Smart Scheduling',
-                description: 'Automated appointment booking with real-time availability',
-              },
-              {
-                icon: Users,
-                title: 'Patient Management',
-                description: 'Complete patient profiles with medical history and records',
-              },
-              {
-                icon: Zap,
-                title: 'Instant Notifications',
-                description: 'Real-time alerts and updates for all stakeholders',
-              },
-              {
-                icon: TrendingUp,
-                title: 'Analytics & Reporting',
-                description: 'Comprehensive insights into hospital operations',
-              },
-              {
-                icon: Building2,
-                title: 'Multi-Hospital',
-                description: 'Manage multiple hospitals from a single platform',
-              },
-              {
-                icon: Shield,
-                title: 'Secure & Compliant',
-                description: 'Enterprise-grade security with HIPAA compliance',
-              },
-            ].map((feature, index) => (
-              <div key={index} className="bg-white p-6 sm:p-8 rounded-xl border border-gray-200 hover:border-indigo-300 transition space-y-4">
-                <feature.icon size={32} className="text-indigo-600" />
-                <h3 className="text-lg font-semibold text-gray-900">{feature.title}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="px-4 sm:px-6 lg:px-8 py-12 sm:py-20 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
-            {[
-              { label: 'Active Hospitals', value: '500+' },
-              { label: 'Patients Managed', value: '1M+' },
-              { label: 'Appointments', value: '10M+' },
-              { label: 'Countries', value: '15+' },
-            ].map((stat, index) => (
-              <div key={index} className="text-center space-y-2">
-                <p className="text-2xl sm:text-3xl font-bold text-indigo-600">{stat.value}</p>
-                <p className="text-gray-600 text-sm sm:text-base">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="bg-gradient-to-br from-indigo-600 to-indigo-700 text-white px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
-        <div className="max-w-4xl mx-auto text-center space-y-8">
-          <div className="space-y-4">
-            <h2 className="text-3xl sm:text-4xl font-bold">
-              Ready to Transform Your Hospital?
-            </h2>
-            <p className="text-lg text-indigo-100">
-              Join hundreds of hospitals already using Smile Returns
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <Link href="/auth/sign-up">
-              <Button className="w-full sm:w-auto bg-white text-indigo-600 hover:bg-gray-100 h-12 text-base font-semibold">
-                Register Your Hospital
-              </Button>
+          <div className="mt-9 flex flex-wrap items-center gap-3">
+            <Link
+              href="/auth/sign-up"
+              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 text-white px-5 py-3 text-sm font-medium hover:bg-indigo-700 transition"
+            >
+              Register your hospital
+              <ArrowRight className="h-4 w-4" />
             </Link>
-            <button className="w-full sm:w-auto h-12 border-2 border-white text-white hover:bg-indigo-600 rounded-lg font-semibold transition">
-              Schedule a Demo
-            </button>
+            <Link
+              href="/auth/sign-in"
+              className="inline-flex items-center rounded-lg border border-slate-200 px-5 py-3 text-sm font-medium hover:border-slate-400 transition"
+            >
+              Sign in
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 px-4 sm:px-6 lg:px-8 py-12">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">SR</span>
-                </div>
-                <span className="font-bold text-white">Smile Returns</span>
-              </div>
-              <p className="text-sm">Healthcare management reimagined</p>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="font-semibold text-white">Product</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition">Features</a></li>
-                <li><a href="#" className="hover:text-white transition">Pricing</a></li>
-                <li><a href="#" className="hover:text-white transition">Security</a></li>
-              </ul>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="font-semibold text-white">Company</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition">About</a></li>
-                <li><a href="#" className="hover:text-white transition">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition">Careers</a></li>
-              </ul>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="font-semibold text-white">Legal</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition">Privacy</a></li>
-                <li><a href="#" className="hover:text-white transition">Terms</a></li>
-                <li><a href="#" className="hover:text-white transition">Compliance</a></li>
-              </ul>
-            </div>
+      {/* ── Product mock. A real screen beats a stock photo, and it's honest. ── */}
+      <section className="max-w-6xl mx-auto px-6 pb-20 sm:pb-28">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
+          {/* Window chrome */}
+          <div className="flex items-center gap-1.5 px-4 h-10 border-b border-slate-200 bg-white">
+            <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
+            <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
+            <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
+            <span className="ml-3 text-[11px] text-slate-400">Reception · Booking requests</span>
           </div>
 
-          <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center">
-            <p className="text-sm">&copy; 2024 Smile Returns. All rights reserved.</p>
-            <div className="flex space-x-6 mt-4 sm:mt-0 text-sm">
-              <a href="#" className="hover:text-white transition">Twitter</a>
-              <a href="#" className="hover:text-white transition">LinkedIn</a>
-              <a href="#" className="hover:text-white transition">Facebook</a>
+          <div className="p-5 sm:p-8">
+            <div className="grid sm:grid-cols-3 gap-3 mb-5">
+              {[
+                { k: 'Registered today', v: '12' },
+                { k: 'Appointments', v: '48' },
+                { k: 'Awaiting approval', v: '3' },
+              ].map((s) => (
+                <div key={s.k} className="rounded-lg border border-slate-200 bg-white p-4">
+                  <p className="text-2xl font-semibold tracking-tight">{s.v}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{s.k}</p>
+                </div>
+              ))}
             </div>
+
+            <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+              <div className="grid grid-cols-[1.4fr_1fr_1fr_auto] gap-4 px-4 py-2.5 border-b border-slate-100 text-[11px] font-medium text-slate-400 uppercase tracking-wide">
+                <span>Patient</span>
+                <span className="hidden sm:block">Doctor</span>
+                <span>Slot</span>
+                <span>Payment</span>
+              </div>
+              {[
+                ['John Mehta', 'Dr. Rao', '7:00 – 8:00 AM', 'Unpaid'],
+                ['Priya Nair', 'Dr. Rao', '9:00 – 10:00 AM', 'Paid'],
+                ['Imran Sheikh', 'Dr. Iyer', '11:00 – 12:00 PM', 'Unpaid'],
+              ].map(([p, d, s, pay]) => (
+                <div
+                  key={p}
+                  className="grid grid-cols-[1.4fr_1fr_1fr_auto] gap-4 px-4 py-3 border-b border-slate-50 last:border-0 text-sm items-center"
+                >
+                  <span className="text-slate-800">{p}</span>
+                  <span className="hidden sm:block text-slate-500">{d}</span>
+                  <span className="text-slate-500 text-xs sm:text-sm">{s}</span>
+                  <span
+                    className={`text-[11px] px-2 py-0.5 rounded font-medium ${
+                      pay === 'Paid'
+                        ? 'bg-indigo-600 text-white'
+                        : 'border border-slate-200 text-slate-500'
+                    }`}
+                  >
+                    {pay}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── What it does ── */}
+      <section id="what" className="border-t border-slate-200">
+        <div className="max-w-6xl mx-auto px-6 py-20 sm:py-28">
+          <div className="max-w-xl mb-14">
+            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">What it does</h2>
+            <p className="mt-3 text-slate-500 leading-relaxed">
+              Six things a hospital does every day, handled properly rather than bolted together.
+            </p>
+          </div>
+
+          {/* A ruled list, not a card grid. Hairlines do the work colour usually does. */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 border-t border-l border-slate-200">
+            {CAPABILITIES.map((c) => (
+              <div
+                key={c.n}
+                className="border-b border-r border-slate-200 p-7 hover:bg-slate-50 transition"
+              >
+                <span className="text-[11px] font-mono text-slate-300">{c.n}</span>
+                <h3 className="mt-3 font-semibold tracking-tight">{c.title}</h3>
+                <p className="mt-2 text-sm text-slate-500 leading-relaxed">{c.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Who it's for ── */}
+      <section id="who" className="border-t border-slate-200 bg-slate-50">
+        <div className="max-w-6xl mx-auto px-6 py-20 sm:py-28">
+          <div className="max-w-xl mb-14">
+            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+              Who it&apos;s for
+            </h2>
+            <p className="mt-3 text-slate-500 leading-relaxed">
+              Everyone sees their own view. Nobody sees more than they should.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-slate-200 border border-slate-200 rounded-xl overflow-hidden">
+            {AUDIENCES.map((a) => (
+              <div key={a.role} className="bg-white p-7">
+                <h3 className="font-semibold tracking-tight text-[15px]">{a.role}</h3>
+                <ul className="mt-4 space-y-2.5">
+                  {a.points.map((p) => (
+                    <li key={p} className="flex gap-2.5 text-sm text-slate-500">
+                      <Check className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Close ── */}
+      <section className="border-t border-slate-200">
+        <div className="max-w-6xl mx-auto px-6 py-20 sm:py-28">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-8">
+            <div className="max-w-lg">
+              <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+                Set up your hospital.
+              </h2>
+              <p className="mt-3 text-slate-500 leading-relaxed">
+                Register the facility, add your departments and staff, and start taking
+                appointments. Registrations are reviewed before they go live.
+              </p>
+            </div>
+            <Link
+              href="/auth/sign-up"
+              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 text-white px-5 py-3 text-sm font-medium hover:bg-indigo-700 transition shrink-0"
+            >
+              Register your hospital
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="border-t border-slate-200">
+        <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="h-7 w-7 rounded-md bg-indigo-600 flex items-center justify-center">
+              <Activity className="h-3.5 w-3.5 text-white" />
+            </div>
+            <span className="text-sm font-medium">Smile Returns</span>
+          </div>
+          <p className="text-xs text-slate-400">
+            © {new Date().getFullYear()} Smile Returns. Hospital management system.
+          </p>
+          <div className="flex gap-6 text-xs text-slate-400">
+            <Link href="/auth/sign-in" className="hover:text-slate-900 transition">
+              Sign in
+            </Link>
+            <Link href="/auth/sign-up" className="hover:text-slate-900 transition">
+              Register
+            </Link>
           </div>
         </div>
       </footer>

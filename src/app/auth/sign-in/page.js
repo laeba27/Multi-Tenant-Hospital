@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
+import AuthShell from '@/components/auth/AuthShell'
 import { ForgotPasswordDialog } from './ForgotPasswordDialog'
 
 const signInSchema = z.object({
@@ -133,34 +134,54 @@ export default function SignInPage() {
     }
   }
 
+  const inputClass =
+    'h-10 text-sm bg-white border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100'
+
   return (
-    <>
-    <div className="space-y-6">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <AuthShell
+      headline="Sign in"
+      sub="Use the registration number issued to you."
+      topRight={
+        <p className="text-sm text-slate-500">
+          New hospital?{' '}
+          <a href="/auth/sign-up" className="text-indigo-600 hover:text-indigo-700 font-medium">
+            Register
+          </a>
+        </p>
+      }
+    >
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="rounded-xl border border-slate-200 bg-white p-6 space-y-5"
+      >
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Registration Number
+          <label className="block text-[13px] font-medium text-slate-700 mb-1.5">
+            Registration number <span className="text-rose-500">*</span>
           </label>
           <Input
             {...register('registrationNo')}
-            placeholder="HOSP00001 or HOSP00001"
+            placeholder="HOSP00001"
             disabled={isLoading}
-            className="h-11 text-base border-gray-300 focus:border-indigo-500"
+            className={inputClass}
           />
-          {errors.registrationNo && (
-            <p className="text-red-500 text-sm mt-1">{errors.registrationNo.message}</p>
+          {errors.registrationNo ? (
+            <p className="text-rose-600 text-xs mt-1.5">{errors.registrationNo.message}</p>
+          ) : (
+            <p className="text-xs text-slate-400 mt-1">
+              Your hospital, staff or patient registration number.
+            </p>
           )}
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Password
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-[13px] font-medium text-slate-700">
+              Password <span className="text-rose-500">*</span>
             </label>
             <button
               type="button"
               onClick={() => setShowForgot(true)}
-              className="text-sm text-indigo-600 hover:underline font-medium"
+              className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
             >
               Forgot password?
             </button>
@@ -171,41 +192,33 @@ export default function SignInPage() {
               type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
               disabled={isLoading}
-              className="h-11 text-base border-gray-300 focus:border-indigo-500 pr-10"
+              className={`${inputClass} pr-10`}
             />
             <button
               type="button"
               onClick={() => setShowPassword((s) => !s)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               tabIndex={-1}
             >
-              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
           {errors.password && (
-            <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+            <p className="text-rose-600 text-xs mt-1.5">{errors.password.message}</p>
           )}
         </div>
 
         <Button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 h-11 text-base font-semibold flex items-center justify-center gap-2"
+          className="w-full bg-indigo-600 hover:bg-indigo-700 h-10 font-semibold flex items-center justify-center gap-2"
         >
           {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-          {isLoading ? 'Signing in...' : 'Sign In'}
+          {isLoading ? 'Signing in…' : 'Sign in'}
         </Button>
       </form>
 
-      <p className="text-center text-gray-600 text-sm">
-        Don't have an account?{' '}
-        <a href="/auth/sign-up" className="text-indigo-600 hover:underline font-medium">
-          Register here
-        </a>
-      </p>
-    </div>
-
-    <ForgotPasswordDialog open={showForgot} onClose={() => setShowForgot(false)} />
-    </>
+      <ForgotPasswordDialog open={showForgot} onClose={() => setShowForgot(false)} />
+    </AuthShell>
   )
 }

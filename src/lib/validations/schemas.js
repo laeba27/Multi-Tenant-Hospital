@@ -18,24 +18,57 @@ export const registrationUserSchema = z.object({
 })
 
 // Hospital Registration (Step 2)
-export const registrationHospitalSchema = z.object({
-  name: z.string().min(2, 'Hospital name is required').max(64),
-  licenseNumber: z.string().min(2, 'License number is required'),
-  administratorName: z.string().min(2, 'Administrator name is required').max(64),
-  phone: z.string().min(10, 'Phone must be at least 10 characters').max(20),
-  address: z.string().min(5, 'Address is required'),
-  city: z.string().min(2, 'City is required').max(64),
-  state: z.string().min(2, 'State is required').max(64),
-  postalCode: z.string().min(2, 'Postal code is required').max(20),
-  hospitalType: z.string().optional(),
-  website: z.string().url('Invalid URL').optional().or(z.literal('')),
-  totalBeds: z.string().optional(),
-  icuBeds: z.string().optional(),
-  emergencyServices: z.boolean().default(false),
-  inpatientServices: z.boolean().default(false),
-  ambulanceServices: z.boolean().default(false),
-  feedbackEnabled: z.boolean().default(false),
-})
+export const HOSPITAL_TYPES = [
+  'General Hospital',
+  'Multi-Specialty Hospital',
+  'Super-Specialty Hospital',
+  'Clinic',
+  'Dental Clinic',
+  'Nursing Home',
+  'Diagnostic Centre',
+  'Maternity Hospital',
+  'Eye Hospital',
+  'Other',
+]
+
+export const registrationHospitalSchema = z
+  .object({
+    name: z.string().min(2, 'Hospital name is required').max(64),
+    licenseNumber: z.string().min(2, 'License number is required'),
+    hospitalType: z.string().min(1, 'Select the type of facility'),
+
+    // The hospital's OWN contact email -- distinct from the administrator's
+    // personal login email. The old form never collected it and silently reused
+    // the admin's, so hospitals.email (a UNIQUE column) was really a person's
+    // address, and a second hospital registered by the same admin would collide.
+    email: z.string().email('Enter a valid hospital email'),
+    phone: z.string().min(10, 'Phone must be at least 10 digits').max(20),
+    website: z.string().url('Enter a full URL, e.g. https://example.com').optional().or(z.literal('')),
+
+    administratorName: z.string().min(2, 'Administrator name is required').max(64),
+
+    address: z.string().min(5, 'Address is required'),
+    city: z.string().min(2, 'City is required').max(64),
+    state: z.string().min(2, 'State is required').max(64),
+    postalCode: z.string().min(2, 'Postal code is required').max(20),
+
+    totalBeds: z.string().optional(),
+    icuBeds: z.string().optional(),
+
+    emergencyServices: z.boolean().default(false),
+    inpatientServices: z.boolean().default(false),
+    ambulanceServices: z.boolean().default(false),
+    feedbackEnabled: z.boolean().default(false),
+  })
+  // ICU beds are a subset of the total -- a hospital claiming 40 ICU beds out of
+  // 20 has mistyped something, and the DB's non-negative checks won't catch it.
+  .refine(
+    (d) =>
+      !d.totalBeds ||
+      !d.icuBeds ||
+      Number(d.icuBeds) <= Number(d.totalBeds),
+    { message: 'ICU beds cannot exceed total beds', path: ['icuBeds'] }
+  )
 
 // Legacy exports (for backward compatibility)
 export const hospitalRegistrationSchema = registrationHospitalSchema
