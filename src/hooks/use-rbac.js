@@ -1,78 +1,66 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useUser } from './use-user'
+import { SUPER_ROLES, defaultsForRole } from '@/lib/rbac/permissions'
 
+/**
+ * The signed-in user's permissions, for showing and hiding UI.
+ *
+ * This is a CONVENIENCE, not a security boundary. Every permission is also
+ * enforced server-side by requirePermission() inside the action itself -- so a
+ * user who bypasses the UI still cannot book, confirm, or bill. Hiding a button
+ * only makes the app tidy; it never makes it safe.
+ */
 export function useRbac() {
   const { user } = useUser()
   const [permissions, setPermissions] = useState({})
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (user?.profile?.hospital_id) {
-      const role = user.profile.role
+  const load = useCallback(async () => {
+    const role = user?.profile?.role
+    if (!role) {
+      setLoading(false)
+      return
+    }
 
-      // Hospital admins and super admins have all permissions - no API call needed
-      if (role === 'hospital_admin' || role === 'super_admin') {
-        setPermissions({
-          book_appointment: true,
-        })
-        setLoading(false)
-        return
-      }
+    // Admins hold everything; no round trip needed.
+    if (SUPER_ROLES.includes(role)) {
+      setPermissions(defaultsForRole(role))
+      setLoading(false)
+      return
+    }
 
-      // Only check permissions for non-admin roles
-      checkPermissions()
-    } else {
+    setLoading(true)
+    try {
+      // The route resolves identity from the session -- it deliberately ignores
+      // anything we could send it.
+      const res = await fetch('/api/rbac/check', { method: 'POST' })
+      const data = await res.json()
+      setPermissions(res.ok ? data.permissions || {} : defaultsForRole(role))
+    } catch (error) {
+      console.error('Error checking RBAC permissions:', error)
+      // Fall back to the role's defaults rather than to nothing: a network blip
+      // should not make the app look as though the user has been stripped of
+      // access. The server still decides for real.
+      setPermissions(defaultsForRole(role))
+    } finally {
       setLoading(false)
     }
   }, [user])
 
-  const checkPermissions = async () => {
-    setLoading(true)
-    try {
-      const hospitalId = user.profile.hospital_id
-      const staffId = user.profile.id
-      const role = user.profile.role
+  useEffect(() => {
+    load()
+  }, [load])
 
-      // Check permissions via API
-      const response = await fetch('/api/rbac/check', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          hospital_id: hospitalId,
-          staff_id: staffId,
-          role,
-        }),
-      })
+  const can = useCallback(
+    (permission) => {
+      const role = user?.profile?.role
+      if (SUPER_ROLES.includes(role)) return true
+      return permissions[permission] === true
+    },
+    [user, permissions]
+  )
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        console.error('RBAC check failed:', data.error)
-        // Default to no permissions
-        setPermissions({})
-      } else {
-        setPermissions(data.permissions || {})
-      }
-    } catch (error) {
-      console.error('Error checking RBAC permissions:', error)
-      setPermissions({})
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const can = (permission) => {
-    // Hospital admins always have permission
-    if (user?.profile?.role === 'hospital_admin' || user?.profile?.role === 'super_admin') {
-      return true
-    }
-    // Check specific permission
-    return permissions[permission] === true
-  }
-
-  return { can, permissions, loading }
+  return { can, permissions, loading, refresh: load }
 }

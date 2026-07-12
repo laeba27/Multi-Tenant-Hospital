@@ -73,8 +73,14 @@ export async function getDoctorDetails(doctorId) {
  */
 export async function generateInvoice(data, currentUserId) {
   try {
+    const { requirePermission } = await import('@/actions/rbac')
+    const gate = await requirePermission('manage_billing')
+    if (!gate.allowed) {
+      return { success: false, error: gate.error || 'You cannot generate invoices.' }
+    }
+
     const adminClient = await createAdminClient()
-    
+
     // Generate invoice ID in format INV-XXXXXX
     const invoiceId = `INV-${Math.floor(100000 + Math.random() * 900000)}`
 
@@ -182,6 +188,12 @@ export async function generateInvoice(data, currentUserId) {
  */
 export async function recordPayment(invoiceId, paymentData, currentUserId) {
   try {
+    const { requirePermission } = await import('@/actions/rbac')
+    const gate = await requirePermission('manage_billing')
+    if (!gate.allowed) {
+      return { success: false, error: gate.error || 'You cannot record payments.' }
+    }
+
     const adminClient = await createAdminClient()
 
     // Get invoice details

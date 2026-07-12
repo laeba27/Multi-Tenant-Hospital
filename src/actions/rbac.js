@@ -2,6 +2,11 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import {
+  PERMISSION_KEYS,
+  SUPER_ROLES,
+  defaultsForRole,
+} from '@/lib/rbac/permissions'
 
 /**
  * Fetch all RBAC rules for a hospital
@@ -25,74 +30,124 @@ export async function getRbacRules(hospitalId) {
 }
 
 /**
- * Check if a user has a specific permission
- * @param {string} hospitalId - Hospital registration number
- * @param {string} staffId - Staff UUID (optional)
- * @param {string} role - Staff role (optional)
- * @param {string} permission - Permission to check (e.g., 'book_appointment')
- * @returns {Promise<boolean>}
+ * Every permission this person holds, resolved.
+ *
+ * Precedence, most specific first:
+ *   1. a rule naming this staff member
+ *   2. a rule for their role
+ *   3. a hospital-wide 'all' rule
+ *   4. the built-in defaults for their role
+ *
+ * (4) is the important one. The old code denied by default, and no hospital has
+ * ever had an rbac row -- so a receptionist at any hospital but this one could
+ * not book anything, and nobody would know why. Defaults make the product work
+ * unconfigured; the RBAC page overrides them.
  */
-export async function checkPermission(hospitalId, staffId, role, permission) {
-  const supabase = await createClient()
+export async function getPermissionsFor(hospitalId, staffId, role) {
+  const resolved = defaultsForRole(role)
+
+  if (SUPER_ROLES.includes(role)) return resolved
 
   try {
-    // Check if user is hospital_admin - they have all permissions
-    if (role === 'hospital_admin' || role === 'super_admin') {
-      return true
-    }
+    const supabase = await createAdminClient()
 
-    // Check for specific staff permission
-    if (staffId) {
-      const { data: staffRule } = await supabase
-        .from('rbac')
-        .select('*')
-        .eq('hospital_id', hospitalId)
-        .eq('staff_id', staffId)
-        .eq('is_allowed', true)
-        .single()
-
-      if (staffRule) {
-        const permissions = staffRule.permissions || {}
-        return permissions[permission] === true
-      }
-    }
-
-    // Check for role-based permission
-    if (role) {
-      const { data: roleRule } = await supabase
-        .from('rbac')
-        .select('*')
-        .eq('hospital_id', hospitalId)
-        .eq('target_type', 'role')
-        .eq('role', role)
-        .eq('is_allowed', true)
-        .single()
-
-      if (roleRule) {
-        const permissions = roleRule.permissions || {}
-        return permissions[permission] === true
-      }
-    }
-
-    // Check for "all" target permission
-    const { data: allRule } = await supabase
+    const { data: rules } = await supabase
       .from('rbac')
-      .select('*')
+      .select('target_type, staff_id, role, permissions, is_allowed')
       .eq('hospital_id', hospitalId)
-      .eq('target_type', 'all')
       .eq('is_allowed', true)
-      .single()
 
-    if (allRule) {
-      const permissions = allRule.permissions || {}
-      return permissions[permission] === true
+    if (!rules?.length) return resolved
+
+    // Apply least-specific first so the most specific rule wins.
+    const order = ['all', 'role', 'user']
+    const applicable = rules
+      .filter((r) => {
+        if (r.target_type === 'all') return true
+        if (r.target_type === 'role') return r.role === role
+        if (r.target_type === 'user') return staffId && r.staff_id === staffId
+        return false
+      })
+      .sort((a, b) => order.indexOf(a.target_type) - order.indexOf(b.target_type))
+
+    for (const rule of applicable) {
+      const perms = rule.permissions || {}
+      for (const key of PERMISSION_KEYS) {
+        // Only keys the rule actually mentions override the default -- a rule
+        // that predates a new permission must not silently revoke it.
+        if (key in perms) resolved[key] = perms[key] === true
+      }
     }
 
-    // Default: deny if no explicit permission found
-    return false
+    return resolved
   } catch (error) {
-    console.error('Check Permission Error:', error)
-    return false
+    console.error('getPermissionsFor error:', error)
+    return resolved
+  }
+}
+
+/**
+ * Does this user hold `permission`?
+ */
+export async function checkPermission(hospitalId, staffId, role, permission) {
+  if (SUPER_ROLES.includes(role)) return true
+  const perms = await getPermissionsFor(hospitalId, staffId, role)
+  return perms[permission] === true
+}
+
+/**
+ * THE SERVER-SIDE GUARD. Call this at the top of any action a permission gates.
+ *
+ * Until now RBAC only hid UI: `book_appointment` was checked in exactly one
+ * page component, and `bookAppointment` itself never looked. A receptionist
+ * whose permission was revoked could still book -- the button was gone, the
+ * action was not. Hiding a button is not access control.
+ *
+ * Returns { allowed, profile, error }.
+ */
+export async function requirePermission(permission) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { allowed: false, error: 'Not signed in' }
+
+  const adminClient = await createAdminClient()
+  const { data: profile } = await adminClient
+    .from('profiles')
+    .select('id, name, role, hospital_id, registration_no')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile) return { allowed: false, error: 'Not signed in' }
+
+  if (SUPER_ROLES.includes(profile.role)) {
+    return { allowed: true, profile }
+  }
+
+  // rbac.staff_id points at `staff.id`, not `profiles.id` -- resolve the staff
+  // row before asking about a staff-specific rule, or a per-person override
+  // would silently never match.
+  const { data: staffRow } = await adminClient
+    .from('staff')
+    .select('id, role')
+    .eq('hospital_id', profile.hospital_id)
+    .eq('employee_registration_no', profile.registration_no || '')
+    .maybeSingle()
+
+  const effectiveRole = staffRow?.role || profile.role
+
+  const allowed = await checkPermission(
+    profile.hospital_id,
+    staffRow?.id || null,
+    effectiveRole,
+    permission
+  )
+
+  return {
+    allowed,
+    profile,
+    error: allowed ? null : 'You do not have permission to do that.',
   }
 }
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuthGuard } from '@/hooks/use-auth-guard'
 import { getRbacRules, getStaffForRbac, upsertRbacRule, deleteRbacRule } from '@/actions/rbac'
+import { PERMISSIONS, PERMISSION_KEYS } from '@/lib/rbac/permissions'
 import { toast } from 'sonner'
 import {
   Card,
@@ -33,6 +34,9 @@ import { Badge } from '@/components/ui/badge'
 import { Lock, Plus, Pencil, Trash2, Shield, User, Globe } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
+/** Every permission, all off — the starting point for a new rule. */
+const emptyPermissions = () => Object.fromEntries(PERMISSION_KEYS.map((k) => [k, false]))
+
 export default function RbacPage() {
   const { user, loading: userLoading, isAuthenticated } = useAuthGuard()
   const [rules, setRules] = useState([])
@@ -44,16 +48,13 @@ export default function RbacPage() {
     target_type: 'all',
     role: '',
     staff_id: '',
-    permissions: {
-      book_appointment: false,
-    },
+    permissions: emptyPermissions(),
     is_allowed: true,
   })
 
-  // Available permissions
-  const availablePermissions = [
-    { key: 'book_appointment', label: 'Book Appointment' },
-  ]
+  // Rendered from the shared catalogue, so the screen and the server-side guard
+  // can never disagree about what permissions exist.
+  const availablePermissions = PERMISSIONS
 
   const roles = ['doctor', 'nurse', 'receptionist', 'lab_technician', 'pharmacist', 'admin', 'other']
 
@@ -90,7 +91,7 @@ export default function RbacPage() {
         target_type: rule.target_type,
         role: rule.role || '',
         staff_id: rule.staff_id || '',
-        permissions: rule.permissions || { book_appointment: false },
+        permissions: { ...emptyPermissions(), ...(rule.permissions || {}) },
         is_allowed: rule.is_allowed,
       })
     } else {
@@ -99,7 +100,7 @@ export default function RbacPage() {
         target_type: 'all',
         role: '',
         staff_id: '',
-        permissions: { book_appointment: false },
+        permissions: emptyPermissions(),
         is_allowed: true,
       })
     }
@@ -113,7 +114,7 @@ export default function RbacPage() {
       target_type: 'all',
       role: '',
       staff_id: '',
-      permissions: { book_appointment: false },
+      permissions: emptyPermissions(),
       is_allowed: true,
     })
   }

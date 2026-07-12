@@ -1,13 +1,21 @@
 import { createClient } from '@/lib/supabase/server'
-import { checkPermission } from '@/actions/rbac'
+import { getPermissionsFor } from '@/actions/rbac'
 
-export async function POST(request) {
+/**
+ * The permissions the signed-in user actually holds.
+ *
+ * Everything is resolved from the SESSION. The previous version read
+ * `hospital_id`, `staff_id` and `role` out of the request body -- so a caller
+ * could POST `role: 'hospital_admin'` and be told they hold every permission,
+ * then render every button. A client cannot be allowed to nominate its own
+ * role; only the server knows who you are.
+ *
+ * This drives UI only. The real enforcement is requirePermission() inside the
+ * server actions -- hiding a button has never been access control.
+ */
+export async function POST() {
   try {
     const supabase = await createClient()
-    const body = await request.json()
-    const { hospital_id, staff_id, role } = body
-
-    // Get current user to verify request
     const {
       data: { user },
       error: userError,
@@ -17,10 +25,30 @@ export async function POST(request) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check permissions
-    const permissions = {
-      book_appointment: await checkPermission(hospital_id, staff_id, role, 'book_appointment'),
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, role, hospital_id, registration_no')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // rbac.staff_id references staff.id, not profiles.id -- resolve the staff
+    // row so a per-person override can actually match.
+    const { data: staffRow } = await supabase
+      .from('staff')
+      .select('id, role')
+      .eq('hospital_id', profile.hospital_id)
+      .eq('employee_registration_no', profile.registration_no || '')
+      .maybeSingle()
+
+    const permissions = await getPermissionsFor(
+      profile.hospital_id,
+      staffRow?.id || null,
+      staffRow?.role || profile.role
+    )
 
     return Response.json({ permissions })
   } catch (error) {

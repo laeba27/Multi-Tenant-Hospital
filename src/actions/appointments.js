@@ -461,6 +461,22 @@ export async function deleteAppointment(appointmentId) {
  */
 export async function bookAppointment(data, currentUserId) {
   try {
+    // A patient booking for themselves comes through bookMyAppointment, which
+    // has already checked they are a patient at this hospital -- they are not
+    // staff and hold no RBAC permission. Everyone ELSE booking here is staff,
+    // and must actually be allowed to.
+    //
+    // This check is the whole point: RBAC used to only hide the button, so a
+    // receptionist whose permission was revoked could still call this action
+    // and book. Hiding a button is not access control.
+    if (data.booked_by_type !== 'patient') {
+      const { requirePermission } = await import('@/actions/rbac')
+      const gate = await requirePermission('book_appointment')
+      if (!gate.allowed) {
+        return { success: false, error: gate.error || 'You cannot book appointments.' }
+      }
+    }
+
     const adminClient = await createAdminClient()
     const appointmentId = `APT${Math.floor(100000 + Math.random() * 900000)}`
 
@@ -531,29 +547,23 @@ export async function bookAppointment(data, currentUserId) {
  * bypasses RLS entirely -- so this check IS the access control. Do not skip it.
  */
 async function requireDeskStaff(hospitalId) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not signed in' }
+  // The RBAC permission decides WHETHER they may confirm; the hospital check
+  // decides WHOSE appointments. Both are needed -- a receptionist allowed to
+  // confirm at their own hospital must not confirm at another's.
+  const { requirePermission } = await import('@/actions/rbac')
+  const gate = await requirePermission('confirm_booking_request')
 
-  const adminClient = await createAdminClient()
-  const { data: profile } = await adminClient
-    .from('profiles')
-    .select('id, name, role, hospital_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile) return { error: 'Not signed in' }
-
-  const allowed = ['hospital_admin', 'receptionist', 'reception']
-  if (!allowed.includes(profile.role)) {
-    return { error: 'You do not have permission to manage booking requests.' }
+  if (!gate.profile) return { error: 'Not signed in' }
+  if (!gate.allowed) {
+    return { error: gate.error || 'You cannot confirm booking requests.' }
   }
-  if (profile.hospital_id !== hospitalId) {
+
+  const { profile } = gate
+  if (profile.role !== 'super_admin' && profile.hospital_id !== hospitalId) {
     return { error: 'That appointment belongs to another hospital.' }
   }
 
+  const adminClient = await createAdminClient()
   return { profile, adminClient }
 }
 
