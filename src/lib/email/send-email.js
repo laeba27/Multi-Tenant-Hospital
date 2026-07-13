@@ -1,6 +1,25 @@
 import nodemailer from 'nodemailer'
 import { generateStaffInviteToken, generatePasswordResetToken } from '@/lib/utils/jwt'
 
+/**
+ * The base URL every link in an email is built from.
+ *
+ * This used to be inlined four times with two different fallbacks -- one file
+ * said 'https://smile-returns.com', three said 'http://localhost:3000'. So a
+ * deployment that forgot NEXT_PUBLIC_APP_URL silently mailed real users a
+ * localhost sign-in link, and a localhost staff-invite link, and a localhost
+ * password-reset link. One helper, one fallback, and never localhost in prod.
+ */
+const PROD_FALLBACK = 'https://multi-tenant-hospital.vercel.app'
+
+function appUrl(path = '') {
+  const base =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.NODE_ENV === 'production' ? PROD_FALLBACK : 'http://localhost:3000')
+
+  return `${base.replace(/\/$/, '')}${path}`
+}
+
 // Create email transporter
 const createTransporter = () => {
   // For development/testing, you can use a test account
@@ -83,7 +102,7 @@ export async function sendWelcomeEmail({
               </ul>
               
               <center>
-                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://smile-returns.com'}/auth/sign-in" class="button">
+                <a href="${appUrl('/auth/sign-in')}" class="button">
                   Sign In to Your Dashboard
                 </a>
               </center>
@@ -123,7 +142,7 @@ Registration Details:
 - Your User ID: ${userRegistrationNo}
 - Email: ${email}
 
-You can now sign in at: ${process.env.NEXT_PUBLIC_APP_URL || 'https://smile-returns.com'}/auth/sign-in
+You can now sign in at: ${appUrl('/auth/sign-in')}
 
 Best regards,
 The Smile Returns Team
@@ -149,7 +168,7 @@ export async function sendHospitalRegistrationPendingEmail({
 }) {
   try {
     const transporter = createTransporter()
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const signInLink = appUrl('/auth/sign-in')
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -226,7 +245,7 @@ export async function sendHospitalApprovalEmail({
 }) {
   try {
     const transporter = createTransporter()
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const signInLink = appUrl('/auth/sign-in')
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -362,7 +381,7 @@ export async function sendStaffInviteEmail({ email, name, hospitalName, role, st
 
     // Use provided token or generate from staffData
     const jwtToken = token || generateStaffInviteToken(staffData)
-    const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/staff-invite?token=${jwtToken}`
+    const inviteLink = appUrl(`/auth/staff-invite?token=${jwtToken}`)
 
     console.log('JWT Token generated, length:', jwtToken.length)
     console.log('Invite link:', inviteLink)
@@ -548,7 +567,7 @@ export async function sendPasswordResetEmail({ email, name, registration_no, use
 
     const jwtToken =
       token || generatePasswordResetToken({ user_id, email, registration_no })
-    const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${jwtToken}`
+    const resetLink = appUrl(`/auth/reset-password?token=${jwtToken}`)
 
     const htmlContent = `
       <!DOCTYPE html>

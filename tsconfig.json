@@ -35,11 +35,12 @@
     ".next-verify-22770/types/**/*.ts",
     ".next-verify-22943/types/**/*.ts",
     ".next-verify-23387/types/**/*.ts",
+    ".next-verify-23973/types/**/*.ts",
     ".next-verify/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
     "src",
-    ".next-verify-23973/types/**/*.ts"
+    ".next-verify-41579/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
