@@ -203,7 +203,7 @@ export async function sendHospitalRegistrationPendingEmail({
               <p>Admin Registration: <span class="mono">${userRegistrationNo}</span></p>
 
               <p>Once approved, you will receive another email and can sign in at:</p>
-              <p><a href="${appUrl}/auth/sign-in">${appUrl}/auth/sign-in</a></p>
+              <p><a href="${signInLink}">${signInLink}</a></p>
             </div>
           </div>
         </body>
@@ -276,7 +276,7 @@ export async function sendHospitalApprovalEmail({
               </div>
 
               <p>You can now sign in and start configuring departments, doctors, and staff.</p>
-              <p><a class="button" href="${appUrl}/auth/sign-in">Sign In</a></p>
+              <p><a class="button" href="${signInLink}">Sign In</a></p>
             </div>
           </div>
         </body>
