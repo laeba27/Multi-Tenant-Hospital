@@ -1,6 +1,14 @@
 import { generateHospitalId, generateUserId } from '@/lib/utils'
 import { sendHospitalRegistrationPendingEmail } from '@/lib/email/send-email'
 
+// nodemailer and the Supabase admin API both need Node APIs -- the edge runtime
+// has no TCP sockets, so SMTP cannot run there at all.
+export const runtime = 'nodejs'
+
+// Vercel defaults a function to 10s. Registration does several round trips
+// before it can answer, and the default left no headroom at all.
+export const maxDuration = 30
+
 // Create admin client
 function createAdminClient() {
   return require('@supabase/supabase-js').createClient(
@@ -201,14 +209,40 @@ export async function POST(request) {
       )
     }
 
-    // Step 4: Send pending approval email (non-blocking)
-    const pendingEmailResult = await sendHospitalRegistrationPendingEmail({
+    // Step 4: Send the pending-approval email WITHOUT blocking the response.
+    //
+    // This comment said "non-blocking" while the call was awaited, and that gap
+    // was the whole bug. By this line the account, hospital and profile are all
+    // committed -- registration has genuinely succeeded -- but the request then
+    // sat waiting on Gmail's SMTP handshake. Measured against production that
+    // handshake takes 3s cold and climbs past 8s as Gmail throttles repeated
+    // sends, against a 10s Vercel function limit. So registration "worked"
+    // early in the day and, once the mail server slowed down, the function was
+    // killed mid-send: no response body, the browser's fetch rejecting, and the
+    // user staring at a failure for an account that had in fact been created.
+    // That is exactly the intermittent breakage reported here.
+    //
+    // The email is a courtesy; the registration is the transaction. Kicking it
+    // off and returning immediately makes the response time depend only on our
+    // own database, so a slow or broken mail server can never again fail a
+    // registration that already succeeded.
+    sendHospitalRegistrationPendingEmail({
       email,
       hospitalName,
       administratorName,
       registrationNo: hospitalId,
       userRegistrationNo,
     })
+      .then((result) => {
+        if (!result?.success) {
+          console.error('Pending-approval email failed:', result?.error)
+        }
+      })
+      .catch((error) => {
+        // Must never reject unhandled: the response has already been sent, and
+        // an unhandled rejection can take the whole serverless instance down.
+        console.error('Pending-approval email threw:', error)
+      })
 
     return Response.json(
       {
@@ -221,7 +255,9 @@ export async function POST(request) {
           email,
           accountStatus: 'Pending',
           accessGranted: false,
-          pendingEmailSent: pendingEmailResult.success,
+          // The send is in flight; we no longer wait to find out. The account
+          // exists either way, which is what the user actually needs told.
+          pendingEmailQueued: true,
         },
       },
       { status: 201 }

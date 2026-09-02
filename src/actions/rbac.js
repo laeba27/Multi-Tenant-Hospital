@@ -152,13 +152,68 @@ export async function requirePermission(permission) {
 }
 
 /**
+ * Only an admin may rewrite the rules, and only for their own hospital.
+ *
+ * These actions previously trusted their caller completely: a server action is
+ * a public POST endpoint, so any signed-in user -- a patient, a receptionist
+ * whose billing had just been revoked -- could call upsertRbacRule() directly
+ * and grant themselves every permission, at any hospital whose id they passed.
+ * That made the entire RBAC system advisory. The hospital is now taken from
+ * the caller's own profile rather than from the argument, so an admin cannot
+ * reach into another hospital either.
+ */
+async function requireRbacAdmin(hospitalId) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not signed in' }
+
+  const adminClient = await createAdminClient()
+  const { data: profile } = await adminClient
+    .from('profiles')
+    .select('id, role, hospital_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !SUPER_ROLES.includes(profile.role)) {
+    return { error: 'Only hospital administrators can manage permissions.' }
+  }
+
+  // super_admin may act across hospitals; a hospital_admin is pinned to theirs.
+  if (profile.role !== 'super_admin') {
+    if (!profile.hospital_id) return { error: 'Your account has no hospital.' }
+    if (hospitalId && hospitalId !== profile.hospital_id) {
+      return { error: 'You can only manage permissions for your own hospital.' }
+    }
+    return { adminClient, profile, hospitalId: profile.hospital_id }
+  }
+
+  if (!hospitalId) return { error: 'A hospital is required.' }
+  return { adminClient, profile, hospitalId }
+}
+
+/**
  * Create or update RBAC rule
  */
 export async function upsertRbacRule(ruleData, hospitalId) {
-  const supabaseAdmin = await createAdminClient()
-
   try {
+    const auth = await requireRbacAdmin(hospitalId)
+    if (auth.error) return { success: false, data: null, error: auth.error }
+    const supabaseAdmin = auth.adminClient
+    hospitalId = auth.hospitalId
+
     const { target_type, staff_id, role, permissions, is_allowed } = ruleData
+
+    // Keep only keys the catalogue defines, coerced to real booleans -- the
+    // permissions object arrives as free-form JSON from the client and is
+    // written straight to the row the resolver reads.
+    const cleanPermissions = Object.fromEntries(
+      PERMISSION_KEYS.filter((key) => key in (permissions || {})).map((key) => [
+        key,
+        permissions[key] === true,
+      ])
+    )
 
     // Check if rule already exists
     const existingQuery = supabaseAdmin
@@ -183,7 +238,7 @@ export async function upsertRbacRule(ruleData, hospitalId) {
       const { data, error } = await supabaseAdmin
         .from('rbac')
         .update({
-          permissions,
+          permissions: cleanPermissions,
           is_allowed,
           updated_at: new Date().toISOString()
         })
@@ -203,7 +258,7 @@ export async function upsertRbacRule(ruleData, hospitalId) {
             target_type,
             staff_id: target_type === 'user' ? staff_id : null,
             role: target_type === 'role' ? role : null,
-            permissions,
+            permissions: cleanPermissions,
             is_allowed
           }
         ])
@@ -226,13 +281,29 @@ export async function upsertRbacRule(ruleData, hospitalId) {
  * Delete RBAC rule
  */
 export async function deleteRbacRule(ruleId) {
-  const supabaseAdmin = await createAdminClient()
-
   try {
+    // Same hole as upsertRbacRule: unauthenticated deletion of any hospital's
+    // rules. Resolve the rule first so we can check its hospital against the
+    // caller's, then scope the delete to that hospital -- an id alone must not
+    // be enough to strip another hospital's permissions.
+    const supabase = await createAdminClient()
+    const { data: rule } = await supabase
+      .from('rbac')
+      .select('id, hospital_id')
+      .eq('id', ruleId)
+      .maybeSingle()
+
+    if (!rule) return { success: false, error: 'Rule not found.' }
+
+    const auth = await requireRbacAdmin(rule.hospital_id)
+    if (auth.error) return { success: false, error: auth.error }
+    const supabaseAdmin = auth.adminClient
+
     const { error } = await supabaseAdmin
       .from('rbac')
       .delete()
       .eq('id', ruleId)
+      .eq('hospital_id', auth.hospitalId)
 
     if (error) throw error
 

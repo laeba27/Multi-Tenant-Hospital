@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { buildPrescriptionDraft } from '@/lib/ai/extraction'
+import { readJsonResponse } from '@/lib/utils/safe-json'
 
 export function AiPrescribePanel({ appointmentId }) {
   const mediaRecorderRef = useRef(null)
@@ -103,11 +104,11 @@ export function AiPrescribePanel({ appointmentId }) {
       })
 
       if (!response.ok) {
-        const payload = await response.json()
+        const payload = await readJsonResponse(response)
         throw new Error(payload?.error || 'Failed to transcribe audio')
       }
 
-      const payload = await response.json()
+      const payload = await readJsonResponse(response)
       const nextTranscript = payload.transcript || ''
       setRecordings((prev) =>
         prev.map((item) =>
@@ -192,11 +193,11 @@ export function AiPrescribePanel({ appointmentId }) {
       })
 
       if (!response.ok) {
-        const payload = await response.json()
+        const payload = await readJsonResponse(response)
         throw new Error(payload?.error || 'Failed to process transcript')
       }
 
-      const payload = await response.json()
+      const payload = await readJsonResponse(response)
       setTranscript(payload.transcript || currentTranscript)
       setStructured(payload.structured || buildPrescriptionDraft({ transcript: currentTranscript }))
     } catch (err) {
@@ -228,11 +229,11 @@ export function AiPrescribePanel({ appointmentId }) {
       })
 
       if (!response.ok) {
-        const payload = await response.json()
+        const payload = await readJsonResponse(response)
         throw new Error(payload?.error || 'Failed to save draft')
       }
 
-      const payload = await response.json()
+      const payload = await readJsonResponse(response)
       alert(`✅ Draft saved! Prescription ID: ${payload.prescriptionId}`)
     } catch (err) {
       setError(err.message || 'Failed to save draft')

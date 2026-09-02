@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
+import { readJsonResponse } from '@/lib/utils/safe-json'
 
 const EMPTY = { currentPassword: '', newPassword: '', confirmPassword: '' }
 
@@ -43,7 +44,7 @@ export function ResetPasswordDialog({ open, onClose }) {
           newPassword: form.newPassword,
         }),
       })
-      const data = await res.json()
+      const data = await readJsonResponse(res)
       if (!res.ok) {
         toast.error(data.error || 'Failed to reset password')
         return

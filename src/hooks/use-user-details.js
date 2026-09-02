@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
+import { readJsonResponse } from '@/lib/utils/safe-json'
 
 export function useUserDetails() {
   const [user, setUser] = useState(null)
@@ -32,7 +33,7 @@ export function useUserDetails() {
           return
         }
 
-        const data = await response.json()
+        const data = await readJsonResponse(response)
 
         if (!response.ok) {
           const errorMessage = data.error || `HTTP ${response.status}: Failed to fetch user details`

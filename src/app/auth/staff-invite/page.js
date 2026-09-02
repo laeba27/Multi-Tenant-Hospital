@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { Loader2, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react'
-import { decodeStaffInviteToken } from '@/lib/utils/jwt'
+import { decodeStaffInviteToken } from '@/lib/utils/jwt-decode'
+import { readJsonResponse } from '@/lib/utils/safe-json'
 
 function StaffInviteContent() {
   const router = useRouter()
@@ -78,7 +79,7 @@ function StaffInviteContent() {
         })
       })
 
-      const result = await response.json()
+      const result = await readJsonResponse(response)
 
       if (!response.ok) {
         toast.error(result.error || 'Verification failed')

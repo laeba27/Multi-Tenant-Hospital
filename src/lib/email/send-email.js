@@ -20,18 +20,58 @@ function appUrl(path = '') {
   return `${base.replace(/\/$/, '')}${path}`
 }
 
-// Create email transporter
+/**
+ * Build the SMTP transport.
+ *
+ * The timeouts are the important part. Nodemailer's defaults let a socket hang
+ * for ~2 minutes, which is longer than a Vercel serverless function is allowed
+ * to live. When Gmail's SMTP handshake was slow the function got killed
+ * mid-connect, so the caller never got a return value at all -- a server action
+ * that dies this way sends back Next's HTML error page, and the client's
+ * JSON.parse on it throws "Unexpected token '<'". Locally nothing is killed, so
+ * the same code always appeared to work. Bounding the timeouts below the
+ * function limit turns a fatal hang into an ordinary caught error.
+ *
+ * Port 465 (implicit TLS) connects in one step. Port 587 starts in the clear
+ * and upgrades via STARTTLS, which is the leg that tends to stall on serverless
+ * networks -- so 465 is the default here, and `secure` is derived from whatever
+ * port is actually configured rather than hardcoded.
+ */
 const createTransporter = () => {
-  // For development/testing, you can use a test account
-  // For production, use your email service credentials
+  const port = Number(process.env.EMAIL_PORT) || 465
+
   return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.mailtrap.io',
-    port: process.env.EMAIL_PORT || 587,
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port,
+    // 465 is implicit TLS; 587/25 begin plaintext and upgrade.
+    secure: port === 465,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASSWORD,
     },
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
   })
+}
+
+/**
+ * Fail loudly and early when SMTP isn't configured.
+ *
+ * Without credentials nodemailer still builds a transport and only fails deep
+ * inside the connection, producing an error that reads like a network problem
+ * rather than "you forgot to set EMAIL_USER in Vercel". Every sender calls this
+ * first so a missing variable names itself.
+ */
+function assertEmailConfigured() {
+  const missing = ['EMAIL_USER', 'EMAIL_PASSWORD'].filter((key) => !process.env[key]?.trim())
+
+  if (missing.length) {
+    throw new Error(
+      `Email is not configured: ${missing.join(', ')} missing. ` +
+        `Set these in the Vercel project's environment variables.`
+    )
+  }
 }
 
 // Send welcome email to newly registered hospital
@@ -43,6 +83,7 @@ export async function sendWelcomeEmail({
   userRegistrationNo 
 }) {
   try {
+    assertEmailConfigured()
     const transporter = createTransporter()
 
     const htmlContent = `
@@ -167,6 +208,7 @@ export async function sendHospitalRegistrationPendingEmail({
   userRegistrationNo,
 }) {
   try {
+    assertEmailConfigured()
     const transporter = createTransporter()
     const signInLink = appUrl('/auth/sign-in')
 
@@ -244,6 +286,7 @@ export async function sendHospitalApprovalEmail({
   userRegistrationNo,
 }) {
   try {
+    assertEmailConfigured()
     const transporter = createTransporter()
     const signInLink = appUrl('/auth/sign-in')
 
@@ -315,6 +358,7 @@ export async function sendHospitalDetailsRequestEmail({
   note,
 }) {
   try {
+    assertEmailConfigured()
     const transporter = createTransporter()
 
     const htmlContent = `
@@ -374,6 +418,7 @@ ${note || 'Please reply with any missing legal or registration documents and con
 // Send staff invitation email
 export async function sendStaffInviteEmail({ email, name, hospitalName, role, staffData, token }) {
   try {
+    assertEmailConfigured()
     const transporter = createTransporter()
 
     console.log('Email config - Host:', process.env.EMAIL_HOST, 'Port:', process.env.EMAIL_PORT)
@@ -496,6 +541,7 @@ This invitation was sent from Smile Returns Hospital Management System.
 // Send a 6-digit code confirming a patient owns the email they just supplied
 export async function sendPatientEmailOtp({ email, name, code, expiresInMinutes = 10 }) {
   try {
+    assertEmailConfigured()
     const transporter = createTransporter()
 
     const htmlContent = `
@@ -563,6 +609,7 @@ This code expires in ${expiresInMinutes} minutes. If you did not request it, you
 // Send a password reset email (own JWT flow -- not Supabase's email reset)
 export async function sendPasswordResetEmail({ email, name, registration_no, user_id, token }) {
   try {
+    assertEmailConfigured()
     const transporter = createTransporter()
 
     const jwtToken =

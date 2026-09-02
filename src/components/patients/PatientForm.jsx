@@ -26,6 +26,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import { onboardPatient } from '@/actions/patients'
 import { ChevronDown } from 'lucide-react'
+import { readJsonResponse } from '@/lib/utils/safe-json'
 
 const patientSchema = z.object({
   // Required. The patient supplies and verifies their own email on first
@@ -107,7 +108,7 @@ export function PatientForm({ onSuccess, currentUser }) {
         throw new Error('Failed to fetch user session details.')
       }
 
-      const { user: userDetails } = await response.json()
+      const { user: userDetails } = await readJsonResponse(response)
       const hospitalId = userDetails?.profile?.hospital_id
 
       if (!hospitalId) {

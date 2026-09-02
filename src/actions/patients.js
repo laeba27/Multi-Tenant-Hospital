@@ -1093,12 +1093,25 @@ export async function sendMyEmailOtp(email) {
   })
   if (insertError) return { success: false, error: insertError.message }
 
-  const sent = await sendPatientEmailOtp({
-    email: normalized,
-    name: profile.name,
-    code,
-    expiresInMinutes: OTP_TTL_MINUTES,
-  })
+  // sendPatientEmailOtp catches its own errors, but only the ones it lives long
+  // enough to catch. Anything that escapes -- a killed socket, a transport that
+  // fails to construct -- would otherwise crash this server action, and a
+  // crashed action returns an HTML error page that the client tries to parse as
+  // JSON ("Unexpected token '<'"). Catching here guarantees the caller always
+  // gets a result object it can actually read.
+  let sent
+  try {
+    sent = await sendPatientEmailOtp({
+      email: normalized,
+      name: profile.name,
+      code,
+      expiresInMinutes: OTP_TTL_MINUTES,
+    })
+  } catch (error) {
+    console.error('sendMyEmailOtp: verification email threw:', error)
+    sent = { success: false, error: error.message }
+  }
+
   if (!sent.success) {
     return { success: false, error: 'Could not send the verification email. Please try again.' }
   }

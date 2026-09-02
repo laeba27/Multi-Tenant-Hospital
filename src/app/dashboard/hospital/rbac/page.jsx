@@ -3,7 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useAuthGuard } from '@/hooks/use-auth-guard'
 import { getRbacRules, getStaffForRbac, upsertRbacRule, deleteRbacRule } from '@/actions/rbac'
-import { PERMISSIONS, PERMISSION_KEYS } from '@/lib/rbac/permissions'
+import {
+  PERMISSIONS,
+  PERMISSION_KEYS,
+  ASSIGNABLE_ROLES,
+  labelForRole,
+} from '@/lib/rbac/permissions'
 import { toast } from 'sonner'
 import {
   Card,
@@ -56,7 +61,9 @@ export default function RbacPage() {
   // can never disagree about what permissions exist.
   const availablePermissions = PERMISSIONS
 
-  const roles = ['doctor', 'nurse', 'receptionist', 'lab_technician', 'pharmacist', 'admin', 'other']
+  // From the same catalogue the resolver uses, so every option here is a role
+  // that can actually match somebody.
+  const roles = ASSIGNABLE_ROLES
 
   useEffect(() => {
     if (isAuthenticated && user?.profile?.hospital_id) {
@@ -187,7 +194,7 @@ export default function RbacPage() {
       return (
         <div className="flex items-center gap-2">
           <Shield className="w-4 h-4" />
-          <span className="capitalize">{rule.role}</span>
+          <span>{labelForRole(rule.role)}</span>
         </div>
       )
     }
@@ -313,7 +320,7 @@ export default function RbacPage() {
                     <SelectContent>
                       {roles.map((role) => (
                         <SelectItem key={role} value={role}>
-                          {role.replace('_', ' ').toUpperCase()}
+                          {labelForRole(role)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -348,9 +355,16 @@ export default function RbacPage() {
                 <Label>Permissions</Label>
                 <div className="space-y-2">
                   {availablePermissions.map((permission) => (
-                    <div key={permission.key} className="flex items-center justify-between">
-                      <Label className="text-sm">{permission.label}</Label>
+                    <div
+                      key={permission.key}
+                      className="flex items-start justify-between gap-4"
+                    >
+                      <div className="space-y-0.5">
+                        <Label className="text-sm">{permission.label}</Label>
+                        <p className="text-xs text-gray-500">{permission.description}</p>
+                      </div>
                       <Switch
+                        className="mt-1 shrink-0"
                         checked={formData.permissions[permission.key] || false}
                         onCheckedChange={() => togglePermission(permission.key)}
                       />

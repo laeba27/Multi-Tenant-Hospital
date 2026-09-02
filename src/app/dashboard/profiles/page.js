@@ -6,6 +6,7 @@ import { useUserDetails } from '@/hooks/use-user-details'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { uploadDocument, getDocumentUrl } from '@/actions/documents'
+import { readJsonResponse } from '@/lib/utils/safe-json'
 
 export default function ProfilePage() {
   const { profile, hospital, isLoading, error } = useUserDetails()
@@ -218,7 +219,7 @@ export default function ProfilePage() {
         body: JSON.stringify(updates),
       })
 
-      const data = await response.json()
+      const data = await readJsonResponse(response)
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to update')

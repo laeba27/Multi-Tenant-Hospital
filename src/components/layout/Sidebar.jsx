@@ -30,6 +30,7 @@ import {
   Megaphone,
 } from 'lucide-react'
 import { useUserDetails } from '@/hooks/use-user-details'
+import { useRbac } from '@/hooks/use-rbac'
 
 const roleBasedSidebarItems = {
   super_admin: [
@@ -42,8 +43,9 @@ const roleBasedSidebarItems = {
   doctor: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/doctor' },
     { icon: Calendar, label: 'Appointments', href: '/dashboard/doctor/appointments' },
-    { icon: Pill, label: 'Prescriptions', href: '/dashboard/doctor/prescriptions' },
+    { icon: Pill, label: 'Prescriptions', href: '/dashboard/doctor/prescriptions', permission: 'view_prescription' },
     { icon: Users, label: 'Patients', href: '/dashboard/doctor/patients' },
+    { icon: CreditCard, label: 'Billing & Payment', href: '/dashboard/doctor/billing', permission: 'manage_billing' },
     { icon: Clock, label: 'Calendar', href: '/dashboard/doctor/calendar' },
     { icon: Bell, label: 'Notifications', href: '/dashboard/doctor/notifications' },
     { icon: UserCircle, label: 'My Profile', href: '/dashboard/profiles' },
@@ -68,10 +70,10 @@ const roleBasedSidebarItems = {
   receptionist: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/reception' },
     { icon: Calendar, label: 'Calendar', href: '/dashboard/reception/calendar' },
-    { icon: Users2, label: 'Patient Management', href: '/dashboard/reception/patient-management' },
+    { icon: Users2, label: 'Patient Management', href: '/dashboard/reception/patient-management', permission: 'book_appointment' },
     { icon: Megaphone, label: 'Quick Updates', href: '/dashboard/reception/updates' },
     { icon: UserCircle, label: 'My Profile', href: '/dashboard/profiles' },
-    { icon: CreditCard, label: 'Billing & Payment', href: '/dashboard/reception/billing' },
+    { icon: CreditCard, label: 'Billing & Payment', href: '/dashboard/reception/billing', permission: 'manage_billing' },
     { icon: BarChart3, label: 'Data Analytics', href: '/dashboard/reception/analytics' },
   ],
   staff: [
@@ -96,6 +98,7 @@ const roleBasedSidebarItems = {
 export function Sidebar({ isOpen = false, onClose = () => {} }) {
   const pathname = usePathname()
   const { profile, isLoading } = useUserDetails()
+  const { can, loading: rbacLoading } = useRbac()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -104,8 +107,17 @@ export function Sidebar({ isOpen = false, onClose = () => {} }) {
     setMounted(true)
   }, [])
 
-  // Only set sidebarItems after profile is loaded and mounted to prevent hydration mismatch
-  const sidebarItems = mounted && !isLoading ? (roleBasedSidebarItems[profile?.role] || []) : []
+  // Only set sidebarItems after profile is loaded and mounted to prevent hydration mismatch.
+  //
+  // Items carrying a `permission` are then filtered by what the person actually
+  // holds, so the nav follows the admin's RBAC settings rather than the job
+  // title alone: a doctor granted billing gets the link, a receptionist whose
+  // billing was revoked loses it. Wait for RBAC to resolve before filtering --
+  // otherwise every gated item flashes away and back on each load.
+  const roleItems = mounted && !isLoading ? (roleBasedSidebarItems[profile?.role] || []) : []
+  const sidebarItems = rbacLoading
+    ? roleItems.filter((item) => !item.permission)
+    : roleItems.filter((item) => !item.permission || can(item.permission))
 
   // Helper function to determine if a route is active
   // Returns the length of the matching href for specificity, or -1 if no match

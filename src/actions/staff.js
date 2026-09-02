@@ -14,9 +14,14 @@ import { randomUUID } from 'crypto'
  * @returns {Promise<{success: boolean, error?: string, warning?: string}>}
  */
 export async function inviteStaff(staffData, hospitalName) {
-  const supabaseAdmin = await createAdminClient()
-
+  // Everything lives inside the try, including building the admin client.
+  // Constructing it reads SUPABASE_SERVICE_ROLE_KEY and touches cookies(); when
+  // that threw from out here the whole server action crashed, and a crashed
+  // action returns Next's HTML error page rather than a value -- which the
+  // client then fails to JSON.parse ("Unexpected token '<'").
   try {
+    const supabaseAdmin = await createAdminClient()
+
     console.log('Inviting staff:', staffData.email, staffData.role)
 
     // Validate required fields
@@ -24,15 +29,29 @@ export async function inviteStaff(staffData, hospitalName) {
       return { success: false, error: 'Name, email, role, and hospital ID are required' }
     }
 
-    // 1. Check if email already exists in auth.users
-    const { users, error: listError } = await supabaseAdmin.auth.admin.listUsers()
-    if (listError) {
-      console.error('List users error:', listError)
-      return { success: false, error: 'Failed to validate existing account' }
+    // 1. Check if email already exists in auth.users.
+    // listUsers() is paginated and defaults to 50 per page, so the old
+    // single-call version silently stopped looking after the 50th user and
+    // would happily issue a duplicate invite to anyone past it. Walk the pages.
+    let emailExists = false
+    for (let page = 1; ; page++) {
+      const { data: pageData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+        page,
+        perPage: 200,
+      })
+      if (listError) {
+        console.error('List users error:', listError)
+        return { success: false, error: 'Failed to validate existing account' }
+      }
+
+      const users = pageData?.users || []
+      if (users.some((u) => u.email === staffData.email)) {
+        emailExists = true
+        break
+      }
+      if (users.length < 200) break
     }
 
-    const emailExists = users?.some(u => u.email === staffData.email)
-    
     if (emailExists) {
       return { success: false, error: 'User with this email already exists.' }
     }
@@ -182,35 +201,166 @@ export async function inviteStaff(staffData, hospitalName) {
 
     // 7. Send Invitation Email with JWT token
     console.log('Sending invitation email...')
-    const emailResult = await sendStaffInviteEmail({
-      email: staffData.email,
-      name: staffData.name,
-      hospitalName: hospitalName,
-      role: staffData.role,
-      staffData: {
+    // Guard against an error escaping the sender entirely (killed socket,
+    // unconstructable transport). An uncaught throw here crashes the server
+    // action, and the client gets Next's HTML error page instead of a result --
+    // which surfaces as "Unexpected token '<'" when it's parsed as JSON.
+    let emailResult
+    try {
+      emailResult = await sendStaffInviteEmail({
         email: staffData.email,
         name: staffData.name,
+        hospitalName: hospitalName,
         role: staffData.role,
-        registration_no: registrationNo,
-        hospital_id: staffData.hospital_id,
-        mobile: staffData.mobile,
-        user_id: userId
-      },
-      token: inviteToken
-    })
-
-    if (!emailResult.success) {
-      console.error('Failed to send email:', emailResult.error)
-      return { success: false, error: `Email failed to send: ${emailResult.error}` }
+        staffData: {
+          email: staffData.email,
+          name: staffData.name,
+          role: staffData.role,
+          registration_no: registrationNo,
+          hospital_id: staffData.hospital_id,
+          mobile: staffData.mobile,
+          user_id: userId
+        },
+        token: inviteToken
+      })
+    } catch (error) {
+      console.error('inviteStaff: invitation email threw:', error)
+      emailResult = { success: false, error: error.message }
     }
 
     console.log('Staff invited successfully')
     revalidatePath('/dashboard/hospital/staff')
-    
-    return { success: true }
+
+    // A failed email must NOT be reported as a failed invitation.
+    //
+    // By this point the auth user, the profile and the staff row all exist --
+    // the invitation succeeded. Returning `success: false` because Gmail was
+    // slow told the admin it had failed, so they invited the same person again
+    // and hit "email already registered" on an account that was created the
+    // first time. The staff member is left real but un-emailable, and the admin
+    // has no way to tell.
+    //
+    // Report the truth instead: the staff member was created, and say
+    // separately whether the email got out, so the UI can offer to resend
+    // rather than pretend nothing happened.
+    if (!emailResult.success) {
+      console.error('Failed to send invite email:', emailResult.error)
+      return {
+        success: true,
+        emailSent: false,
+        emailError: emailResult.error,
+      }
+    }
+
+    return { success: true, emailSent: true }
   } catch (error) {
     console.error('Invite Staff Error:', error)
     return { success: false, error: error.message || 'Failed to invite staff' }
+  }
+}
+
+/**
+ * Re-send the invitation email to a staff member who never received one.
+ *
+ * inviteStaff() creates the account and then mails the link. When the mail
+ * fails, the account still exists -- so there has to be a way to get a link out
+ * without inviting the person a second time (which only collides with the
+ * account already created). This mints a FRESH token rather than storing the
+ * original: invite tokens last 7 days, and a stored one would be both stale and
+ * a standing credential sitting in the database.
+ */
+export async function resendStaffInvite(staffId) {
+  try {
+    // Only an admin of the staff member's own hospital may trigger this -- the
+    // email carries a token that sets up the account, so it must not be
+    // something any signed-in user can cause to be sent anywhere.
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'Not signed in' }
+
+    const supabaseAdmin = await createAdminClient()
+
+    const { data: actor } = await supabaseAdmin
+      .from('profiles')
+      .select('id, role, hospital_id')
+      .eq('id', user.id)
+      .single()
+
+    if (!actor || !['hospital_admin', 'super_admin'].includes(actor.role)) {
+      return { success: false, error: 'Only hospital administrators can resend invitations.' }
+    }
+
+    // `staff` carries no email/mobile -- those live on the linked profile, keyed
+    // by employee_registration_no.
+    const { data: staffRow } = await supabaseAdmin
+      .from('staff')
+      .select('id, name, role, hospital_id, employee_registration_no')
+      .eq('id', staffId)
+      .maybeSingle()
+
+    if (!staffRow) return { success: false, error: 'Staff member not found.' }
+
+    if (actor.role !== 'super_admin' && staffRow.hospital_id !== actor.hospital_id) {
+      return { success: false, error: 'That staff member belongs to another hospital.' }
+    }
+
+    // The invite token identifies the auth user, so resolve it from the profile
+    // rather than trusting anything passed in.
+    const { data: staffProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('id, name, email, mobile, status')
+      .eq('registration_no', staffRow.employee_registration_no)
+      .maybeSingle()
+
+    if (!staffProfile) {
+      return { success: false, error: 'No account found for that staff member.' }
+    }
+    if (!staffProfile.email) {
+      return { success: false, error: 'That staff member has no email address on file.' }
+    }
+
+    if (staffProfile.status === 'active') {
+      return {
+        success: false,
+        error: 'That staff member has already completed their registration.',
+      }
+    }
+
+    const { data: hospital } = await supabaseAdmin
+      .from('hospitals')
+      .select('name')
+      .eq('registration_no', staffRow.hospital_id)
+      .maybeSingle()
+
+    const payload = {
+      email: staffProfile.email,
+      name: staffRow.name || staffProfile.name,
+      role: staffRow.role,
+      registration_no: staffRow.employee_registration_no,
+      hospital_id: staffRow.hospital_id,
+      mobile: staffProfile.mobile || null,
+      user_id: staffProfile.id,
+    }
+
+    const result = await sendStaffInviteEmail({
+      email: staffProfile.email,
+      name: payload.name,
+      hospitalName: hospital?.name || 'your hospital',
+      role: staffRow.role,
+      staffData: payload,
+      token: generateStaffInviteToken(payload),
+    })
+
+    if (!result.success) {
+      return { success: false, error: result.error || 'Could not send the invitation email.' }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('resendStaffInvite error:', error)
+    return { success: false, error: error.message || 'Could not resend the invitation.' }
   }
 }
 
@@ -227,7 +377,7 @@ export async function getStaff(hospitalId) {
             .select(`
                 *,
                 departments:department_id(name),
-                profiles:employee_registration_no(email, mobile)
+                profiles:employee_registration_no(email, mobile, status)
             `)
             .eq('hospital_id', hospitalId)
             .order('created_at', { ascending: false })

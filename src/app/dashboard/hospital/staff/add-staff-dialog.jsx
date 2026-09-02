@@ -165,6 +165,15 @@ export function AddStaffDialog({
 
             if (result.warning) {
                 toast.warning(result.warning)
+            } else if (result.emailSent === false) {
+                // The staff member WAS created -- only the email failed. Saying
+                // "invited successfully" would hide a member who never got a
+                // link; saying it failed would invite a duplicate. Say both.
+                toast.warning(
+                    'Staff member created, but the invitation email could not be sent. ' +
+                    'Use Resend Invite to try again.',
+                    { duration: 8000 }
+                )
             } else {
                 toast.success('Staff invited successfully')
             }

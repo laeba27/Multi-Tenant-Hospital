@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { Loader2, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react'
-import { decodePasswordResetToken } from '@/lib/utils/jwt'
+import { decodePasswordResetToken } from '@/lib/utils/jwt-decode'
 import AuthShell from '@/components/auth/AuthShell'
+import { readJsonResponse } from '@/lib/utils/safe-json'
 
 function ResetPasswordContent() {
   const router = useRouter()
@@ -61,7 +62,7 @@ function ResetPasswordContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, password }),
       })
-      const result = await response.json()
+      const result = await readJsonResponse(response)
       if (!response.ok) {
         toast.error(result.error || 'Failed to reset password')
         return

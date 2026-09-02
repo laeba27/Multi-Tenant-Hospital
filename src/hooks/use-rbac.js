@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useUser } from './use-user'
 import { SUPER_ROLES, defaultsForRole } from '@/lib/rbac/permissions'
+import { readJsonResponse } from '@/lib/utils/safe-json'
 
 /**
  * The signed-in user's permissions, for showing and hiding UI.
@@ -36,7 +37,7 @@ export function useRbac() {
       // The route resolves identity from the session -- it deliberately ignores
       // anything we could send it.
       const res = await fetch('/api/rbac/check', { method: 'POST' })
-      const data = await res.json()
+      const data = await readJsonResponse(res)
       setPermissions(res.ok ? data.permissions || {} : defaultsForRole(role))
     } catch (error) {
       console.error('Error checking RBAC permissions:', error)

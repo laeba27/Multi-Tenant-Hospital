@@ -1,12 +1,34 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+/**
+ * Fail with a message that names the missing variable.
+ *
+ * Passing undefined into createServerClient produces an error deep in the
+ * request layer that reads like a network fault, which sent us hunting the
+ * wrong problem. Roughly forty-five server actions build a client as their
+ * first statement -- often outside their own try block -- so an unhelpful throw
+ * here surfaced as an HTML error page and a "Unexpected token '<'" on the
+ * client. Checking here means one clear message instead.
+ */
+function requireEnv(name) {
+  const value = process.env[name]?.trim()
+
+  if (!value) {
+    throw new Error(
+      `${name} is not configured. Set it in the Vercel project environment variables.`
+    )
+  }
+
+  return value
+}
+
 export async function createClient() {
   const cookieStore = await cookies()
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    requireEnv('NEXT_PUBLIC_SUPABASE_URL'),
+    requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
     {
       cookies: {
         getAll() {
@@ -30,8 +52,8 @@ export async function createAdminClient() {
   const cookieStore = await cookies()
   
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    requireEnv('NEXT_PUBLIC_SUPABASE_URL'),
+    requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
     {
       cookies: {
         getAll() {

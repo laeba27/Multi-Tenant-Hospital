@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Search as SearchIcon, Mail, Phone, User, Calendar } from 'lucide-react'
+import { Plus, Search as SearchIcon, Mail, Phone, User, Calendar, Send, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 
 import { useUserDetails } from '@/hooks/use-user-details'
-import { getStaff, updateStaffStatus } from '@/actions/staff'
+import { getStaff, updateStaffStatus, resendStaffInvite } from '@/actions/staff'
 import { getDepartments } from '@/actions/departments'
 import { AddStaffDialog } from './add-staff-dialog'
 
@@ -55,6 +55,7 @@ export default function StaffPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [updatingStaffId, setUpdatingStaffId] = useState(null)
+    const [resendingId, setResendingId] = useState(null)
 
     const fetchStaff = useCallback(async () => {
         if (!hospital || !hospital.id) return
@@ -123,6 +124,26 @@ export default function StaffPage() {
         }
     }
 
+    // A staff member whose profile is still 'invited' never completed sign-up --
+    // usually because the invitation email failed to send. Without this they
+    // are stuck: re-inviting collides with the account that already exists.
+    const handleResendInvite = async (staffId) => {
+        setResendingId(staffId)
+        try {
+            const result = await resendStaffInvite(staffId)
+            if (!result.success) {
+                toast.error(result.error || 'Could not resend the invitation')
+                return
+            }
+            toast.success('Invitation email sent')
+        } catch (error) {
+            console.error('Resend invite error:', error)
+            toast.error('Could not resend the invitation')
+        } finally {
+            setResendingId(null)
+        }
+    }
+
     const StaffTable = ({ data }) => (
         <div className="rounded-md border">
             <Table>
@@ -134,12 +155,13 @@ export default function StaffPage() {
                         <TableHead>Contact</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Joined</TableHead>
+                        <TableHead className="text-right">Invite</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {data.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={6} className="h-24 text-center">
+                            <TableCell colSpan={7} className="h-24 text-center">
                                 No staff found.
                             </TableCell>
                         </TableRow>
@@ -197,6 +219,26 @@ export default function StaffPage() {
                                 </TableCell>
                                 <TableCell>
                                     {member.created_at ? format(new Date(member.created_at), 'MMM d, yyyy') : '-'}
+                                </TableCell>
+                                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                                    {member.profiles?.status === 'active' ? (
+                                        <span className="text-xs text-muted-foreground">Accepted</span>
+                                    ) : (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={resendingId === member.id}
+                                            onClick={() => handleResendInvite(member.id)}
+                                            title="Send the invitation email again"
+                                        >
+                                            {resendingId === member.id ? (
+                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            ) : (
+                                                <Send className="h-3.5 w-3.5" />
+                                            )}
+                                            <span className="ml-1.5">Resend</span>
+                                        </Button>
+                                    )}
                                 </TableCell>
                             </TableRow>
                         ))

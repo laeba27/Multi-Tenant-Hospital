@@ -55,6 +55,9 @@ export const ROLE_DEFAULTS = {
     // A doctor who cannot read prescriptions cannot practise. Revocable, but
     // never the default.
     view_prescription: true,
+    // Off by default -- most hospitals bill at the front desk -- but a real
+    // switch now: a doctor granted this gets the same billing screen and the
+    // same server-side authority as reception.
     manage_billing: false,
   },
   receptionist: {
@@ -100,6 +103,26 @@ export const ROLE_DEFAULTS = {
 
 /** Roles that hold every permission unconditionally. */
 export const SUPER_ROLES = ['hospital_admin', 'super_admin']
+
+/**
+ * The roles an admin can write a rule against, in one place.
+ *
+ * The RBAC screen used to hard-code its own list, which offered 'admin' -- a
+ * value no staff row or profile ever carries, so a rule targeting it silently
+ * matched nobody -- while omitting the generic 'staff'. Deriving the list from
+ * ROLE_DEFAULTS keeps the dropdown honest: every option is a role the resolver
+ * actually recognises. Admins are excluded on purpose; they hold everything
+ * unconditionally, so a rule about them would be a rule that does nothing.
+ */
+export const ASSIGNABLE_ROLES = Object.keys(ROLE_DEFAULTS)
+
+/** A human label for a role key. */
+export function labelForRole(role) {
+  return String(role || '')
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
 
 /** The defaults for a role, or all-false for one we don't know. */
 export function defaultsForRole(role) {

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
+import { readJsonResponse } from '@/lib/utils/safe-json'
 
 /**
  * Forgot-password dialog. Sends a registration number to /api/auth/forgot-password,
@@ -38,7 +39,7 @@ export function ForgotPasswordDialog({ open, onClose }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ registrationNo: registrationNo.trim() }),
       })
-      const data = await res.json()
+      const data = await readJsonResponse(res)
       if (!res.ok) {
         toast.error(data.error || 'Something went wrong')
         return

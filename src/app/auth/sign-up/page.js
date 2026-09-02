@@ -34,6 +34,7 @@ import {
   registrationHospitalSchema,
   HOSPITAL_TYPES,
 } from '@/lib/validations/schemas'
+import { readJsonResponse } from '@/lib/utils/safe-json'
 
 const STEPS = [
   { n: 1, title: 'Your account', blurb: 'How you sign in' },
@@ -176,7 +177,7 @@ export default function SignUpPage() {
         }),
       })
 
-      const result = await res.json()
+      const result = await readJsonResponse(res)
       if (!res.ok) {
         toast.error(result.error || 'Registration failed')
         return

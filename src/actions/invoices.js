@@ -535,6 +535,16 @@ export async function getInvoiceStats(hospitalId) {
  */
 export async function createInvoice(invoiceData, userId) {
   try {
+    // The sibling generateInvoice() has always been gated; this one was not --
+    // so the same billing permission that blocked one path let the other
+    // through. The reception billing screen calls THIS function, which made
+    // `manage_billing` unenforceable exactly where it mattered most.
+    const { requirePermission } = await import('@/actions/rbac')
+    const gate = await requirePermission('manage_billing')
+    if (!gate.allowed) {
+      return { data: null, error: gate.error || 'You cannot create invoices.' }
+    }
+
     const adminClient = await createAdminClient()
 
     // Generate invoice ID

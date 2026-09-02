@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { readJsonResponse } from '@/lib/utils/safe-json'
 
 /**
  * Custom hook to fetch departments and doctors for the current hospital
@@ -34,7 +35,7 @@ export function useHospitalDoctorsAndDepartments(hospitalId) {
         console.log('[useHospitalDoctorsAndDepartments] Calling API:', url)
         
         const response = await fetch(url)
-        const data = await response.json()
+        const data = await readJsonResponse(response)
 
         console.log('[useHospitalDoctorsAndDepartments] API Response:', { 
           status: response.status, 

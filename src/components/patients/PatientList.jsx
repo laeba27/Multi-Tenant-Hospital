@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal, FileText, CalendarPlus, Edit, Trash2 } from "lucide-react"
+import { readJsonResponse } from '@/lib/utils/safe-json'
 
 export function PatientList({
   hospitalId,
@@ -100,7 +101,7 @@ export function PatientList({
       if (!currentHospitalId) {
         const response = await fetch('/api/auth/user')
         if (!response.ok) throw new Error('Failed to fetch user session details')
-        const { user: userDetails } = await response.json()
+        const { user: userDetails } = await readJsonResponse(response)
         currentHospitalId = userDetails?.profile?.hospital_id
       }
       
@@ -128,7 +129,7 @@ export function PatientList({
       if (!currentHospitalId) {
         const response = await fetch('/api/auth/user')
         if (response.ok) {
-           const { user: userDetails } = await response.json()
+           const { user: userDetails } = await readJsonResponse(response)
            currentHospitalId = userDetails?.profile?.hospital_id
         }
       }

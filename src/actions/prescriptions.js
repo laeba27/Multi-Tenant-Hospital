@@ -896,6 +896,16 @@ export async function createPrescriptionFromAppointment({
  */
 export async function getAppointmentWithPrescriptions(appointmentId) {
   try {
+    // `view_prescription` shipped in the catalogue and on the admin screen but
+    // was never once consulted -- an admin could switch it off and the staff
+    // member kept reading prescriptions. This is the action that actually
+    // serves them, so this is where the switch has to bite.
+    const { requirePermission } = await import('@/actions/rbac')
+    const gate = await requirePermission('view_prescription')
+    if (!gate.allowed) {
+      throw new Error(gate.error || 'You cannot view prescriptions.')
+    }
+
     const { supabase, doctorRecord } = await getDoctorWorkspace()
 
     if (!doctorRecord) {
