@@ -60,9 +60,33 @@ const createTransporter = () => {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASSWORD,
     },
-    connectionTimeout: 10_000,
-    greetingTimeout: 10_000,
-    socketTimeout: 20_000,
+    // These MUST stay under the caller's function limit, not merely under
+    // nodemailer's ~2 minute default. API routes here declare maxDuration = 30,
+    // but a SERVER ACTION gets Vercel's 10s default and cannot raise it -- only
+    // route handlers may export maxDuration. The old 10s/10s/20s budget could
+    // reach 40s, so a slow handshake was killed by the platform instead of
+    // erroring: no exception, no log, and the DB write already committed. That
+    // is why approval "succeeded" with no email. `next dev` imposes no limit at
+    // all, which is exactly why this never reproduced locally.
+    connectionTimeout: 5_000,
+    greetingTimeout: 5_000,
+    socketTimeout: 7_000,
+    // Force IPv4.
+    //
+    // smtp.gmail.com resolves to both A and AAAA records, and when the network
+    // has no working IPv6 route the connect to the AAAA address does not fail
+    // fast -- it sits in the OS stack until the kernel gives up. Measured here:
+    // 67 SECONDS on a 5s connectionTimeout, because nodemailer's timer governs
+    // its own socket handling and not a TCP connect wedged below it. On Vercel
+    // that guarantees the 10s kill with no error, which is the failure being
+    // debugged. Pinning IPv4 removes the unreachable path entirely so the
+    // timeouts above can actually do their job.
+    family: 4,
+    dnsTimeout: 5_000,
+    // Reuse one authenticated connection when a single action mails several
+    // admins, instead of a fresh TCP+TLS+AUTH handshake per recipient.
+    pool: true,
+    maxConnections: 1,
   })
 }
 
@@ -200,6 +224,108 @@ ${signInLink}
     return { success: true }
   } catch (error) {
     console.error('Error sending hospital approval email:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Send suspension notice when super admin revokes hospital portal access
+export async function sendHospitalSuspendedEmail({
+  email,
+  hospitalName,
+  administratorName,
+  registrationNo,
+}) {
+  try {
+    assertEmailConfigured()
+    const transporter = createTransporter()
+
+    const html = layout({
+      title: 'Portal access suspended',
+      preheader: `Access to ${hospitalName} on Smile Return has been suspended.`,
+      content: `
+        ${para(`Hello ${administratorName},`)}
+        ${para(
+          `Portal access for <strong>${hospitalName}</strong> has been suspended by a super administrator.`
+        )}
+        ${notice(
+          '<strong>You and your staff can no longer sign in.</strong> Your records are unaffected and nothing has been deleted.'
+        )}
+        ${detailsTable(codeRow('Hospital registration', registrationNo))}
+        ${para('If you believe this is a mistake, reply to this email and a super administrator will review the account.')}
+      `,
+    })
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM || 'noreply@smile-returns.com',
+      to: email,
+      subject: `Portal Access Suspended - ${hospitalName}`,
+      html,
+      text: `Hello ${administratorName},
+
+Portal access for ${hospitalName} has been suspended by a super administrator.
+
+You and your staff can no longer sign in. Your records are unaffected and nothing has been deleted.
+
+Hospital registration: ${registrationNo}
+
+If you believe this is a mistake, reply to this email and a super administrator will review the account.
+
+(c) ${currentYear()} Smile Return. All rights reserved.`,
+    })
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error sending hospital suspension email:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Send reinstatement notice when super admin restores hospital portal access
+export async function sendHospitalAccessRestoredEmail({
+  email,
+  hospitalName,
+  administratorName,
+  registrationNo,
+}) {
+  try {
+    assertEmailConfigured()
+    const transporter = createTransporter()
+    const signInLink = appUrl('/auth/sign-in')
+
+    const html = layout({
+      title: 'Portal access restored',
+      preheader: `${hospitalName} can sign in to Smile Return again.`,
+      content: `
+        ${para(`Hello ${administratorName},`)}
+        ${para(
+          `Portal access for <strong>${hospitalName}</strong> has been restored. You and your staff can sign in again.`
+        )}
+        ${notice('<strong>Your account is active.</strong> Everything is exactly as you left it.', 'success')}
+        ${detailsTable(codeRow('Hospital registration', registrationNo))}
+        ${button('Sign in to your dashboard', signInLink)}
+      `,
+    })
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM || 'noreply@smile-returns.com',
+      to: email,
+      subject: `Portal Access Restored - ${hospitalName}`,
+      html,
+      text: `Hello ${administratorName},
+
+Portal access for ${hospitalName} has been restored. You and your staff can sign in again.
+
+Hospital registration: ${registrationNo}
+
+Sign in here:
+${signInLink}
+
+(c) ${currentYear()} Smile Return. All rights reserved.`,
+    })
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error sending hospital access restored email:', error)
     return { success: false, error: error.message }
   }
 }

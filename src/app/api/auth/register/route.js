@@ -1,3 +1,4 @@
+import { after } from 'next/server'
 import { generateHospitalId, generateUserId } from '@/lib/utils'
 import { sendHospitalRegistrationPendingEmail } from '@/lib/email/send-email'
 
@@ -222,27 +223,37 @@ export async function POST(request) {
     // user staring at a failure for an account that had in fact been created.
     // That is exactly the intermittent breakage reported here.
     //
-    // The email is a courtesy; the registration is the transaction. Kicking it
-    // off and returning immediately makes the response time depend only on our
-    // own database, so a slow or broken mail server can never again fail a
-    // registration that already succeeded.
-    sendHospitalRegistrationPendingEmail({
-      email,
-      hospitalName,
-      administratorName,
-      registrationNo: hospitalId,
-      userRegistrationNo,
+    // The email is a courtesy; the registration is the transaction. Not
+    // blocking on it makes the response time depend only on our own database,
+    // so a slow or broken mail server can never fail a registration that
+    // already succeeded.
+    //
+    // Wrapped in after() rather than left as a bare floating promise.
+    //
+    // Not blocking the response was the right call, but on serverless a
+    // detached promise is not merely unsupervised -- it is unsafe. Vercel
+    // freezes the instance the moment the response is flushed, so an in-flight
+    // SMTP handshake is suspended mid-socket and frequently never completes.
+    // The send therefore appeared to "work" locally (nothing freezes a dev
+    // server) while silently dropping in production, which is the second half
+    // of the reported bug.
+    //
+    // after() is Next's supported hook for exactly this: the response is sent
+    // immediately, and the platform keeps the function alive until the work
+    // inside finishes. Fast response AND a mail that actually leaves.
+    after(async () => {
+      const result = await sendHospitalRegistrationPendingEmail({
+        email,
+        hospitalName,
+        administratorName,
+        registrationNo: hospitalId,
+        userRegistrationNo,
+      }).catch((error) => ({ success: false, error: error?.message }))
+
+      if (!result?.success) {
+        console.error('Pending-approval email failed:', result?.error)
+      }
     })
-      .then((result) => {
-        if (!result?.success) {
-          console.error('Pending-approval email failed:', result?.error)
-        }
-      })
-      .catch((error) => {
-        // Must never reject unhandled: the response has already been sent, and
-        // an unhandled rejection can take the whole serverless instance down.
-        console.error('Pending-approval email threw:', error)
-      })
 
     return Response.json(
       {

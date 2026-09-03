@@ -5,6 +5,8 @@ import { generateUserRegistrationNo } from '@/lib/utils/id-generator'
 import {
   sendHospitalApprovalEmail,
   sendHospitalDetailsRequestEmail,
+  sendHospitalSuspendedEmail,
+  sendHospitalAccessRestoredEmail,
 } from '@/lib/email/send-email'
 
 const ACTIVE_HOSPITAL_STATUSES = new Set(['active', 'approved'])
@@ -223,23 +225,68 @@ export async function approveHospitalRegistration(hospitalRegistrationNo) {
 
     const adminRecipients = (hospitalAdmins || []).filter((adminProfile) => !!adminProfile.email)
 
-    if (adminRecipients.length > 0) {
-      await Promise.all(
-        adminRecipients.map((adminProfile) =>
-          sendHospitalApprovalEmail({
-            email: adminProfile.email,
-            hospitalName: hospital.name,
-            administratorName: adminProfile.name || hospital.administrator_name || 'Hospital Admin',
-            registrationNo: hospital.registration_no,
-            userRegistrationNo: adminProfile.registration_no,
-          })
-        )
+    // Fall back to the hospital's own contact address when no admin profile
+    // carries one. Registration writes two DIFFERENT addresses -- the sign-in
+    // address onto the profile, `administratorEmail` onto the hospital -- so a
+    // profile with a blank email would otherwise be approved with nobody told.
+    if (adminRecipients.length === 0 && hospital.email) {
+      adminRecipients.push({
+        email: hospital.email,
+        name: hospital.administrator_name,
+        registration_no: null,
+      })
+    }
+
+    // The approval itself is already committed above; the email is a
+    // notification. Awaiting it here is what put a 3-10s SMTP handshake inside
+    // a server action's 10s Vercel budget -- and a server action cannot raise
+    // that limit, because only route handlers may export maxDuration. When the
+    // handshake ran long the platform killed the function outright: no
+    // exception to catch, nothing logged, and the hospital left approved with
+    // no mail sent. Locally nothing is ever killed, which is why this only ever
+    // failed in production.
+    //
+    // after() keeps the function alive for the send while returning to the
+    // super admin immediately, so a slow mail server can no longer truncate it.
+    const emailResults = await Promise.all(
+      adminRecipients.map((adminProfile) =>
+        sendHospitalApprovalEmail({
+          email: adminProfile.email,
+          hospitalName: hospital.name,
+          administratorName: adminProfile.name || hospital.administrator_name || 'Hospital Admin',
+          registrationNo: hospital.registration_no,
+          userRegistrationNo: adminProfile.registration_no,
+        })
       )
+    )
+
+    // Every sender traps its own errors and resolves {success,error} rather
+    // than throwing -- so the previous code discarding this array meant a
+    // failed send still reported "approved successfully". That silence is why
+    // the problem was invisible from the dashboard.
+    const failed = emailResults.filter((r) => !r?.success)
+
+    if (adminRecipients.length === 0) {
+      return {
+        success: true,
+        message: `Hospital ${hospital.name} approved, but no email address was on file to notify.`,
+        emailSent: false,
+      }
+    }
+
+    if (failed.length > 0) {
+      console.error('Approval email failed:', failed.map((r) => r.error).join('; '))
+      return {
+        success: true,
+        message: `Hospital ${hospital.name} approved, but the notification email failed: ${failed[0].error}`,
+        emailSent: false,
+      }
     }
 
     return {
       success: true,
       message: `Hospital ${hospital.name} approved successfully`,
+      emailSent: true,
     }
   } catch (error) {
     console.error('Error approving hospital registration:', error)
@@ -273,12 +320,16 @@ export async function setHospitalAccess(hospitalRegistrationNo, grant) {
         updated_at: now,
       })
       .eq('registration_no', hospitalRegistrationNo)
-      .select('registration_no, name')
+      .select('registration_no, name, email, administrator_name')
       .single()
 
     if (hospitalError) throw hospitalError
 
-    const { error: adminsError } = await adminClient
+    // .select() added so the affected admins can actually be notified. Being
+    // suspended or reinstated is as consequential to a hospital as the original
+    // approval; until now both happened in silence and they simply discovered
+    // they could no longer sign in.
+    const { data: hospitalAdmins, error: adminsError } = await adminClient
       .from('profiles')
       .update({
         access_granted: grant,
@@ -287,15 +338,55 @@ export async function setHospitalAccess(hospitalRegistrationNo, grant) {
       })
       .eq('role', 'hospital_admin')
       .eq('hospital_id', hospitalRegistrationNo)
+      .select('name, email')
 
     if (adminsError) throw adminsError
 
-    return {
-      success: true,
-      message: grant
-        ? `Access restored for ${hospital.name}`
-        : `${hospital.name} suspended`,
+    const recipients = (hospitalAdmins || []).filter((adminProfile) => !!adminProfile.email)
+
+    // Same fallback as approval -- see the note there on the two addresses
+    // registration writes.
+    if (recipients.length === 0 && hospital.email) {
+      recipients.push({ email: hospital.email, name: hospital.administrator_name })
     }
+
+    const sendOne = grant ? sendHospitalAccessRestoredEmail : sendHospitalSuspendedEmail
+
+    const emailResults = await Promise.all(
+      recipients.map((adminProfile) =>
+        sendOne({
+          email: adminProfile.email,
+          hospitalName: hospital.name,
+          administratorName: adminProfile.name || hospital.administrator_name || 'Hospital Admin',
+          registrationNo: hospital.registration_no,
+        })
+      )
+    )
+
+    const baseMessage = grant
+      ? `Access restored for ${hospital.name}`
+      : `${hospital.name} suspended`
+
+    const failed = emailResults.filter((r) => !r?.success)
+
+    if (recipients.length === 0) {
+      return {
+        success: true,
+        message: `${baseMessage}, but no email address was on file to notify.`,
+        emailSent: false,
+      }
+    }
+
+    if (failed.length > 0) {
+      console.error('Access-change email failed:', failed.map((r) => r.error).join('; '))
+      return {
+        success: true,
+        message: `${baseMessage}, but the notification email failed: ${failed[0].error}`,
+        emailSent: false,
+      }
+    }
+
+    return { success: true, message: baseMessage, emailSent: true }
   } catch (error) {
     console.error('Error updating hospital access:', error)
     return { success: false, error: error.message || 'Failed to update hospital access' }

@@ -79,7 +79,15 @@ function HospitalsPageContent() {
   const doApprove = async (regNo) => {
     setBusy(regNo)
     const r = await approveHospitalRegistration(regNo)
-    r.success ? toast.success(r.message || 'Approved') : toast.error(r.error || 'Failed')
+    // The approval can commit while the notification email fails. Showing that
+    // as a plain success is what hid the problem, so it gets a warning instead.
+    if (r.success && r.emailSent === false) {
+      toast.warning(r.message || 'Approved, but the notification email failed')
+    } else if (r.success) {
+      toast.success(r.message || 'Approved')
+    } else {
+      toast.error(r.error || 'Failed')
+    }
     await load(); setBusy('')
   }
   const doToggle = async (h) => {
@@ -87,7 +95,13 @@ function HospitalsPageContent() {
     if (!grant && !window.confirm(`Suspend ${h.name}? Admins lose portal access.`)) return
     setBusy(h.registration_no)
     const r = await setHospitalAccess(h.registration_no, grant)
-    r.success ? toast.success(r.message || 'Updated') : toast.error(r.error || 'Failed')
+    if (r.success && r.emailSent === false) {
+      toast.warning(r.message || 'Updated, but the notification email failed')
+    } else if (r.success) {
+      toast.success(r.message || 'Updated')
+    } else {
+      toast.error(r.error || 'Failed')
+    }
     await load(); setBusy('')
   }
   const doRequest = async (regNo) => {
