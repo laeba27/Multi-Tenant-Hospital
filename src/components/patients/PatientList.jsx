@@ -73,8 +73,13 @@ export function PatientList({
         if (patient.profile?.email?.toLowerCase().includes(query)) {
           return true
         }
-        // Search by hospital patient ID
+        // Search by hospital patient ID (HOSP-PAT-…)
         if (patient.id?.toLowerCase().includes(query)) {
+          return true
+        }
+        // Search by global registration number (PATIENT-…), which is now
+        // shown under the name and so is something people will type.
+        if (patient.profile?.registration_no?.toLowerCase().includes(query)) {
           return true
         }
         // Search by mobile
@@ -210,9 +215,18 @@ export function PatientList({
                             .join('')}
                         </AvatarFallback>
                       </Avatar>
+                      {/* Two different identifiers, so they must not repeat:
+                          the global registration number (PATIENT-…, valid at
+                          any hospital) sits under the name, while the
+                          hospital-local patient ID (HOSP-PAT-…) keeps its own
+                          column. Previously both showed patient.id. */}
                       <div>
                         <div className="font-medium">{patient.profile?.name}</div>
-                        <div className="text-xs text-gray-500">Patient ID: {patient.id}</div>
+                        {patient.profile?.registration_no && (
+                          <div className="text-xs text-gray-500 font-mono">
+                            {patient.profile.registration_no}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </TableCell>

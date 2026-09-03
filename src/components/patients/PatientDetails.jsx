@@ -17,6 +17,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs'
+import { ChevronLeft } from 'lucide-react'
 
 
 export function PatientDetails({ patient, userRole, onEdit, onClose }) {
@@ -29,6 +30,31 @@ export function PatientDetails({ patient, userRole, onEdit, onClose }) {
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumb.
+          This replaces the old "Close" button: a details view reached by
+          clicking a row reads as a place you navigated to, so the way back
+          should look like navigation rather than dismissing a dialog. */}
+      <nav aria-label="Breadcrumb">
+        <ol className="flex items-center gap-1.5 text-sm">
+          <li>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center gap-1.5 text-gray-500 transition hover:text-brand-blue"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Patients
+            </button>
+          </li>
+          <li aria-hidden className="text-gray-300">
+            /
+          </li>
+          <li className="font-medium text-gray-900" aria-current="page">
+            {profile?.name || 'Patient'}
+          </li>
+        </ol>
+      </nav>
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
@@ -43,19 +69,30 @@ export function PatientDetails({ patient, userRole, onEdit, onClose }) {
           </Avatar>
           <div>
             <h2 className="text-2xl font-bold">{profile?.name}</h2>
+            {/* Both identifiers, labelled, so it is obvious which is which:
+                the registration number works across hospitals, the patient ID
+                is issued by this hospital alone. */}
+            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+              {profile?.registration_no && (
+                <span>
+                  Registration No.{' '}
+                  <span className="font-mono text-gray-700">{profile.registration_no}</span>
+                </span>
+              )}
+              {patient.id && (
+                <span>
+                  Patient ID <span className="font-mono text-gray-700">{patient.id}</span>
+                </span>
+              )}
+            </div>
             <Badge className={`mt-2 ${patient.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
               {patient.is_active ? 'Active' : 'Inactive'}
             </Badge>
           </div>
         </div>
-        <div className="flex gap-2">
-          {canEdit && (
-            <Button onClick={() => onEdit?.(patient)}>Edit</Button>
-          )}
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-        </div>
+        {canEdit && (
+          <Button onClick={() => onEdit?.(patient)}>Edit</Button>
+        )}
       </div>
 
       <hr className="my-6 border-gray-200" />
@@ -111,7 +148,13 @@ export function PatientDetails({ patient, userRole, onEdit, onClose }) {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Registration Number</p>
-                  <p className="font-medium">{profile?.registration_no}</p>
+                  <p className="font-medium font-mono">{profile?.registration_no || '-'}</p>
+                  <p className="mt-0.5 text-xs text-gray-500">Valid across hospitals</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Patient ID</p>
+                  <p className="font-medium font-mono">{patient.id || '-'}</p>
+                  <p className="mt-0.5 text-xs text-gray-500">Issued by this hospital</p>
                 </div>
               </div>
 

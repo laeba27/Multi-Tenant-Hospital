@@ -1379,67 +1379,114 @@ export async function searchPatients(hospitalId, query) {
  * Search for patient in a specific hospital by ID, email, phone, or name
  * Used when starting new appointment booking to find existing patients
  */
-export async function searchPatientForHospital(hospitalId, searchType, searchValue) {
+/**
+ * Search this hospital's patients.
+ *
+ * One box, many identifiers. Reception's instinct is to type whatever they
+ * have -- the hospital patient ID, the global registration number, a name, a
+ * phone number -- so the caller no longer has to pick a category first.
+ *
+ * Three things were broken before:
+ *
+ *  1. Filters on an embedded table (`profile.name=ilike...`) do not filter the
+ *     parent rows in PostgREST -- they only null out the embed on non-matches.
+ *     The query returned every patient in the hospital, so the trailing
+ *     `.single()` failed with PGRST116 ("the result contains 5 rows"). That
+ *     error was swallowed as "not found", meaning name/email/phone search could
+ *     never return anything. `!inner` makes the join filter for real.
+ *  2. The ID branch tested /^PATIENT\d+$/, which the real values
+ *     (PATIENT-628032) fail because of the hyphen -- so typing a genuine
+ *     registration number fell through to matching patients.id and found
+ *     nothing.
+ *  3. `.single()` cannot express "several people share a surname". This returns
+ *     a list and lets the caller choose.
+ *
+ * Returns an array, newest first, capped at `limit`.
+ */
+export async function searchPatientForHospital(hospitalId, searchValue, limit = 20) {
+  const term = (searchValue || '').trim()
+  if (!hospitalId || !term) return []
+
   try {
     const supabase = await createClient()
 
-    const normalizedSearchValue = searchValue.toUpperCase().replace(/\s+/g, '')
-
-    let query = supabase
-      .from('patients')
-      .select(
-        `
-        *,
-        profile:profiles!profile_id(
-          id,
-          name,
-          email,
-          mobile,
-          gender,
-          date_of_birth,
-          avatar_url,
-          registration_no
-        )
-      `
+    // `!inner` is what makes a filter on the embedded profile actually
+    // restrict the rows returned.
+    const select = `
+      *,
+      profile:profiles!profile_id!inner(
+        id,
+        name,
+        email,
+        mobile,
+        gender,
+        date_of_birth,
+        avatar_url,
+        registration_no
       )
-      .eq('hospital_id', hospitalId)
-      .eq('is_active', true)
+    `
 
-    // Apply filter based on search type
-    switch (searchType) {
-      case 'id':
-        // Search by hospital patient ID (HOSP-PAT-XXXXX) or profile registration no (PATIENT-XXXXXX)
-        if (/^HOSP-PAT-\d+$/.test(normalizedSearchValue)) {
-          // Direct match for HOSP-PAT-XXXXX format
-          query = query.eq('id', normalizedSearchValue)
-        } else if (/^PATIENT\d+$/.test(normalizedSearchValue)) {
-          // Handle PATIENTXXXXX -> PATIENT-XXXXX
-          const withHyphen = normalizedSearchValue.replace(/^PATIENT/, 'PATIENT-')
-          query = query.eq('profile.registration_no', withHyphen)
-        } else {
-          // Try to match against patients.id (hospital patient ID)
-          query = query.eq('id', normalizedSearchValue)
-        }
-        break
-      case 'email':
-        query = query.eq('profile.email', searchValue.toLowerCase())
-        break
-      case 'phone':
-        query = query.eq('profile.mobile', searchValue)
-        break
-      case 'name':
-        query = query.ilike('profile.name', `%${searchValue}%`)
-        break
-      default:
-        return null
+    const base = () =>
+      supabase
+        .from('patients')
+        .select(select)
+        .eq('hospital_id', hospitalId)
+        .eq('is_active', true)
+        .limit(limit)
+
+    // Identifiers are matched loosely: people paste them with stray spaces, in
+    // the wrong case, or without the prefix ("59588" for HOSP-PAT-59588).
+    const compact = term.toUpperCase().replace(/\s+/g, '')
+    const digits = compact.replace(/\D/g, '')
+
+    // A PostgREST `or` filter; commas and parens inside a value would break
+    // its grammar, so those are stripped rather than escaped.
+    const safe = (v) => v.replace(/[(),]/g, ' ').trim()
+
+    const looksLikeId = /^(HOSP-?PAT-?|PATIENT-?)?\d+$/.test(compact)
+    const clauses = []
+
+    if (looksLikeId && digits) {
+      // Match either identifier, with or without its prefix.
+      clauses.push(`id.ilike.*${digits}*`)
+    }
+    clauses.push(`id.ilike.*${safe(compact)}*`)
+
+    const { data: byPatientId, error: idError } = await base().or(clauses.join(','))
+    if (idError) throw idError
+
+    // Fields that live on the joined profile have to be filtered separately --
+    // PostgREST cannot `or` across the parent and the embed in one expression.
+    const profileFilters = [
+      base().ilike('profile.name', `%${term}%`),
+      base().ilike('profile.registration_no', `%${digits || safe(compact)}%`),
+      base().ilike('profile.mobile', `%${digits || safe(term)}%`),
+      base().ilike('profile.email', `%${term}%`),
+    ]
+
+    const results = await Promise.all(profileFilters)
+    const failed = results.find((r) => r.error)
+    if (failed) throw failed.error
+
+    // Merge, keeping the patient-ID hits first since an exact ID is the
+    // strongest signal, then de-duplicate.
+    const merged = [byPatientId, ...results.map((r) => r.data)]
+      .filter(Boolean)
+      .flat()
+
+    const seen = new Set()
+    const unique = []
+    for (const row of merged) {
+      if (row?.id && !seen.has(row.id)) {
+        seen.add(row.id)
+        unique.push(row)
+      }
     }
 
-    const { data, error } = await query.single()
-
-    if (error && error.code !== 'PGRST116') throw error
-    return data || null
+    return unique.slice(0, limit)
   } catch (error) {
     console.error('Error searching patient for hospital:', error)
     throw error
   }
 }
+

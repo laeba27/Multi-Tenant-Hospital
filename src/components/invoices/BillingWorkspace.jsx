@@ -45,6 +45,7 @@ import {
   Lock,
   Loader2,
 } from 'lucide-react'
+import { HelpHint } from '@/components/ui/help-hint'
 
 /**
  * Billing & Payments -- the one screen, for whoever is allowed to bill.
@@ -495,12 +496,22 @@ export function BillingWorkspace() {
 
       {/* Create Invoice Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-4xl! w-full h-[85vh] flex flex-col overflow-hidden">
           <DialogHeader>
-            <DialogTitle>Create New Invoice</DialogTitle>
+            <DialogTitle className="flex items-center gap-1.5">
+              Create New Invoice
+              <HelpHint
+                title="Creating an invoice"
+                steps={[
+                  'Pick the patient the charges belong to.',
+                  'An invoice can be raised before any payment is taken.',
+                  'Record payments against it afterwards -- part-payments are fine.',
+                ]}
+              />
+            </DialogTitle>
             <DialogDescription>Create a new invoice for billing</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 mt-4">
+          <div className="space-y-4 mt-4 flex-1 overflow-y-auto min-h-0">
             <div>
               <Label htmlFor="patient_id">Patient ID</Label>
               <Input
@@ -572,14 +583,24 @@ export function BillingWorkspace() {
 
       {/* Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="">
+        <DialogContent className="max-w-4xl! w-full h-[85vh] flex flex-col overflow-hidden">
           <DialogHeader>
-            <DialogTitle>Record Payment</DialogTitle>
+            <DialogTitle className="flex items-center gap-1.5">
+              Record Payment
+              <HelpHint
+                title="Recording a payment"
+                steps={[
+                  'Enter the amount actually collected, not the invoice total.',
+                  'Paying less than the due amount leaves the invoice partly paid.',
+                  'Each payment is kept, so the history stays auditable.',
+                ]}
+              />
+            </DialogTitle>
             <DialogDescription>
               Invoice: {selectedInvoice?.id} | Due: ₹{selectedInvoice?.due_amount?.toLocaleString()}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 mt-4">
+          <div className="space-y-4 mt-4 flex-1 overflow-y-auto min-h-0">
             <div>
               <Label htmlFor="payment_amount">Payment Amount (₹)</Label>
               <Input
@@ -631,11 +652,20 @@ export function BillingWorkspace() {
       {/* Invoice View Dialog */}
       {selectedInvoiceForView && (
         <Dialog open={!!selectedInvoiceForView} onOpenChange={() => setSelectedInvoiceForView(null)}>
-          <DialogContent className="max-w-7xl w-full max-h-[95vh] p-0 overflow-y-auto">
+          <DialogContent className="max-w-4xl! w-full h-[85vh] flex flex-col overflow-hidden p-0">
             <DialogHeader className="px-6 pt-6 pb-2">
-              <DialogTitle>Invoice Details - {selectedInvoiceForView.id}</DialogTitle>
+              <DialogTitle className="flex items-center gap-1.5">
+                Invoice Details - {selectedInvoiceForView.id}
+                <HelpHint
+                  title="Invoice"
+                  steps={[
+                    'The printable record of what was charged and paid.',
+                    'Use the print action for the patient\u2019s copy.',
+                  ]}
+                />
+              </DialogTitle>
             </DialogHeader>
-            <div className="px-6 pb-6">
+            <div className="px-6 pb-6 flex-1 overflow-y-auto min-h-0">
               <InvoiceView
                 invoice={selectedInvoiceForView}
                 hospital={staffDetails?.hospitals}

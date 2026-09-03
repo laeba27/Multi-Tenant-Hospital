@@ -1,193 +1,250 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { searchPatientForHospital } from '@/actions/patients'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Loader2, Search, User, AlertCircle } from 'lucide-react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2, Search, UserPlus, X } from 'lucide-react'
 
+/**
+ * Find an existing patient before booking.
+ *
+ * Shaped like a search box with a dropdown, because that is the interaction
+ * reception already knows: type, glance at a short list, pick. Matches appear
+ * in an overlay rather than pushing the rest of the dialog down, and the list
+ * scrolls once it exceeds ~5 rows so a common surname cannot stretch the modal
+ * off-screen.
+ *
+ * "Register new patient" sits beside the field, in green: when the search comes
+ * up empty that is the only way forward, and it was previously buried at the
+ * bottom behind a divider.
+ *
+ * The search itself accepts any identifier -- hospital patient ID, global
+ * registration number, name, phone, email -- so nobody has to classify what
+ * they are holding before typing it.
+ */
 export function PatientLookup({ hospitalId, onSelectPatient, onCreateNew, isLoading: externalLoading }) {
-  const [searchType, setSearchType] = useState('id') // 'id' | 'email' | 'phone' | 'name'
   const [searchValue, setSearchValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [searchResults, setSearchResults] = useState(null)
+  const [results, setResults] = useState([])
   const [searched, setSearched] = useState(false)
+  const [open, setOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
 
-  const handleSearch = async () => {
-    if (!searchValue.trim()) {
-      toast.error('Please enter a search value')
+  const inputRef = useRef(null)
+  const boxRef = useRef(null)
+  const listRef = useRef(null)
+
+  // Ignore responses from a superseded keystroke, so a slow early request
+  // cannot land after a faster later one and show stale matches.
+  const requestRef = useRef(0)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
+
+  // Close the dropdown on an outside click.
+  useEffect(() => {
+    const onDown = (e) => {
+      if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [])
+
+  useEffect(() => {
+    const term = searchValue.trim()
+
+    if (term.length < 2) {
+      setResults([])
+      setSearched(false)
+      setIsLoading(false)
+      setOpen(false)
       return
     }
 
     setIsLoading(true)
-    try {
-      const result = await searchPatientForHospital(hospitalId, searchType, searchValue)
-      setSearchResults(result)
-      setSearched(true)
+    const ticket = ++requestRef.current
 
-      if (!result) {
-        toast.info('Patient not found for this hospital')
+    // Debounced so typing a full ID is one query, not fourteen.
+    const timer = setTimeout(async () => {
+      try {
+        const found = await searchPatientForHospital(hospitalId, term)
+        if (ticket !== requestRef.current) return
+        setResults(found || [])
+        setSearched(true)
+        setOpen(true)
+        setActiveIndex(-1)
+      } catch (error) {
+        if (ticket !== requestRef.current) return
+        console.error('Search error:', error)
+        toast.error('Could not search for patients')
+        setResults([])
+        setSearched(true)
+        setOpen(true)
+      } finally {
+        if (ticket === requestRef.current) setIsLoading(false)
       }
-    } catch (error) {
-      console.error('Search error:', error)
-      toast.error('Error searching for patient')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+    }, 300)
 
-  const handleSelectPatient = (patient) => {
+    return () => clearTimeout(timer)
+  }, [searchValue, hospitalId])
+
+  // Keep the highlighted row inside the scroll viewport.
+  useEffect(() => {
+    if (activeIndex < 0 || !listRef.current) return
+    listRef.current.querySelectorAll('[data-row]')[activeIndex]?.scrollIntoView({ block: 'nearest' })
+  }, [activeIndex])
+
+  const choose = (patient) => {
+    setOpen(false)
     onSelectPatient(patient)
   }
 
+  const onKeyDown = (e) => {
+    if (!open || results.length === 0) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActiveIndex((i) => (i + 1) % results.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActiveIndex((i) => (i <= 0 ? results.length - 1 : i - 1))
+    } else if (e.key === 'Enter' && activeIndex >= 0) {
+      e.preventDefault()
+      choose(results[activeIndex])
+    } else if (e.key === 'Escape') {
+      setOpen(false)
+    }
+  }
+
+  const term = searchValue.trim()
+  const showEmpty = open && searched && !isLoading && results.length === 0 && term.length >= 2
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold mb-4">Search for Existing Patient</h3>
-        <Tabs value={searchType} onValueChange={setSearchType} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="id">Patient ID</TabsTrigger>
-            <TabsTrigger value="email">Email</TabsTrigger>
-            <TabsTrigger value="phone">Phone</TabsTrigger>
-            <TabsTrigger value="name">Name</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="id" className="space-y-4 mt-4">
-            <div>
-              <Label htmlFor="patient-id">Patient Registration ID</Label>
-              <Input
-                id="patient-id"
-                placeholder="Enter patient ID (e.g., PAT-12345)"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="email" className="space-y-4 mt-4">
-            <div>
-              <Label htmlFor="patient-email">Email Address</Label>
-              <Input
-                id="patient-email"
-                type="email"
-                placeholder="Enter patient email"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="phone" className="space-y-4 mt-4">
-            <div>
-              <Label htmlFor="patient-phone">Phone Number</Label>
-              <Input
-                id="patient-phone"
-                placeholder="Enter patient phone number"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="name" className="space-y-4 mt-4">
-            <div>
-              <Label htmlFor="patient-name">Patient Name</Label>
-              <Input
-                id="patient-name"
-                placeholder="Enter patient name"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        <Button
-          onClick={handleSearch}
-          disabled={isLoading || externalLoading || !searchValue.trim()}
-          className="w-full mt-4"
-        >
-          {isLoading || externalLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Searching...
-            </>
+    <div className="space-y-3">
+      <div className="flex items-start gap-2">
+        {/* Search field + dropdown */}
+        <div ref={boxRef} className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Input
+            ref={inputRef}
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            onKeyDown={onKeyDown}
+            onFocus={() => term.length >= 2 && searched && setOpen(true)}
+            placeholder="Search by patient ID, name, phone or email"
+            className="pl-9 pr-9"
+            autoComplete="off"
+            role="combobox"
+            aria-expanded={open}
+            aria-controls="patient-results"
+          />
+          {isLoading ? (
+            <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-gray-400" />
           ) : (
-            <>
-              <Search className="mr-2 h-4 w-4" />
-              Search Patient
-            </>
-          )}
-        </Button>
-      </div>
-
-      {/* Search Results */}
-      {searched && (
-        <div className="border-t pt-6">
-          {searchResults ? (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5">
-                  <User className="h-5 w-5 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-green-900">Patient Found</h4>
-                  <div className="text-sm text-green-700 mt-2 space-y-1">
-                    <p>
-                      <span className="font-medium">Name:</span> {searchResults.profile?.name}
-                    </p>
-                    <p>
-                      <span className="font-medium">Email:</span> {searchResults.profile?.email}
-                    </p>
-                    <p>
-                      <span className="font-medium">Phone:</span> {searchResults.profile?.mobile}
-                    </p>
-                    <p>
-                      <span className="font-medium">Reg. No:</span> {searchResults.registration_no}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <Button
-                onClick={() => handleSelectPatient(searchResults)}
-                className="w-full bg-green-600 hover:bg-green-700"
+            searchValue && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchValue('')
+                  inputRef.current?.focus()
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-600"
+                aria-label="Clear search"
               >
-                Select This Patient
-              </Button>
+                <X className="h-4 w-4" />
+              </button>
+            )
+          )}
+
+          {/* Dropdown. Absolute so it overlays the dialog instead of resizing
+              it, and capped in height so long result sets scroll. */}
+          {open && (results.length > 0 || showEmpty) && (
+            <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border bg-white shadow-lg">
+              {results.length > 0 ? (
+                <ul
+                  id="patient-results"
+                  ref={listRef}
+                  role="listbox"
+                  className="max-h-72 divide-y overflow-y-auto"
+                >
+                  {results.map((patient, i) => (
+                    <li key={patient.id}>
+                      <button
+                        type="button"
+                        data-row
+                        role="option"
+                        aria-selected={i === activeIndex}
+                        onMouseEnter={() => setActiveIndex(i)}
+                        onClick={() => choose(patient)}
+                        disabled={externalLoading}
+                        className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition disabled:opacity-50 ${
+                          i === activeIndex ? 'bg-gray-50' : ''
+                        }`}
+                      >
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gray-100 text-[11px] font-medium text-gray-600">
+                          {(patient.profile?.name || '?')
+                            .split(' ')
+                            .map((n) => n[0])
+                            .slice(0, 2)
+                            .join('')
+                            .toUpperCase()}
+                        </span>
+
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium text-gray-900">
+                            {patient.profile?.name || 'Unnamed patient'}
+                          </span>
+                          {/* Both identifiers, so whichever one was searched is
+                              visible on the row about to be picked. */}
+                          <span className="mt-0.5 flex flex-wrap items-center gap-x-2.5 text-[11px] text-gray-500">
+                            <span className="font-mono">{patient.id}</span>
+                            {patient.profile?.registration_no && (
+                              <span className="font-mono">{patient.profile.registration_no}</span>
+                            )}
+                            {patient.profile?.mobile && <span>{patient.profile.mobile}</span>}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="px-4 py-6 text-center">
+                  <p className="text-sm text-gray-600">
+                    No match for <span className="font-medium">&ldquo;{term}&rdquo;</span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={onCreateNew}
+                    className="mt-1 text-sm font-medium text-emerald-700 hover:underline"
+                  >
+                    Register them as a new patient
+                  </button>
+                </div>
+              )}
             </div>
-          ) : (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                No patient found with this {searchType}. Click "Register New Patient" to create a new patient record.
-              </AlertDescription>
-            </Alert>
           )}
         </div>
-      )}
 
-      {/* Create New Patient Option */}
-      <div className="border-t pt-6">
-        <p className="text-sm text-gray-600 mb-3">
-          Don't have an existing patient record?
-        </p>
+        {/* The way forward when the search finds nothing, so it stays visible
+            next to the field rather than below the results. */}
         <Button
           onClick={onCreateNew}
-          variant="outline"
-          className="w-full"
           disabled={externalLoading}
+          className="shrink-0 bg-emerald-600 text-white hover:bg-emerald-700"
         >
-          + Register New Patient
+          <UserPlus className="mr-2 h-4 w-4" />
+          Register new
         </Button>
       </div>
+
+      <p className="text-xs text-gray-500">
+        Try <span className="font-mono text-gray-700">HOSP-PAT-59588</span>,{' '}
+        <span className="font-mono text-gray-700">PATIENT-628032</span>, a name, or a phone number.
+        Partial entries work.
+      </p>
     </div>
   )
 }

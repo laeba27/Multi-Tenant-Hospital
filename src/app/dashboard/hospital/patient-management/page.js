@@ -42,9 +42,73 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Info, Lock, Calendar } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { PatientLookup } from '@/components/patients/PatientLookup'
+import { HelpHint } from '@/components/ui/help-hint'
 import { PatientTypeChoice } from '@/components/patients/PatientTypeChoice'
 import { bookAppointment } from '@/actions/appointments'
 import { getPendingRequestCount } from '@/actions/notifications'
+
+/**
+ * What each step of the booking wizard expects, surfaced behind the eye icon
+ * in the dialog header. Reception staff rotate, and the flow spans seven
+ * screens -- this is cheaper than training everyone on every step.
+ */
+const WIZARD_HELP = {
+  choice: {
+    title: 'Existing or new patient?',
+    steps: [
+      'Choose "Existing" if the patient has visited this hospital before.',
+      'Choose "New" only when there is no record for them yet.',
+      'Not sure? Pick existing and search -- you can register from there.',
+    ],
+  },
+  lookup: {
+    title: 'Finding a patient',
+    steps: [
+      'Type any identifier: hospital patient ID, registration number, name, phone or email.',
+      'Partial entries work -- "59588" finds HOSP-PAT-59588.',
+      'Results appear as you type; pick one to continue.',
+      'No match? Use "Register new" on the right.',
+    ],
+  },
+  register: {
+    title: 'Registering a patient',
+    steps: [
+      'Name and mobile are the minimum needed to book.',
+      'The system issues both IDs automatically once saved.',
+      'Medical details can be added later from the patient record.',
+    ],
+  },
+  preview: {
+    title: 'Reviewing details',
+    steps: [
+      'Check the details belong to the right person before booking.',
+      'Go back if anything looks wrong -- nothing is saved yet.',
+    ],
+  },
+  appointment: {
+    title: 'Booking the slot',
+    steps: [
+      'Pick the department first; doctors are filtered by it.',
+      'Only slots within the doctor\u2019s shift and capacity are offered.',
+      'Leave or break times are excluded automatically.',
+    ],
+  },
+  appointmentConfirm: {
+    title: 'Confirming',
+    steps: [
+      'This is the last check before the slot is reserved.',
+      'Confirming books the appointment and notifies the patient.',
+    ],
+  },
+  invoice: {
+    title: 'Billing',
+    steps: [
+      'Record what was collected now; the rest stays as due.',
+      'Part-payments are allowed -- enter the amount actually taken.',
+      'The receipt can be printed on the next screen.',
+    ],
+  },
+}
 
 export default function PatientManagementPage() {
   const { user, loading: userLoading } = useUser()
@@ -331,21 +395,36 @@ export default function PatientManagementPage() {
                         <Calendar className="mr-2 h-4 w-4" />
                         + New Appointment
                       </Button>
-                      <DialogContent className="max-w-4xl! max-h-[90vh] overflow-y-auto">
+                      <DialogContent
+                        // One size for every step of the wizard. The steps run
+                        // back to back -- choose, look up, register, review,
+                        // book, confirm, invoice -- and a dialog that resizes
+                        // between them reads as a series of unrelated popups.
+                        // `h-` rather than `max-h-`: a ceiling still lets a
+                        // short step (the lookup) collapse to a fraction of the
+                        // height of a tall one.
+                        className="max-w-4xl! w-full h-[85vh] flex flex-col overflow-hidden"
+                      >
                         <DialogHeader>
-                          <DialogTitle>
+                          <DialogTitle className="flex items-center gap-1.5">
                             {wizardStep === 'choice' ? 'New Appointment Booking'
-                              : wizardStep === 'lookup' ? 'Step 1: Search Existing Patient'
+                              : wizardStep === 'lookup' ? 'Find Patient'
                               : wizardStep === 'register' ? (editingPatient ? 'Edit Patient' : 'Step 1: Register New Patient')
                               : wizardStep === 'preview' ? 'Step 2: Review Patient Details'
                               : wizardStep === 'appointment' ? 'Step 3: Book Appointment'
                               : wizardStep === 'appointmentConfirm' ? 'Step 4: Confirm Appointment'
                               : wizardStep === 'invoice' ? 'Step 5: Generate Invoice'
                               : 'Appointment Complete'}
+                            {WIZARD_HELP[wizardStep] && (
+                              <HelpHint
+                                title={WIZARD_HELP[wizardStep].title}
+                                steps={WIZARD_HELP[wizardStep].steps}
+                              />
+                            )}
                            </DialogTitle>
                           <DialogDescription>
                             {wizardStep === 'choice' ? 'Are you an existing patient or registering for the first time?'
-                              : wizardStep === 'lookup' ? 'Search by Patient ID, Email, Phone, or Name'
+                              : wizardStep === 'lookup' ? 'Search this hospital\u2019s patients by ID, name, phone or email.'
                               : wizardStep === 'register' ? 'Fill in the patient information below.'
                               : wizardStep === 'preview' ? 'Please review the patient details before proceeding.'
                               : wizardStep === 'appointment' ? 'Select department and doctor to book schedule.'
@@ -355,7 +434,7 @@ export default function PatientManagementPage() {
                           </DialogDescription>
                         </DialogHeader>
                         
-                        <div className="mt-4">
+                        <div className="mt-4 flex-1 overflow-y-auto min-h-0">
                           {wizardStep === 'choice' && (
                             <PatientTypeChoice
                               onSelectExisting={handleChoiceExisting}

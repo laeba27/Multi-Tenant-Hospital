@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { Calendar, Clock, User, Stethoscope, Search, X } from 'lucide-react'
+import { HelpHint } from '@/components/ui/help-hint'
 
 export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveRequest, refreshKey }) {
   const [appointments, setAppointments] = useState([])
@@ -298,17 +299,27 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
     {/* Appointment Details Modal */}
     {selectedAppointment && (
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl! w-full h-[85vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <div className="flex items-center justify-between w-full">
               <div>
-                <DialogTitle>Appointment Details</DialogTitle>
+                <DialogTitle className="flex items-center gap-1.5">
+                  Appointment Details
+                  <HelpHint
+                    title="Appointment details"
+                    steps={[
+                      'A read-only summary of one booking.',
+                      'Payment shows what has been collected so far, not the total.',
+                      'Awaiting approval means the patient booked it themselves and reception has not confirmed yet.',
+                    ]}
+                  />
+                </DialogTitle>
                 <DialogDescription>ID: {selectedAppointment.id}</DialogDescription>
               </div>
             </div>
           </DialogHeader>
 
-          <div className="space-y-6 mt-4">
+          <div className="space-y-6 mt-4 flex-1 overflow-y-auto min-h-0">
             {/* Appointment Info */}
             <div className="border rounded-lg p-4 space-y-4 bg-gray-50">
               <h3 className="font-semibold text-base">Appointment Information</h3>

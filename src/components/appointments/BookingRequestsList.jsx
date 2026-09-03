@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { Calendar, Clock, User, Stethoscope, Inbox, CheckCircle2, XCircle } from 'lucide-react'
+import { HelpHint } from '@/components/ui/help-hint'
 
 const fmtDate = (d) =>
   d
@@ -285,15 +286,25 @@ export function BookingRequestsList({ hospitalId, onChange }) {
       {/* Confirm */}
       {selected && mode === 'confirm' && (
         <Dialog open onOpenChange={closeDialog}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl! w-full h-[85vh] flex flex-col overflow-hidden">
             <DialogHeader>
-              <DialogTitle>Approve Booking Request</DialogTitle>
+              <DialogTitle className="flex items-center gap-1.5">
+                Approve Booking Request
+                <HelpHint
+                  title="Approving a request"
+                  steps={[
+                    'The patient chose this slot themselves; approving confirms it.',
+                    'Check the doctor is available before confirming.',
+                    'The patient is notified once you approve.',
+                  ]}
+                />
+              </DialogTitle>
               <DialogDescription>
                 {selected.id} · requested by the patient on {fmtDate(selected.created_at)}
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-5 mt-2">
+            <div className="space-y-5 mt-2 flex-1 overflow-y-auto min-h-0">
               <div className="border rounded-lg p-4 bg-gray-50 grid grid-cols-2 gap-4 text-sm">
                 <Field label="Patient" value={selected.patients?.profiles?.name} />
                 <Field
@@ -406,15 +417,25 @@ export function BookingRequestsList({ hospitalId, onChange }) {
       {/* Decline */}
       {selected && mode === 'reject' && (
         <Dialog open onOpenChange={closeDialog}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-4xl! w-full h-[85vh] flex flex-col overflow-hidden">
             <DialogHeader>
-              <DialogTitle>Decline Booking Request</DialogTitle>
+              <DialogTitle className="flex items-center gap-1.5">
+                Decline Booking Request
+                <HelpHint
+                  title="Declining a request"
+                  steps={[
+                    'The reason you give is sent to the patient, so keep it clear.',
+                    'Suggest an alternative if the slot is simply unavailable.',
+                    'Declining frees the slot for someone else.',
+                  ]}
+                />
+              </DialogTitle>
               <DialogDescription>
                 {selected.patients?.profiles?.name} will be notified with the reason you give here.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="mt-2">
+            <div className="mt-2 flex-1 overflow-y-auto min-h-0">
               <Label htmlFor="rejectReason">Reason</Label>
               <Textarea
                 id="rejectReason"
