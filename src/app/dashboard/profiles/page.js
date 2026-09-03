@@ -1,12 +1,22 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Mail, Phone, Building2, User, Edit2, Save, X, Upload, AlertCircle, Loader } from 'lucide-react'
+import { Building2, User, Edit2, Save, X, Upload, AlertCircle, Loader } from 'lucide-react'
 import { useUserDetails } from '@/hooks/use-user-details'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { uploadDocument, getDocumentUrl } from '@/actions/documents'
 import { readJsonResponse } from '@/lib/utils/safe-json'
+import {
+  Section,
+  FieldGrid,
+  TextInput,
+  SelectInput,
+  ReadField,
+  Pill,
+  CheckboxField,
+  ServiceState,
+} from '@/components/profile/fields'
 
 export default function ProfilePage() {
   const { profile, hospital, isLoading, error } = useUserDetails()
@@ -238,12 +248,44 @@ export default function ProfilePage() {
     }
   }
 
+  // Roles that never own a hospital record. Patients get the personal tab only;
+  // showing them an empty "Hospital Details" tab was one of the things that made
+  // this screen feel unfinished.
+  const roleLabel = profile?.role?.replace(/_/g, ' ') || 'user'
+  const initial = (profile?.name || '?').charAt(0).toUpperCase()
+
+  const statusTone =
+    profile?.status === 'active'
+      ? 'positive'
+      : profile?.status === 'suspended'
+        ? 'negative'
+        : 'neutral'
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <Loader className="animate-spin h-12 w-12 text-indigo-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading profile...</p>
+      <div className="max-w-4xl mx-auto">
+        {/* Skeleton rather than a spinner: the page keeps its shape while it
+            loads, so nothing jumps when the data lands. */}
+        <div className="animate-pulse">
+          <div className="h-7 w-32 rounded bg-slate-200" />
+          <div className="mt-2 h-4 w-56 rounded bg-slate-100" />
+          <div className="mt-8 rounded-xl border border-slate-200 bg-white p-6">
+            <div className="flex items-center gap-4">
+              <div className="h-16 w-16 rounded-full bg-slate-200" />
+              <div className="space-y-2">
+                <div className="h-4 w-40 rounded bg-slate-200" />
+                <div className="h-3 w-24 rounded bg-slate-100" />
+              </div>
+            </div>
+            <div className="mt-8 grid gap-5 sm:grid-cols-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-3 w-20 rounded bg-slate-100" />
+                  <div className="h-4 w-36 rounded bg-slate-200" />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -251,498 +293,464 @@ export default function ProfilePage() {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-        <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
-        <p className="text-red-700">{error}</p>
+      <div className="max-w-4xl mx-auto">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 flex items-start gap-3">
+          <AlertCircle className="text-rose-600 shrink-0 mt-0.5" size={18} />
+          <div>
+            <p className="text-sm font-medium text-rose-900">Could not load your profile</p>
+            <p className="mt-0.5 text-sm text-rose-700">{error}</p>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-4xl mx-auto pb-16">
+      {/* ── Page header ─────────────────────────────────────────────────────
+          A plain title and one action. The old header put a filled button next
+          to a 3xl bold heading, which fought for attention on a page whose job
+          is mostly reading. */}
+      <div className="flex items-start justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-          <p className="text-gray-600 mt-1">Manage your account information</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Profile</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Manage your account details{hospital ? ' and hospital information' : ''}.
+          </p>
         </div>
+
         {!isEditing && (
           <button
             onClick={() => setIsEditing(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:border-brand-blue hover:text-brand-blue"
           >
-            <Edit2 size={18} />
-            Edit Profile
+            <Edit2 size={15} />
+            Edit
           </button>
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-4 border-b border-gray-200 mb-6">
-        <button
-          onClick={() => setActiveTab('personal')}
-          className={`px-4 py-3 font-medium transition flex items-center gap-2 ${
-            activeTab === 'personal'
-              ? 'text-indigo-600 border-b-2 border-indigo-600 -mb-[2px]'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          <User size={18} />
-          Personal Details
-        </button>
-        {hospital && (
-          <button
-            onClick={() => setActiveTab('hospital')}
-            className={`px-4 py-3 font-medium transition flex items-center gap-2 ${
-              activeTab === 'hospital'
-                ? 'text-indigo-600 border-b-2 border-indigo-600 -mb-[2px]'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Building2 size={18} />
-            Hospital Details
-            {!isHospitalAdmin && <span className="ml-2 text-xs bg-gray-200 px-2 py-1 rounded">Read Only</span>}
-          </button>
-        )}
-      </div>
-
-      {/* Personal Details Tab */}
-      {activeTab === 'personal' && (
-        <div className="bg-white rounded-lg shadow p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Avatar Section */}
-            <div className="md:col-span-1">
-              <div className="space-y-4">
-                <h3 className="font-semibold text-gray-900">Profile Picture</h3>
-                <div className="flex flex-col items-center">
-                  {avatarPreview ? (
-                    <img
-                      src={avatarPreview}
-                      alt="Avatar"
-                      className="w-32 h-32 rounded-full object-cover border-4 border-indigo-100 mb-4"
-                    />
-                  ) : (
-                    <div className="w-32 h-32 bg-indigo-600 rounded-full flex items-center justify-center text-white text-4xl font-bold mb-4">
-                      {profile?.name?.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  {isEditing && (
-                    <>
-                      <label
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
-                          uploadingAvatar
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200 cursor-pointer'
-                        }`}
-                      >
-                        {uploadingAvatar ? (
-                          <Loader size={16} className="animate-spin" />
-                        ) : (
-                          <Upload size={16} />
-                        )}
-                        {uploadingAvatar ? 'Uploading…' : 'Upload Avatar'}
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          onChange={handleAvatarUpload}
-                          disabled={uploadingAvatar}
-                          className="hidden"
-                        />
-                      </label>
-                      <p className="text-xs text-gray-400 mt-2">JPG, PNG or WebP · max 5 MB</p>
-                    </>
-                  )}
-                </div>
+      {/* ── Identity card ───────────────────────────────────────────────────
+          Who you are, shown once at the top. Every role gets this same card --
+          it is the only place the avatar, name, role and registration number
+          appear together, so a doctor's profile and a receptionist's profile
+          read identically. */}
+      <div className="rounded-xl border border-slate-200 bg-white p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+          <div className="relative shrink-0">
+            {avatarPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element -- remote R2 URL, not a static asset
+              <img
+                src={avatarPreview}
+                alt=""
+                className="h-16 w-16 rounded-full object-cover ring-1 ring-slate-200"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-blue text-xl font-semibold text-white">
+                {initial}
               </div>
+            )}
+
+            {uploadingAvatar && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-white/70">
+                <Loader className="h-5 w-5 animate-spin text-brand-blue" />
+              </div>
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-base font-semibold text-slate-900">
+              {profile?.name || '—'}
+            </p>
+            <p className="mt-0.5 text-sm capitalize text-slate-500">{roleLabel}</p>
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+              <Pill tone={statusTone}>{profile?.status || 'active'}</Pill>
+              {profile?.registration_no && (
+                <span className="font-mono text-xs text-slate-500">
+                  {profile.registration_no}
+                </span>
+              )}
             </div>
+          </div>
 
-            {/* Profile Form */}
-            <div className="md:col-span-2 space-y-4">
-              {isEditing ? (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={profileData.name}
-                      onChange={handleProfileChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    />
-                  </div>
+          {isEditing && (
+            <label
+              className={`inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:border-brand-blue hover:text-brand-blue ${
+                uploadingAvatar ? 'pointer-events-none opacity-50' : ''
+              }`}
+            >
+              <Upload size={15} />
+              {uploadingAvatar ? 'Uploading…' : 'Change photo'}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarUpload}
+                disabled={uploadingAvatar}
+              />
+            </label>
+          )}
+        </div>
+      </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email (Read Only)</label>
-                    <input
-                      type="email"
-                      value={profileData.email}
-                      disabled
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number</label>
-                    <input
-                      type="tel"
-                      name="mobile"
-                      value={profileData.mobile}
-                      onChange={handleProfileChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                    <select
-                      name="status"
-                      value={profileData.status}
-                      onChange={handleProfileChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                      <option value="suspended">Suspended</option>
-                    </select>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <p className="text-sm text-gray-600">Full Name</p>
-                    <p className="text-lg font-semibold text-gray-900">{profile?.name}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-600">Email</p>
-                    <p className="text-lg font-semibold text-gray-900">{profile?.email}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-600">Mobile</p>
-                    <p className="text-lg font-semibold text-gray-900">{profile?.mobile || profile?.phone || '-'}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-600">Status</p>
-                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
-                      profile?.status === 'active'
-                        ? 'bg-green-100 text-green-800'
-                        : profile?.status === 'inactive'
-                        ? 'bg-gray-100 text-gray-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {profile?.status || 'active'}
+      {/* ── Tabs ────────────────────────────────────────────────────────────
+          Only rendered when there is a second tab to switch to. A lone tab is
+          just a label, and patients (who have no hospital) saw exactly that. */}
+      {hospital && (
+        <div className="mt-8 border-b border-slate-200">
+          <nav className="-mb-px flex gap-6">
+            {[
+              { id: 'personal', label: 'Personal details', icon: User },
+              { id: 'hospital', label: 'Hospital', icon: Building2 },
+            ].map((t) => {
+              const Icon = t.icon
+              const on = activeTab === t.id
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id)}
+                  className={`inline-flex items-center gap-2 border-b-2 px-1 pb-3 text-sm font-medium transition ${
+                    on
+                      ? 'border-brand-blue text-brand-blue'
+                      : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
+                  }`}
+                >
+                  <Icon size={15} />
+                  {t.label}
+                  {t.id === 'hospital' && !isHospitalAdmin && (
+                    <span className="ml-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-normal text-slate-500">
+                      Read only
                     </span>
-                  </div>
-                </>
+                  )}
+                </button>
+              )
+            })}
+          </nav>
+        </div>
+      )}
+
+      {/* ── Personal details ── */}
+      {activeTab === 'personal' && (
+        <div className="mt-8 rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
+          <Section
+            title="Personal details"
+            description={
+              isEditing
+                ? 'Your email address is managed by your hospital and cannot be changed here.'
+                : undefined
+            }
+          >
+            {isEditing ? (
+              <FieldGrid>
+                <TextInput
+                  label="Full name"
+                  name="name"
+                  value={profileData.name}
+                  onChange={handleProfileChange}
+                  placeholder="Your full name"
+                />
+                <TextInput
+                  label="Email"
+                  name="email"
+                  value={profileData.email}
+                  disabled
+                  hint="Contact your administrator to change this."
+                />
+                <TextInput
+                  label="Mobile"
+                  name="mobile"
+                  value={profileData.mobile}
+                  onChange={handleProfileChange}
+                  placeholder="Phone number"
+                />
+                <SelectInput
+                  label="Status"
+                  name="status"
+                  value={profileData.status}
+                  onChange={handleProfileChange}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="suspended">Suspended</option>
+                </SelectInput>
+              </FieldGrid>
+            ) : (
+              <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                <ReadField label="Full name" value={profile?.name} />
+                <ReadField label="Email" value={profile?.email} />
+                <ReadField label="Mobile" value={profile?.mobile || profile?.phone} />
+                <div>
+                  <dt className="text-sm text-slate-500">Status</dt>
+                  <dd className="mt-1.5">
+                    <Pill tone={statusTone}>{profile?.status || 'active'}</Pill>
+                  </dd>
+                </div>
+              </dl>
+            )}
+          </Section>
+
+          {/* Account facts the user cannot edit. Separated by a rule rather
+              than boxed in a tinted panel. */}
+          <div className="mt-8 border-t border-slate-200 pt-8">
+            <Section title="Account">
+              <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                <ReadField
+                  label="Registration number"
+                  value={profile?.registration_no}
+                  mono
+                />
+                <ReadField label="Role" value={<span className="capitalize">{roleLabel}</span>} />
+                <div>
+                  <dt className="text-sm text-slate-500">Access granted</dt>
+                  <dd className="mt-1.5">
+                    <Pill tone={profile?.access_granted ? 'positive' : 'negative'}>
+                      {profile?.access_granted ? 'Yes' : 'No'}
+                    </Pill>
+                  </dd>
+                </div>
+                {hospital && <ReadField label="Hospital" value={hospital?.name} />}
+              </dl>
+            </Section>
+          </div>
+        </div>
+      )}
+
+      {/* ── Hospital details ── */}
+      {activeTab === 'hospital' && hospital && (
+        <div className="mt-8 rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
+          {/* Non-admins see this tab read-only; say so once, plainly, instead
+              of letting them discover it by finding no inputs. */}
+          {!isHospitalAdmin && (
+            <div className="mb-8 flex items-start gap-2.5 rounded-lg bg-slate-50 px-4 py-3">
+              <AlertCircle size={16} className="mt-0.5 shrink-0 text-slate-400" />
+              <p className="text-sm text-slate-600">
+                Only a hospital administrator can change these details.
+              </p>
+            </div>
+          )}
+
+          <Section title="Hospital logo">
+            <div className="flex items-center gap-5">
+              {hospitalData.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element -- remote R2 URL
+                <img
+                  src={hospitalData.logo_url}
+                  alt=""
+                  className="h-20 w-20 rounded-lg border border-slate-200 object-contain p-2"
+                />
+              ) : (
+                <div className="flex h-20 w-20 items-center justify-center rounded-lg border border-dashed border-slate-300 text-slate-300">
+                  <Building2 size={22} />
+                </div>
               )}
 
-              {/* Info Card */}
-              <div className="bg-indigo-50 rounded-lg p-4 mt-6 space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-700">Registration No.</span>
-                  <span className="font-mono font-semibold">{profile?.registration_no}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-700">Role</span>
-                  <span className="font-semibold capitalize">{profile?.role?.replace('_', ' ')}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-700">Access Granted</span>
-                  <span className={`font-semibold ${profile?.access_granted ? 'text-green-600' : 'text-red-600'}`}>
-                    {profile?.access_granted ? 'Yes' : 'No'}
-                  </span>
-                </div>
-              </div>
+              {isEditing && isHospitalAdmin && (
+                <label
+                  className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:border-brand-blue hover:text-brand-blue ${
+                    uploadingLogo ? 'pointer-events-none opacity-50' : ''
+                  }`}
+                >
+                  {uploadingLogo ? (
+                    <Loader size={15} className="animate-spin" />
+                  ) : (
+                    <Upload size={15} />
+                  )}
+                  {uploadingLogo ? 'Uploading…' : 'Upload logo'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleLogoUpload}
+                    disabled={uploadingLogo}
+                  />
+                </label>
+              )}
             </div>
+          </Section>
+
+          <div className="mt-8 border-t border-slate-200 pt-8">
+            {isEditing && isHospitalAdmin ? (
+              <>
+                <Section title="Hospital information">
+                  <FieldGrid>
+                    <TextInput
+                      label="Hospital name"
+                      value={hospitalData.name}
+                      disabled
+                      hint="Set at registration and cannot be edited."
+                    />
+                    <TextInput
+                      label="License number"
+                      value={hospitalData.license_number}
+                      disabled
+                    />
+                    <TextInput
+                      label="Administrator name"
+                      name="administrator_name"
+                      value={hospitalData.administrator_name}
+                      onChange={handleHospitalChange}
+                    />
+                    <TextInput
+                      label="Hospital type"
+                      name="hospital_type"
+                      value={hospitalData.hospital_type}
+                      onChange={handleHospitalChange}
+                      placeholder="e.g. Multi-speciality"
+                    />
+                    <TextInput
+                      label="Phone"
+                      name="phone"
+                      value={hospitalData.phone}
+                      onChange={handleHospitalChange}
+                    />
+                    <TextInput
+                      label="Website"
+                      name="website"
+                      value={hospitalData.website}
+                      onChange={handleHospitalChange}
+                      placeholder="https://"
+                    />
+                    <TextInput
+                      label="Address"
+                      name="address"
+                      value={hospitalData.address}
+                      onChange={handleHospitalChange}
+                      className="sm:col-span-2"
+                    />
+                    <TextInput
+                      label="City"
+                      name="city"
+                      value={hospitalData.city}
+                      onChange={handleHospitalChange}
+                    />
+                    <TextInput
+                      label="State"
+                      name="state"
+                      value={hospitalData.state}
+                      onChange={handleHospitalChange}
+                    />
+                    <TextInput
+                      label="Postal code"
+                      name="postal_code"
+                      value={hospitalData.postal_code}
+                      onChange={handleHospitalChange}
+                    />
+                    <TextInput
+                      label="Total beds"
+                      name="total_beds"
+                      type="number"
+                      min="0"
+                      value={hospitalData.total_beds}
+                      onChange={handleHospitalChange}
+                    />
+                    <TextInput
+                      label="ICU beds"
+                      name="icu_beds"
+                      type="number"
+                      min="0"
+                      value={hospitalData.icu_beds}
+                      onChange={handleHospitalChange}
+                    />
+                  </FieldGrid>
+                </Section>
+
+                <div className="mt-8 border-t border-slate-200 pt-8">
+                  <Section title="Services & features">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <CheckboxField
+                        label="Emergency services"
+                        name="emergency_services"
+                        checked={hospitalData.emergency_services}
+                        onChange={handleHospitalChange}
+                      />
+                      <CheckboxField
+                        label="Inpatient services"
+                        name="inpatient_services"
+                        checked={hospitalData.inpatient_services}
+                        onChange={handleHospitalChange}
+                      />
+                      <CheckboxField
+                        label="Ambulance services"
+                        name="ambulance_services"
+                        checked={hospitalData.ambulance_services}
+                        onChange={handleHospitalChange}
+                      />
+                      <CheckboxField
+                        label="Feedback enabled"
+                        name="feedback_enabled"
+                        checked={hospitalData.feedback_enabled}
+                        onChange={handleHospitalChange}
+                      />
+                    </div>
+                  </Section>
+                </div>
+              </>
+            ) : (
+              <>
+                <Section title="Hospital information">
+                  <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                    <ReadField label="Hospital name" value={hospital?.name} />
+                    <ReadField label="License number" value={hospital?.license_number} mono />
+                    <ReadField label="Administrator" value={hospital?.administrator_name} />
+                    <ReadField label="Hospital type" value={hospital?.hospital_type} />
+                    <ReadField label="Phone" value={hospital?.phone} />
+                    <ReadField label="Email" value={hospital?.email} />
+                    <ReadField
+                      label="Address"
+                      value={hospital?.address}
+                      className="sm:col-span-2"
+                    />
+                    <ReadField
+                      label="City / State"
+                      value={
+                        [hospital?.city, hospital?.state, hospital?.postal_code]
+                          .filter(Boolean)
+                          .join(', ') || null
+                      }
+                    />
+                    <ReadField label="Website" value={hospital?.website} />
+                    <ReadField label="Total beds" value={hospital?.total_beds} />
+                    <ReadField label="ICU beds" value={hospital?.icu_beds} />
+                    <ReadField label="Account status" value={hospital?.account_status} />
+                  </dl>
+                </Section>
+
+                <div className="mt-8 border-t border-slate-200 pt-8">
+                  <Section title="Available services">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <ServiceState label="Emergency" on={hospital?.emergency_services} />
+                      <ServiceState label="Inpatient" on={hospital?.inpatient_services} />
+                      <ServiceState label="Ambulance" on={hospital?.ambulance_services} />
+                      <ServiceState label="Feedback" on={hospital?.feedback_enabled} />
+                    </div>
+                  </Section>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
 
-      {/* Hospital Details Tab */}
-      {activeTab === 'hospital' && hospital && (
-        <div className="bg-white rounded-lg shadow p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Hospital Logo */}
-            <div className="md:col-span-1">
-              <h3 className="font-semibold text-gray-900 mb-4">Hospital Logo</h3>
-              <div className="flex flex-col items-center">
-                {hospitalData.logo_url ? (
-                  <img
-                    src={hospitalData.logo_url}
-                    alt="Hospital Logo"
-                    className="w-40 h-40 object-contain border-2 border-gray-200 rounded-lg p-2 mb-4"
-                  />
-                ) : (
-                  <div className="w-40 h-40 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 mb-4">
-                    <Building2 size={48} />
-                  </div>
-                )}
-                {isEditing && isHospitalAdmin && (
-                  <label className="flex items-center gap-2 cursor-pointer px-4 py-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200 transition">
-                    <Upload size={16} />
-                    Upload Logo
-                    <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                  </label>
-                )}
-              </div>
-            </div>
-
-            {/* Read-Only Basic Info */}
-            <div className="md:col-span-1 space-y-4">
-              <div>
-                <p className="text-sm text-gray-600">Hospital Name</p>
-                <p className="text-lg font-semibold text-gray-900">{hospital?.name}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">License Number</p>
-                <p className="text-lg font-semibold text-gray-900 font-mono">{hospital?.license_number}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Registration No.</p>
-                <p className="text-lg font-semibold text-gray-900 font-mono">{hospital?.registration_no}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Editable Hospital Details */}
-          {isEditing && isHospitalAdmin && (
-            <div className="border-t pt-6 space-y-4">
-              <h3 className="font-semibold text-gray-900">Edit Hospital Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                  <input
-                    type="text"
-                    name="address"
-                    value={hospitalData.address}
-                    onChange={handleHospitalChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={hospitalData.city}
-                    onChange={handleHospitalChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                  <input
-                    type="text"
-                    name="state"
-                    value={hospitalData.state}
-                    onChange={handleHospitalChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
-                  <input
-                    type="text"
-                    name="postal_code"
-                    value={hospitalData.postal_code}
-                    onChange={handleHospitalChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={hospitalData.phone}
-                    onChange={handleHospitalChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Administrator Name</label>
-                  <input
-                    type="text"
-                    name="administrator_name"
-                    value={hospitalData.administrator_name}
-                    onChange={handleHospitalChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Hospital Type</label>
-                  <input
-                    type="text"
-                    name="hospital_type"
-                    value={hospitalData.hospital_type}
-                    onChange={handleHospitalChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
-                  <input
-                    type="url"
-                    name="website"
-                    value={hospitalData.website}
-                    onChange={handleHospitalChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Beds</label>
-                  <input
-                    type="number"
-                    name="total_beds"
-                    value={hospitalData.total_beds}
-                    onChange={handleHospitalChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ICU Beds</label>
-                  <input
-                    type="number"
-                    name="icu_beds"
-                    value={hospitalData.icu_beds}
-                    onChange={handleHospitalChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              {/* Services */}
-              <div className="border-t pt-4 mt-4">
-                <h4 className="font-semibold text-gray-900 mb-3">Services & Features</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="emergency_services"
-                      checked={hospitalData.emergency_services}
-                      onChange={handleHospitalChange}
-                      className="w-4 h-4 text-indigo-600 rounded"
-                    />
-                    <span className="text-sm text-gray-700">Emergency Services</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="inpatient_services"
-                      checked={hospitalData.inpatient_services}
-                      onChange={handleHospitalChange}
-                      className="w-4 h-4 text-indigo-600 rounded"
-                    />
-                    <span className="text-sm text-gray-700">Inpatient Services</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="ambulance_services"
-                      checked={hospitalData.ambulance_services}
-                      onChange={handleHospitalChange}
-                      className="w-4 h-4 text-indigo-600 rounded"
-                    />
-                    <span className="text-sm text-gray-700">Ambulance Services</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="feedback_enabled"
-                      checked={hospitalData.feedback_enabled}
-                      onChange={handleHospitalChange}
-                      className="w-4 h-4 text-indigo-600 rounded"
-                    />
-                    <span className="text-sm text-gray-700">Feedback Enabled</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Read-Only Hospital Details */}
-          {!isEditing && (
-            <div className="border-t pt-6 space-y-4">
-              <h3 className="font-semibold text-gray-900">Hospital Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-sm text-gray-600">Address</p>
-                  <p className="text-gray-900">{hospital?.address}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">City / State</p>
-                  <p className="text-gray-900">{hospital?.city}, {hospital?.state} {hospital?.postal_code}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Phone</p>
-                  <p className="text-gray-900">{hospital?.phone}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Email</p>
-                  <p className="text-gray-900">{hospital?.email}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Hospital Type</p>
-                  <p className="text-gray-900">{hospital?.hospital_type || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Total Beds</p>
-                  <p className="text-gray-900">{hospital?.total_beds || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">ICU Beds</p>
-                  <p className="text-gray-900">{hospital?.icu_beds || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Status</p>
-                  <p className="text-gray-900">{hospital?.account_status}</p>
-                </div>
-              </div>
-
-              {/* Services Info */}
-              <div className="border-t pt-4">
-                <h4 className="font-semibold text-gray-900 mb-3">Available Services</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className={`p-2 rounded text-sm text-center font-medium ${hospital?.emergency_services ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                    Emergency
-                  </div>
-                  <div className={`p-2 rounded text-sm text-center font-medium ${hospital?.inpatient_services ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                    Inpatient
-                  </div>
-                  <div className={`p-2 rounded text-sm text-center font-medium ${hospital?.ambulance_services ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                    Ambulance
-                  </div>
-                  <div className={`p-2 rounded text-sm text-center font-medium ${hospital?.feedback_enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                    Feedback
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Action Buttons */}
+      {/* ── Save bar ────────────────────────────────────────────────────────
+          Sticks to the bottom of the viewport while editing, so on the long
+          hospital form the actions are reachable without scrolling back. */}
       {isEditing && (
-        <div className="flex gap-3 mt-6">
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 font-medium"
-          >
-            <Save size={18} />
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </button>
+        <div className="sticky bottom-0 mt-6 flex items-center justify-end gap-3 rounded-xl border border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
           <button
             onClick={() => setIsEditing(false)}
             disabled={isSaving}
-            className="flex items-center gap-2 px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition disabled:opacity-50 font-medium"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
           >
-            <X size={18} />
+            <X size={15} />
             Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-blue px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-blue-deep disabled:opacity-50"
+          >
+            {isSaving ? <Loader size={15} className="animate-spin" /> : <Save size={15} />}
+            {isSaving ? 'Saving…' : 'Save changes'}
           </button>
         </div>
       )}

@@ -62,14 +62,14 @@ function ServiceToggle({ icon: Icon, title, description, checked, onChange }) {
       onClick={() => onChange(!checked)}
       className={`w-full text-left rounded-xl border p-3.5 transition ${
         checked
-          ? 'border-indigo-500 bg-indigo-50/60 ring-1 ring-indigo-100'
+          ? 'border-brand-blue bg-brand-blue/5/60 ring-1 ring-brand-blue/15'
           : 'border-slate-200 bg-white hover:border-slate-300'
       }`}
     >
       <div className="flex items-center gap-3">
         <span
           className={`shrink-0 h-9 w-9 rounded-lg flex items-center justify-center ${
-            checked ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'
+            checked ? 'bg-brand-blue text-white' : 'bg-slate-100 text-slate-400'
           }`}
         >
           <Icon className="h-4 w-4" />
@@ -80,7 +80,7 @@ function ServiceToggle({ icon: Icon, title, description, checked, onChange }) {
         </div>
         <span
           className={`shrink-0 h-5 w-5 rounded-md border flex items-center justify-center ${
-            checked ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'
+            checked ? 'bg-brand-blue border-brand-blue' : 'border-slate-300'
           }`}
         >
           {checked && <Check className="h-3 w-3 text-white" />}
@@ -194,7 +194,7 @@ export default function SignUpPage() {
   }
 
   const inputClass =
-    'h-10 text-sm bg-white border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100'
+    'h-10 text-sm bg-white border-slate-200 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/15'
 
   return (
     <AuthShell
@@ -204,7 +204,7 @@ export default function SignUpPage() {
       topRight={
         <p className="text-sm text-slate-500">
           Already registered?{' '}
-          <a href="/auth/sign-in" className="text-indigo-600 hover:text-indigo-700 font-medium">
+          <a href="/auth/sign-in" className="text-brand-blue hover:text-brand-blue-deep font-medium">
             Sign in
           </a>
         </p>
@@ -223,9 +223,9 @@ export default function SignUpPage() {
                       <span
                         className={`h-7 w-7 shrink-0 rounded-full text-xs font-semibold flex items-center justify-center border transition ${
                           done
-                            ? 'bg-indigo-600 border-indigo-600 text-white'
+                            ? 'bg-brand-blue border-brand-blue text-white'
                             : active
-                              ? 'border-indigo-600 text-indigo-600 bg-indigo-50'
+                              ? 'border-brand-blue text-brand-blue bg-brand-blue/5'
                               : 'border-slate-200 text-slate-300 bg-white'
                         }`}
                       >
@@ -241,7 +241,7 @@ export default function SignUpPage() {
                     </div>
                     {i < STEPS.length - 1 && (
                       <div
-                        className={`h-px flex-1 ${step > s.n ? 'bg-indigo-600' : 'bg-slate-200'}`}
+                        className={`h-px flex-1 ${step > s.n ? 'bg-brand-blue' : 'bg-slate-200'}`}
                       />
                     )}
                   </li>
@@ -321,7 +321,7 @@ export default function SignUpPage() {
                 </div>
 
                 <div className="pt-2 flex justify-end">
-                  <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 h-10 px-6">
+                  <Button type="submit" className="bg-brand-blue hover:bg-brand-blue-deep h-10 px-6">
                     Continue <ChevronRight size={16} className="ml-1.5" />
                   </Button>
                 </div>
@@ -334,7 +334,7 @@ export default function SignUpPage() {
                 <Field label="Hospital name" required error={hospitalForm.formState.errors.name}>
                   <Input
                     {...hospitalForm.register('name')}
-                    placeholder="Smile Returns Dental Care"
+                    placeholder="Smile Return Dental Care"
                     className={inputClass}
                   />
                 </Field>
@@ -433,7 +433,7 @@ export default function SignUpPage() {
                     {...hospitalForm.register('address')}
                     placeholder="12 Ring Road, Lajpat Nagar"
                     rows={2}
-                    className="text-sm bg-white border-slate-200 focus:border-indigo-500"
+                    className="text-sm bg-white border-slate-200 focus:border-brand-blue"
                   />
                 </Field>
 
@@ -477,7 +477,7 @@ export default function SignUpPage() {
                   <Button
                     type="button"
                     onClick={goToStep3}
-                    className="bg-indigo-600 hover:bg-indigo-700 h-10 px-6"
+                    className="bg-brand-blue hover:bg-brand-blue-deep h-10 px-6"
                   >
                     Continue <ChevronRight size={16} className="ml-1.5" />
                   </Button>
@@ -570,7 +570,7 @@ export default function SignUpPage() {
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-indigo-600 hover:bg-indigo-700 h-10 px-6"
+                    className="bg-brand-blue hover:bg-brand-blue-deep h-10 px-6"
                     disabled={isLoading}
                   >
                     {isLoading ? (

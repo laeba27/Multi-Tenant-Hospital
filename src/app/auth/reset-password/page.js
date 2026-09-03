@@ -81,7 +81,7 @@ function ResetPasswordContent() {
   if (isVerifying) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mb-3" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand-blue mb-3" />
         <p className="text-gray-600">Verifying reset link...</p>
       </div>
     )
@@ -134,7 +134,7 @@ function ResetPasswordContent() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             minLength="8"
-            className="pr-10 h-11 text-base border-gray-300 focus:border-indigo-500"
+            className="pr-10 h-11 text-base border-gray-300 focus:border-brand-blue"
             disabled={isLoading}
           />
           <button
@@ -158,7 +158,7 @@ function ResetPasswordContent() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             minLength="8"
-            className="pr-10 h-11 text-base border-gray-300 focus:border-indigo-500"
+            className="pr-10 h-11 text-base border-gray-300 focus:border-brand-blue"
             disabled={isLoading}
           />
           <button
@@ -212,7 +212,7 @@ function ResetPasswordContent() {
         <button
           type="button"
           onClick={() => router.push('/auth/sign-in')}
-          className="text-indigo-600 hover:underline font-medium"
+          className="text-brand-blue hover:underline font-medium"
         >
           Sign In
         </button>
@@ -226,7 +226,7 @@ function ResetPasswordInner() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand-blue" />
         </div>
       }
     >

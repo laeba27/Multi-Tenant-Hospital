@@ -2,7 +2,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout'
 import MyHospitalsView from './MyHospitalsView'
 
 export const metadata = {
-  title: 'My Hospitals - Smile Returns',
+  title: 'My Hospitals - Smile Return',
   description: 'Every hospital you are registered at.',
 }
 

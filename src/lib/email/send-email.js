@@ -1,5 +1,16 @@
 import nodemailer from 'nodemailer'
 import { generateStaffInviteToken, generatePasswordResetToken } from '@/lib/utils/jwt'
+import {
+  layout,
+  button,
+  linkFallback,
+  detailsTable,
+  codeRow,
+  notice,
+  p as para,
+  fineprint,
+  currentYear,
+} from './template'
 
 /**
  * The base URL every link in an email is built from.
@@ -74,131 +85,6 @@ function assertEmailConfigured() {
   }
 }
 
-// Send welcome email to newly registered hospital
-export async function sendWelcomeEmail({ 
-  email, 
-  hospitalName, 
-  administratorName, 
-  registrationNo, 
-  userRegistrationNo 
-}) {
-  try {
-    assertEmailConfigured()
-    const transporter = createTransporter()
-
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(to right, #4f46e5, #4f46e5); color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center; }
-            .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-            .info-box { background: white; padding: 20px; border-left: 4px solid #4f46e5; margin: 20px 0; border-radius: 4px; }
-            .info-label { font-weight: bold; color: #4f46e5; margin-top: 10px; }
-            .info-value { color: #6b7280; font-family: monospace; margin-top: 5px; padding: 10px; background: #f3f4f6; border-radius: 4px; }
-            .button { display: inline-block; background: #4f46e5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; margin: 20px 0; }
-            .footer { text-align: center; color: #9ca3af; font-size: 12px; margin-top: 30px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1 style="margin: 0;">Welcome to Smile Returns</h1>
-              <p style="margin: 10px 0 0 0;">Hospital Management System</p>
-            </div>
-            
-            <div class="content">
-              <h2>Hello ${administratorName},</h2>
-              
-              <p>Congratulations! Your hospital has been successfully registered on Smile Returns. We're excited to have <strong>${hospitalName}</strong> on our platform.</p>
-              
-              <div class="info-box">
-                <p><strong>Your Registration Details:</strong></p>
-                
-                <div>
-                  <div class="info-label">Hospital Registration Number:</div>
-                  <div class="info-value">${registrationNo}</div>
-                </div>
-                
-                <div>
-                  <div class="info-label">Your User Registration Number:</div>
-                  <div class="info-value">${userRegistrationNo}</div>
-                </div>
-                
-                <div>
-                  <div class="info-label">Email:</div>
-                  <div class="info-value">${email}</div>
-                </div>
-              </div>
-              
-              <p>You can now log in to your hospital dashboard and start managing:</p>
-              <ul>
-                <li>Patient appointments and schedules</li>
-                <li>Hospital staff and departments</li>
-                <li>Medical records and prescriptions</li>
-                <li>Billing and payments</li>
-                <li>Hospital analytics and reports</li>
-              </ul>
-              
-              <center>
-                <a href="${appUrl('/auth/sign-in')}" class="button">
-                  Sign In to Your Dashboard
-                </a>
-              </center>
-              
-              <div class="info-box" style="background: #fef3c7; border-left-color: #f59e0b;">
-                <strong>🔒 Security Tip:</strong> Keep your registration numbers safe. You'll need them for account recovery and support requests.
-              </div>
-              
-              <p>If you have any questions or need assistance, our support team is here to help. Contact us at support@smile-returns.com</p>
-              
-              <p>Best regards,<br><strong>The Smile Returns Team</strong></p>
-              
-              <div class="footer">
-                <p>This is an automated message. Please do not reply to this email.</p>
-                <p>&copy; 2024 Smile Returns. All rights reserved.</p>
-              </div>
-            </div>
-          </div>
-        </body>
-      </html>
-    `
-
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || 'noreply@smile-returns.com',
-      to: email,
-      subject: `Welcome to Smile Returns - ${hospitalName}`,
-      html: htmlContent,
-      text: `
-Welcome to Smile Returns!
-
-Hello ${administratorName},
-
-Your hospital "${hospitalName}" has been successfully registered.
-
-Registration Details:
-- Hospital ID: ${registrationNo}
-- Your User ID: ${userRegistrationNo}
-- Email: ${email}
-
-You can now sign in at: ${appUrl('/auth/sign-in')}
-
-Best regards,
-The Smile Returns Team
-      `,
-    }
-
-    const result = await transporter.sendMail(mailOptions)
-    console.log('Email sent successfully:', result.messageId)
-    return { success: true, messageId: result.messageId }
-  } catch (error) {
-    console.error('Error sending email:', error)
-    return { success: false, error: error.message }
-  }
-}
-
 // Send registration acknowledgement email while access is pending approval
 export async function sendHospitalRegistrationPendingEmail({
   email,
@@ -212,62 +98,45 @@ export async function sendHospitalRegistrationPendingEmail({
     const transporter = createTransporter()
     const signInLink = appUrl('/auth/sign-in')
 
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #4f46e5; color: white; padding: 24px; border-radius: 8px 8px 0 0; text-align: center; }
-            .content { background: #f9fafb; padding: 24px; border-radius: 0 0 8px 8px; }
-            .box { background: white; border-left: 4px solid #f59e0b; padding: 16px; margin: 16px 0; border-radius: 4px; }
-            .mono { font-family: monospace; background: #f3f4f6; padding: 6px 10px; border-radius: 4px; display: inline-block; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h2 style="margin:0;">Registration Received</h2>
-              <p style="margin:8px 0 0 0;">Smile Returns Hospital Management</p>
-            </div>
-            <div class="content">
-              <p>Hello ${administratorName},</p>
-              <p>Your hospital registration has been submitted successfully for <strong>${hospitalName}</strong>.</p>
-
-              <div class="box">
-                <p><strong>Current Status:</strong> Pending Approval</p>
-                <p>A super administrator will review your registration and enable login access.</p>
-              </div>
-
-              <p><strong>Reference IDs:</strong></p>
-              <p>Hospital Registration: <span class="mono">${registrationNo}</span></p>
-              <p>Admin Registration: <span class="mono">${userRegistrationNo}</span></p>
-
-              <p>Once approved, you will receive another email and can sign in at:</p>
-              <p><a href="${signInLink}">${signInLink}</a></p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `
+    const html = layout({
+      title: 'Registration received',
+      preheader: `${hospitalName} is awaiting approval. We will email you once access is enabled.`,
+      content: `
+        ${para(`Hello ${administratorName},`)}
+        ${para(
+          `Your registration for <strong>${hospitalName}</strong> has been submitted successfully.`
+        )}
+        ${notice(
+          '<strong>Status: pending approval.</strong> A super administrator will review your registration and enable login access. We will email you as soon as that happens.'
+        )}
+        ${detailsTable(
+          codeRow('Hospital registration', registrationNo) +
+            codeRow('Admin registration', userRegistrationNo)
+        )}
+        ${para('Once approved, you will be able to sign in here:')}
+        ${button('Go to sign in', signInLink)}
+      `,
+    })
 
     await transporter.sendMail({
       from: process.env.EMAIL_FROM || 'noreply@smile-returns.com',
       to: email,
       subject: `Registration Pending Approval - ${hospitalName}`,
-      html: htmlContent,
-      text: `
-Hello ${administratorName},
+      html,
+      text: `Hello ${administratorName},
 
 Your hospital registration for ${hospitalName} has been received.
 Status: Pending Approval
 
-Hospital Registration: ${registrationNo}
-Admin Registration: ${userRegistrationNo}
+Hospital registration: ${registrationNo}
+Admin registration: ${userRegistrationNo}
 
+A super administrator will review your registration and enable login access.
 You will receive another email once your account is approved.
-      `,
+
+Sign in: ${signInLink}
+
+(c) ${currentYear()} Smile Return. All rights reserved.`,
     })
 
     return { success: true }
@@ -290,56 +159,42 @@ export async function sendHospitalApprovalEmail({
     const transporter = createTransporter()
     const signInLink = appUrl('/auth/sign-in')
 
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #16a34a; color: white; padding: 24px; border-radius: 8px 8px 0 0; text-align: center; }
-            .content { background: #f9fafb; padding: 24px; border-radius: 0 0 8px 8px; }
-            .box { background: #ecfdf5; border: 1px solid #86efac; padding: 16px; margin: 16px 0; border-radius: 6px; }
-            .button { display: inline-block; background: #16a34a; color: #fff; text-decoration: none; padding: 10px 16px; border-radius: 6px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h2 style="margin:0;">Hospital Approved</h2>
-              <p style="margin:8px 0 0 0;">Your login access is now enabled</p>
-            </div>
-            <div class="content">
-              <p>Hello ${administratorName},</p>
-              <p>Your hospital <strong>${hospitalName}</strong> has been approved by super administration.</p>
-
-              <div class="box">
-                <p><strong>Hospital Registration:</strong> ${registrationNo}</p>
-                <p><strong>Admin Registration:</strong> ${userRegistrationNo}</p>
-              </div>
-
-              <p>You can now sign in and start configuring departments, doctors, and staff.</p>
-              <p><a class="button" href="${signInLink}">Sign In</a></p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `
+    const html = layout({
+      title: 'Your hospital is approved',
+      preheader: `${hospitalName} has been approved. You can sign in now.`,
+      content: `
+        ${para(`Hello ${administratorName},`)}
+        ${para(
+          `Good news &mdash; <strong>${hospitalName}</strong> has been approved and your login access is now enabled.`
+        )}
+        ${notice(
+          '<strong>You are ready to go.</strong> Sign in to set up departments, doctors and staff.',
+          'success'
+        )}
+        ${detailsTable(
+          codeRow('Hospital registration', registrationNo) +
+            codeRow('Admin registration', userRegistrationNo)
+        )}
+        ${button('Sign in to your dashboard', signInLink)}
+      `,
+    })
 
     await transporter.sendMail({
       from: process.env.EMAIL_FROM || 'noreply@smile-returns.com',
       to: email,
       subject: `Hospital Approved - ${hospitalName}`,
-      html: htmlContent,
-      text: `
-Hello ${administratorName},
+      html,
+      text: `Hello ${administratorName},
 
-Your hospital ${hospitalName} has been approved.
-You can now sign in using your registration number.
+Your hospital ${hospitalName} has been approved and your login access is now enabled.
 
-Hospital Registration: ${registrationNo}
-Admin Registration: ${userRegistrationNo}
-      `,
+Hospital registration: ${registrationNo}
+Admin registration: ${userRegistrationNo}
+
+Sign in here:
+${signInLink}
+
+(c) ${currentYear()} Smile Return. All rights reserved.`,
     })
 
     return { success: true }
@@ -361,51 +216,38 @@ export async function sendHospitalDetailsRequestEmail({
     assertEmailConfigured()
     const transporter = createTransporter()
 
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #0f172a; color: white; padding: 24px; border-radius: 8px 8px 0 0; text-align: center; }
-            .content { background: #f9fafb; padding: 24px; border-radius: 0 0 8px 8px; }
-            .note { background: #fff; border-left: 4px solid #0f172a; padding: 12px; margin-top: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h2 style="margin:0;">Additional Details Requested</h2>
-            </div>
-            <div class="content">
-              <p>Hello ${administratorName},</p>
-              <p>Super admin has requested additional details for hospital registration: <strong>${hospitalName}</strong>.</p>
-              <div class="note">
-                <p><strong>Requested By:</strong> ${requestedBy}</p>
-                <p><strong>Details Needed:</strong></p>
-                <p>${note || 'Please reply with any missing legal or registration documents and contact details.'}</p>
-              </div>
-              <p>Please respond to this email with the requested information.</p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `
+    const detail =
+      note ||
+      'Please reply with any missing legal or registration documents and contact details.'
+
+    const html = layout({
+      title: 'Additional details requested',
+      preheader: `More information is needed to review ${hospitalName}.`,
+      content: `
+        ${para(`Hello ${administratorName},`)}
+        ${para(
+          `A super administrator has requested additional details before your registration for <strong>${hospitalName}</strong> can be reviewed.`
+        )}
+        ${notice(`<strong>Requested by ${requestedBy}</strong><br />${detail}`)}
+        ${para('Please reply to this email with the requested information.')}
+      `,
+    })
 
     await transporter.sendMail({
       from: process.env.EMAIL_FROM || 'noreply@smile-returns.com',
       to: email,
       subject: `Additional Details Required - ${hospitalName}`,
-      html: htmlContent,
-      text: `
-Hello ${administratorName},
+      html,
+      text: `Hello ${administratorName},
 
-Additional details are required for hospital registration: ${hospitalName}.
+Additional details are required for your hospital registration: ${hospitalName}.
 Requested by: ${requestedBy}
 
-${note || 'Please reply with any missing legal or registration documents and contact details.'}
-      `,
+${detail}
+
+Please reply to this email with the requested information.
+
+(c) ${currentYear()} Smile Return. All rights reserved.`,
     })
 
     return { success: true }
@@ -421,113 +263,62 @@ export async function sendStaffInviteEmail({ email, name, hospitalName, role, st
     assertEmailConfigured()
     const transporter = createTransporter()
 
-    console.log('Email config - Host:', process.env.EMAIL_HOST, 'Port:', process.env.EMAIL_PORT)
-    console.log('Email from:', process.env.EMAIL_FROM, 'To:', email)
-
     // Use provided token or generate from staffData
     const jwtToken = token || generateStaffInviteToken(staffData)
     const inviteLink = appUrl(`/auth/staff-invite?token=${jwtToken}`)
 
-    console.log('JWT Token generated, length:', jwtToken.length)
-    console.log('Invite link:', inviteLink)
+    // Never log the token itself -- it is a 7-day credential that sets up the
+    // account, and Vercel's logs are not the place for one.
+    console.log('Sending staff invite to:', email, '| link length:', inviteLink.length)
 
-    // Extract short registration code (first 8 chars after removing "doct" prefix)
+    const roleLabel = String(role || '')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+
     const registrationNo = staffData?.registration_no || ''
-    const shortRegCode = registrationNo.replace(/^doct/i, '').substring(0, 8).toUpperCase()
 
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #000; background: #fff; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .content { padding: 20px 0; }
-            .header { border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
-            .header h1 { font-size: 18px; font-weight: bold; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
-            .greeting { font-size: 14px; margin-bottom: 15px; }
-            .info-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            .info-table td { padding: 8px 0; border-bottom: 1px solid #ddd; }
-            .info-table td:first-child { font-weight: bold; width: 140px; color: #000; }
-            .info-table td:last-child { color: #333; }
-            .reg-code { font-family: 'Courier New', monospace; font-size: 16px; letter-spacing: 2px; background: #f5f5f5; padding: 10px 15px; display: inline-block; margin: 10px 0; }
-            .link { color: #000; text-decoration: underline; font-weight: normal; }
-            .footer { border-top: 1px solid #ddd; padding-top: 15px; margin-top: 30px; font-size: 11px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="content">
-              <div class="header">
-                <h1>Invitation to Join Smile Returns</h1>
-              </div>
-
-              <p class="greeting">Hello ${name},</p>
-
-              <p>Welcome to Smile Returns! We are pleased to inform you that you have been invited to join <strong>${hospitalName}</strong> as a <strong>${role.replace(/_/g, ' ').toUpperCase()}</strong>.</p>
-
-              <table class="info-table">
-                <tr>
-                  <td>EMAIL</td>
-                  <td>${email}</td>
-                </tr>
-                <tr>
-                  <td>HOSPITAL</td>
-                  <td>${hospitalName}</td>
-                </tr>
-                <tr>
-                  <td>ROLE</td>
-                  <td>${role.replace(/_/g, ' ').toUpperCase()}</td>
-                </tr>
-                <tr>
-                  <td>REGISTRATION CODE</td>
-                  <td><span class="reg-code">${shortRegCode}</span></td>
-                </tr>
-              </table>
-
-              <p>To complete your registration and set up your account, please visit:</p>
-              <p><a href="${inviteLink}" class="link">${inviteLink}</a></p>
-
-              <p style="margin-top: 20px; font-size: 12px; color: #666;">
-                This invitation link is valid for 7 days. If you were not expecting this email, you can safely ignore it.
-              </p>
-
-              <div class="footer">
-                <p>This invitation was sent from Smile Returns Hospital Management System.</p>
-                <p>&copy; 2024 Smile Returns. All rights reserved.</p>
-              </div>
-            </div>
-          </div>
-        </body>
-      </html>
-    `
+    const html = layout({
+      title: `You have been invited to ${hospitalName}`,
+      preheader: `Set up your ${roleLabel} account at ${hospitalName}. This invitation expires in 7 days.`,
+      content: `
+        ${para(`Hello ${name},`)}
+        ${para(
+          `You have been invited to join <strong>${hospitalName}</strong> on Smile Return as a <strong>${roleLabel}</strong>.`
+        )}
+        ${detailsTable(
+          codeRow('Hospital', hospitalName) +
+            codeRow('Role', roleLabel) +
+            codeRow('Email', email) +
+            (registrationNo ? codeRow('Registration', registrationNo) : '')
+        )}
+        ${para('Click below to set your password and activate your account.')}
+        ${button('Accept invitation', inviteLink)}
+        ${linkFallback(inviteLink, 'Use this link instead')}
+        ${fineprint(
+          'This invitation is valid for <strong>7 days</strong>. If you were not expecting it, you can safely ignore this email.'
+        )}
+      `,
+    })
 
     await transporter.sendMail({
       from: process.env.EMAIL_FROM || 'noreply@smile-returns.com',
       to: email,
-      subject: `Invitation to join ${hospitalName} - Smile Returns`,
-      html: htmlContent,
-      text: `
-Hello ${name},
+      subject: `Invitation to join ${hospitalName} - Smile Return`,
+      html,
+      text: `Hello ${name},
 
-Welcome to Smile Returns! You have been invited to join ${hospitalName} as a ${role.replace(/_/g, ' ').toUpperCase()}.
+You have been invited to join ${hospitalName} on Smile Return as a ${roleLabel}.
 
-YOUR DETAILS
-------------
-Email: ${email}
 Hospital: ${hospitalName}
-Role: ${role.replace(/_/g, ' ').toUpperCase()}
-Registration Code: ${shortRegCode}
+Role: ${roleLabel}
+Email: ${email}${registrationNo ? `\nRegistration: ${registrationNo}` : ''}
 
-To complete your registration, please visit:
+Set your password and activate your account here:
 ${inviteLink}
 
-This invitation link is valid for 7 days.
-If you were not expecting this email, you can safely ignore it.
+This invitation is valid for 7 days. If you were not expecting it, you can safely ignore this email.
 
-This invitation was sent from Smile Returns Hospital Management System.
-© 2024 Smile Returns. All rights reserved.
-      `,
+(c) ${currentYear()} Smile Return. All rights reserved.`,
     })
 
     console.log('Email sent successfully to:', email)
@@ -544,59 +335,39 @@ export async function sendPatientEmailOtp({ email, name, code, expiresInMinutes 
     assertEmailConfigured()
     const transporter = createTransporter()
 
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #000; background: #fff; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
-            .header h1 { font-size: 18px; font-weight: bold; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
-            .code { font-family: 'Courier New', monospace; font-size: 32px; font-weight: bold; letter-spacing: 8px; background: #f5f5f5; padding: 18px 24px; display: inline-block; margin: 18px 0; }
-            .footer { border-top: 1px solid #ddd; padding-top: 15px; margin-top: 30px; font-size: 11px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>Verify Your Email</h1>
-            </div>
-
-            <p>Hello ${name || 'there'},</p>
-
-            <p>Use this code to confirm your email address on your Smile Returns patient account:</p>
-
-            <center><div class="code">${code}</div></center>
-
-            <p style="margin-top: 20px; font-size: 12px; color: #666;">
-              This code expires in ${expiresInMinutes} minutes. If you did not request it,
-              you can safely ignore this email.
-            </p>
-
-            <div class="footer">
-              <p>This email was sent from Smile Returns Hospital Management System.</p>
-              <p>&copy; 2024 Smile Returns. All rights reserved.</p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `
+    const html = layout({
+      title: 'Verify your email',
+      preheader: `${code} is your Smile Return verification code.`,
+      content: `
+        ${para(`Hello ${name || 'there'},`)}
+        ${para('Use this code to confirm your email address on your Smile Return patient account:')}
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:26px 0;">
+          <tr>
+            <td align="center" style="background:#f3f4f6;border-radius:8px;padding:22px;">
+              <div style="font-family:'SF Mono', Menlo, Consolas, 'Courier New', monospace;font-size:34px;font-weight:700;letter-spacing:10px;color:#111827;">${code}</div>
+            </td>
+          </tr>
+        </table>
+        ${fineprint(
+          `This code expires in <strong>${expiresInMinutes} minutes</strong>. If you did not request it, you can safely ignore this email.`
+        )}
+      `,
+    })
 
     await transporter.sendMail({
       from: process.env.EMAIL_FROM || 'noreply@smile-returns.com',
       to: email,
-      subject: `${code} is your Smile Returns verification code`,
-      html: htmlContent,
+      subject: `${code} is your Smile Return verification code`,
+      html,
       text: `Hello ${name || 'there'},
 
-Use this code to confirm your email address on your Smile Returns patient account:
+Use this code to confirm your email address on your Smile Return patient account:
 
 ${code}
 
 This code expires in ${expiresInMinutes} minutes. If you did not request it, you can safely ignore this email.
 
-© 2024 Smile Returns. All rights reserved.`,
+(c) ${currentYear()} Smile Return. All rights reserved.`,
     })
 
     return { success: true }
@@ -616,62 +387,45 @@ export async function sendPasswordResetEmail({ email, name, registration_no, use
       token || generatePasswordResetToken({ user_id, email, registration_no })
     const resetLink = appUrl(`/auth/reset-password?token=${jwtToken}`)
 
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #000; background: #fff; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
-            .header h1 { font-size: 18px; font-weight: bold; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
-            .link { color: #000; text-decoration: underline; }
-            .footer { border-top: 1px solid #ddd; padding-top: 15px; margin-top: 30px; font-size: 11px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>Reset Your Password</h1>
-            </div>
-
-            <p>Hello ${name || 'there'},</p>
-
-            <p>We received a request to reset the password for your Smile Returns account
-              (registration <strong>${registration_no || ''}</strong>).</p>
-
-            <p>To choose a new password, please visit:</p>
-            <p><a href="${resetLink}" class="link">${resetLink}</a></p>
-
-            <p style="margin-top: 20px; font-size: 12px; color: #666;">
-              This reset link is valid for 1 hour. If you did not request a password
-              reset, you can safely ignore this email -- your password will not change.
-            </p>
-
-            <div class="footer">
-              <p>This email was sent from Smile Returns Hospital Management System.</p>
-              <p>&copy; 2024 Smile Returns. All rights reserved.</p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `
+    // The token runs to several hundred characters. It belongs in the href and
+    // the button -- never as visible link text, which is what wrapped across
+    // seven lines and made this email look broken.
+    const html = layout({
+      title: 'Reset your password',
+      preheader: 'Choose a new password for your Smile Return account. This link expires in 1 hour.',
+      content: `
+        ${para(`Hello ${name || 'there'},`)}
+        ${para(
+          `We received a request to reset the password for your Smile Return account${
+            registration_no ? ` (registration <strong>${registration_no}</strong>)` : ''
+          }.`
+        )}
+        ${para('Click the button below to choose a new password.')}
+        ${button('Reset password', resetLink)}
+        ${linkFallback(resetLink, 'Use this link instead')}
+        ${fineprint(
+          'This link is valid for <strong>1 hour</strong>. If you did not request a password reset, you can ignore this email &mdash; your password will not change.'
+        )}
+      `,
+    })
 
     await transporter.sendMail({
       from: process.env.EMAIL_FROM || 'noreply@smile-returns.com',
       to: email,
-      subject: 'Reset your Smile Returns password',
-      html: htmlContent,
+      subject: 'Reset your Smile Return password',
+      html,
       text: `Hello ${name || 'there'},
 
-We received a request to reset the password for your Smile Returns account (registration ${registration_no || ''}).
+We received a request to reset the password for your Smile Return account${
+        registration_no ? ` (registration ${registration_no})` : ''
+      }.
 
-To choose a new password, visit:
+Choose a new password here:
 ${resetLink}
 
-This reset link is valid for 1 hour. If you did not request a password reset, you can safely ignore this email.
+This link is valid for 1 hour. If you did not request a password reset, you can ignore this email -- your password will not change.
 
-© 2024 Smile Returns. All rights reserved.`,
+(c) ${currentYear()} Smile Return. All rights reserved.`,
     })
 
     console.log('Password reset email sent to:', email)

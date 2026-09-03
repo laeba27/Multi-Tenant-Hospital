@@ -2,7 +2,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout'
 import QuickUpdates from '@/components/patients/QuickUpdates'
 
 export const metadata = {
-  title: 'Quick Updates - Smile Returns',
+  title: 'Quick Updates - Smile Return',
   description: 'Health alerts and announcements from your hospitals.',
 }
 

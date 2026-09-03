@@ -101,7 +101,7 @@ function StaffInviteContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 py-8 px-4">
       <div className="w-full max-w-lg">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Header */}
@@ -117,7 +117,7 @@ function StaffInviteContent() {
           {/* Loading State */}
           {isVerifying && (
             <div className="flex flex-col items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mb-3" />
+              <Loader2 className="h-8 w-8 animate-spin text-brand-blue mb-3" />
               <p className="text-gray-600">Verifying invitation...</p>
             </div>
           )}
@@ -149,23 +149,23 @@ function StaffInviteContent() {
           {!isVerifying && !tokenError && staffData && (
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Staff Details Display */}
-              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-4 space-y-3 border border-indigo-100">
+              <div className="bg-slate-50 rounded-lg p-4 space-y-3 border border-brand-blue/10">
                 <div>
-                  <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Name</p>
+                  <p className="text-xs font-semibold text-brand-blue-deep uppercase tracking-wide">Name</p>
                   <p className="text-lg font-semibold text-gray-900">{staffData.name}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Email</p>
+                  <p className="text-xs font-semibold text-brand-blue-deep uppercase tracking-wide">Email</p>
                   <p className="text-gray-700">{staffData.email}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Role</p>
-                  <p className="inline-block bg-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  <p className="text-xs font-semibold text-brand-blue-deep uppercase tracking-wide">Role</p>
+                  <p className="inline-block bg-brand-blue text-white px-3 py-1 rounded-full text-sm font-medium">
                     {staffData.role.replace(/_/g, ' ').toUpperCase()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Registration No</p>
+                  <p className="text-xs font-semibold text-brand-blue-deep uppercase tracking-wide">Registration No</p>
                   <p className="text-gray-700 font-mono text-sm">{staffData.registration_no}</p>
                 </div>
               </div>
@@ -182,7 +182,7 @@ function StaffInviteContent() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     minLength="8"
-                    className="pr-10 h-11 text-base border-gray-300 focus:border-indigo-500"
+                    className="pr-10 h-11 text-base border-gray-300 focus:border-brand-blue"
                     disabled={isLoading}
                   />
                   <button
@@ -214,7 +214,7 @@ function StaffInviteContent() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     minLength="8"
-                    className="pr-10 h-11 text-base border-gray-300 focus:border-indigo-500"
+                    className="pr-10 h-11 text-base border-gray-300 focus:border-brand-blue"
                     disabled={isLoading}
                   />
                   <button
@@ -284,7 +284,7 @@ function StaffInviteContent() {
             Already have an account?{' '}
             <button
               onClick={() => router.push('/auth/sign-in')}
-              className="text-indigo-600 hover:text-indigo-700 font-semibold"
+              className="text-brand-blue hover:text-brand-blue-deep font-semibold"
             >
               Sign In
             </button>
@@ -299,7 +299,7 @@ export default function StaffInvitePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
           <p className="text-gray-600">Loading invitation...</p>
         </div>
       }

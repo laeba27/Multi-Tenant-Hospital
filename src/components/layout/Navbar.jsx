@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useUserDetails } from '@/hooks/use-user-details'
 import { getNavNotifications, markNotificationRead } from '@/actions/notifications'
 import { ResetPasswordDialog } from './ResetPasswordDialog'
+import { Logo } from '@/components/brand/Logo'
 
 export function Navbar({ onMenuToggle }) {
   const router = useRouter()
@@ -97,9 +98,7 @@ export function Navbar({ onMenuToggle }) {
               <Menu size={24} />
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">
-                HMP
-              </div>
+              <Logo size={44} />
               <div className="hidden sm:block">
                 <p className="text-xs text-gray-500">Hospital Management</p>
                 <p className="text-sm font-bold text-gray-900">{hospitalName}</p>

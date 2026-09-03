@@ -123,3 +123,37 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Brand ───────────────────────────────────────────────────────────────
+   Sampled straight out of the tooth mark in /public/logo-mark.png so the UI
+   and the artwork cannot drift apart. The mark sweeps teal → cyan → blue →
+   violet → magenta → pink. Only `--brand` (the blue) is used in the UI: the
+   full sweep was tried as buttons/rules/headings and read as noise, so the
+   other stops stay available as tokens but the interface uses flat colour.
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  --brand-teal: #1CD8D2;
+  --brand-cyan: #24BCD9;
+  --brand-blue: #017DE7;
+  --brand-blue-deep: #0063C4;
+  --brand-violet: #6B21C9;
+  --brand-violet-deep: #460597;
+  --brand-magenta: #BA37A1;
+  --brand-pink: #FD569C;
+
+  --brand: var(--brand-blue);
+  --brand-ink: #0B1A33;
+}
+
+@theme inline {
+  --color-brand-teal: var(--brand-teal);
+  --color-brand-cyan: var(--brand-cyan);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-blue-deep: var(--brand-blue-deep);
+  --color-brand-violet: var(--brand-violet);
+  --color-brand-violet-deep: var(--brand-violet-deep);
+  --color-brand-magenta: var(--brand-magenta);
+  --color-brand-pink: var(--brand-pink);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+}

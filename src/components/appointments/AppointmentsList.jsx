@@ -201,13 +201,14 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
               <TableHeader>
                 <TableRow>
                   <TableHead>Appointment ID</TableHead>
+                  {/* Registration number rides under the patient's name rather
+                      than claiming a column of its own -- the table was wide
+                      enough to scroll horizontally. */}
                   <TableHead>Patient</TableHead>
-                  <TableHead>Patient Reg. No.</TableHead>
                   <TableHead>Doctor</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Time</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Booked By</TableHead>
                   <TableHead>Payment</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Action</TableHead>
@@ -219,12 +220,16 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
                     <TableCell className="font-medium">{apt.id}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-400" />
-                        <span>{apt.patients?.profiles?.name || 'Unknown'}</span>
+                        <User className="h-4 w-4 shrink-0 text-gray-400" />
+                        <div className="min-w-0">
+                          <div>{apt.patients?.profiles?.name || 'Unknown'}</div>
+                          {apt.patients?.profiles?.registration_no && (
+                            <div className="text-xs text-gray-500">
+                              {apt.patients.profiles.registration_no}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-gray-600">
-                      {apt.patients?.profiles?.registration_no || '-'}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -248,13 +253,6 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
                       <Badge variant="outline" className="capitalize">
                         {apt.appointment_type}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {apt.booked_by_type === 'patient' ? (
-                        <Badge className="bg-purple-100 text-purple-800">Patient</Badge>
-                      ) : (
-                        <Badge variant="outline">Hospital</Badge>
-                      )}
                     </TableCell>
                     <TableCell>
                       <Badge className={getPaymentColor(apt.payment_status)}>

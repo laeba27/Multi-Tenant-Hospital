@@ -1,7 +1,7 @@
 import CompleteProfileForm from './CompleteProfileForm'
 
 export const metadata = {
-  title: 'Complete Your Profile - Smile Returns',
+  title: 'Complete Your Profile - Smile Return',
   description: 'Add your email address and set a password to finish setting up your patient account.',
 }
 

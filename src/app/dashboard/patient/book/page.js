@@ -2,7 +2,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout'
 import BookAppointmentView from './BookAppointmentView'
 
 export const metadata = {
-  title: 'Book Appointment - Smile Returns',
+  title: 'Book Appointment - Smile Return',
   description: 'Choose a hospital and book your appointment.',
 }
 

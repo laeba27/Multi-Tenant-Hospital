@@ -135,7 +135,7 @@ export default function SignInPage() {
   }
 
   const inputClass =
-    'h-10 text-sm bg-white border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100'
+    'h-10 text-sm bg-white border-slate-200 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/15'
 
   return (
     <AuthShell
@@ -144,7 +144,7 @@ export default function SignInPage() {
       topRight={
         <p className="text-sm text-slate-500">
           New hospital?{' '}
-          <a href="/auth/sign-up" className="text-indigo-600 hover:text-indigo-700 font-medium">
+          <a href="/auth/sign-up" className="text-brand-blue hover:text-brand-blue-deep font-medium">
             Register
           </a>
         </p>
@@ -181,7 +181,7 @@ export default function SignInPage() {
             <button
               type="button"
               onClick={() => setShowForgot(true)}
-              className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
+              className="text-xs text-brand-blue hover:text-brand-blue-deep font-medium"
             >
               Forgot password?
             </button>
@@ -211,7 +211,7 @@ export default function SignInPage() {
         <Button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 h-10 font-semibold flex items-center justify-center gap-2"
+          className="w-full bg-brand-blue hover:bg-brand-blue-deep h-10 font-semibold flex items-center justify-center gap-2"
         >
           {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
           {isLoading ? 'Signing in…' : 'Sign in'}

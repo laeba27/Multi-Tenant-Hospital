@@ -2,7 +2,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout'
 import MyHistoryView from './MyHistoryView'
 
 export const metadata = {
-  title: 'My History - Smile Returns',
+  title: 'My History - Smile Return',
   description: 'Your past visits and the prescriptions issued to you.',
 }
 

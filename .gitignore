@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local email previews (rendered, never sent)
+.email-preview/
+
+# Isolated dir for verification builds, so they never clobber the dev server
+.next-check

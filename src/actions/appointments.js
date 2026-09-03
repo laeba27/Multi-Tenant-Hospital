@@ -11,13 +11,17 @@ export async function getDoctorsByDepartment(hospitalId, departmentId) {
   try {
     const supabase = await createClient()
 
+    // Same schema mismatch the hospital appointments list had: `staff` has no
+    // profile_id (it links to profiles via employee_registration_no) and no
+    // designation column, so the old select failed outright. The name and
+    // avatar live on `staff` itself.
     const { data: doctors, error } = await supabase
       .from('staff')
       .select(`
-        id, 
-        profile_id, 
-        profiles!profile_id(name, email, mobile, avatar_url),
-        designation,
+        id,
+        name,
+        avatar_url,
+        employee_registration_no,
         specialization,
         consultation_fee,
         max_patients_per_day,
@@ -293,23 +297,24 @@ export async function getHospitalAppointments(hospitalId) {
       const doctorIds = [...new Set(appointments.map(apt => apt.doctor_id).filter(Boolean))]
       
       if (doctorIds.length > 0) {
+        // `staff` carries the doctor's name itself and has no profile_id
+        // column -- it relates to profiles through employee_registration_no.
+        // Selecting `profiles!profile_id` therefore failed the whole request
+        // with PGRST200 ("could not find a relationship"), doctorMap stayed
+        // empty, and every row rendered "Unknown". Read the columns directly,
+        // the same way getPendingBookingRequests does.
         const { data: doctors, error: doctorError } = await supabase
           .from('staff')
-          .select(`
-            id,
-            profile_id,
-            profiles!profile_id(id, name, registration_no, email)
-          `)
+          .select('id, name, specialization, employee_registration_no')
           .in('id', doctorIds)
 
-        if (!doctorError && doctors) {
-          // Create a map of doctor details
-          const doctorMap = {}
-          doctors.forEach(doc => {
-            doctorMap[doc.id] = doc.profiles
-          })
+        if (doctorError) {
+          // Don't fail the whole list over a name lookup -- the appointments
+          // themselves are still useful without it.
+          console.error('Error fetching doctor details:', doctorError)
+        } else if (doctors) {
+          const doctorMap = Object.fromEntries(doctors.map((d) => [d.id, d]))
 
-          // Attach doctor details to appointments
           appointmentsWithDoctors = appointments.map(apt => ({
             ...apt,
             doctor: doctorMap[apt.doctor_id] || null

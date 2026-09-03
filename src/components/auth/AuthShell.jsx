@@ -9,6 +9,7 @@ import {
   Users2,
   ShieldCheck,
 } from 'lucide-react'
+import { Logo } from '@/components/brand/Logo'
 
 const HIGHLIGHTS = [
   {
@@ -57,7 +58,7 @@ export default function AuthShell({
       {/* Brand rail — hidden on small screens, where it would just push the form down. */}
       <aside className="relative hidden lg:flex flex-col justify-between bg-slate-900 text-white p-10 overflow-hidden">
         {/* Depth without an image: two blurred radials. */}
-        <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-indigo-600/25 blur-3xl" />
+        <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-brand-blue/25 blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 -right-20 h-72 w-72 rounded-full bg-blue-500/15 blur-3xl" />
 
         <div className="relative">
@@ -67,10 +68,8 @@ export default function AuthShell({
             href="/"
             className="inline-flex items-center gap-2.5 rounded-lg -m-1 p-1 hover:opacity-80 transition"
           >
-            <div className="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center">
-              <Activity className="h-5 w-5" />
-            </div>
-            <span className="font-semibold tracking-tight">Smile Returns</span>
+            <Logo size={48} priority />
+            <span className="font-semibold tracking-tight">Smile Return</span>
           </Link>
 
           <h2 className="mt-14 text-[28px] leading-tight font-semibold">
@@ -87,7 +86,7 @@ export default function AuthShell({
             {HIGHLIGHTS.map((f) => (
               <div key={f.title} className="flex gap-3.5">
                 <div className="mt-0.5 h-8 w-8 shrink-0 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
-                  <f.icon className="h-4 w-4 text-indigo-300" />
+                  <f.icon className="h-4 w-4 text-brand-blue" />
                 </div>
                 <div>
                   <p className="text-[13px] font-medium text-slate-100">{f.title}</p>
@@ -108,10 +107,8 @@ export default function AuthShell({
       <main className="flex flex-col min-h-screen">
         <header className="flex items-center justify-between gap-4 px-6 sm:px-10 py-5 border-b border-slate-200 bg-white">
           <Link href="/" className="flex items-center gap-2 lg:hidden hover:opacity-80 transition">
-            <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-              <Activity className="h-4 w-4 text-white" />
-            </div>
-            <span className="font-semibold text-slate-900 text-sm">Smile Returns</span>
+            <Logo size={42} />
+            <span className="font-semibold text-slate-900 text-sm">Smile Return</span>
           </Link>
 
           {/* On desktop the rail's logo is the way home, but it's on a dark
