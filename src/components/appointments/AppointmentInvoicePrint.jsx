@@ -13,10 +13,22 @@ export function AppointmentInvoicePrint({ invoice, hospital, patient, appointmen
   const patientId = patient?.registration_no || patient?.profile?.registration_no || patient?.id || 'N/A'
   const patientEmail = patient?.email || patient?.profile?.email || 'N/A'
   const patientPhone = patient?.mobile || patient?.profile?.mobile || 'N/A'
-  const patientAddress = patient?.profile?.address || patient?.address || 'N/A'
-  const patientCity = patient?.profile?.city || patient?.city || 'N/A'
-  const patientState = patient?.profile?.state || patient?.state || 'N/A'
-  const patientPincode = patient?.profile?.pincode || patient?.pincode || 'N/A'
+
+  // Join only the parts we actually have, so a patient with no address on file
+  // reads "N/A" instead of "N/A, N/A N/A N/A".
+  const patientAddress = [
+    patient?.profile?.address || patient?.address,
+    patient?.profile?.city || patient?.city,
+    patient?.profile?.state || patient?.state,
+    patient?.profile?.pincode || patient?.pincode
+  ].filter(Boolean).join(', ') || 'N/A'
+
+  // Same idea for the letterhead: skip a line entirely rather than print N/A.
+  const hospitalLocation = [
+    hospital?.city,
+    hospital?.state,
+    hospital?.postal_code
+  ].filter(Boolean).join(', ')
 
   const appointmentDate = appointment?.appointment_date
     ? new Date(appointment?.appointment_date).toLocaleDateString('en-IN', {
@@ -47,6 +59,14 @@ export function AppointmentInvoicePrint({ invoice, hospital, patient, appointmen
 
   const paymentStatus = invoice?.payment_status || 'unpaid'
 
+  // Tax rate is editable at generation time, so derive the printed label from
+  // the stored amounts instead of hardcoding a percentage.
+  // Tax is charged on the subtotal, before any discount -- mirror that here.
+  const taxableBase = parseFloat(invoice?.subtotal || 0)
+  const taxPercentLabel = taxableBase > 0
+    ? `${parseFloat(((parseFloat(invoice?.tax_amount || 0) / taxableBase) * 100).toFixed(2))}%`
+    : ''
+
   const invoiceContent = (
     <div style={{ padding: '40px', fontFamily: 'Arial, sans-serif', fontSize: '12px', lineHeight: '1.4', color: '#000', textTransform: 'uppercase', margin: '0' }}>
 
@@ -61,21 +81,25 @@ export function AppointmentInvoicePrint({ invoice, hospital, patient, appointmen
                 <h1 style={{ fontSize: '22px', fontWeight: 'bold', margin: '0 0 8px 0' }}>
                   {hospital?.name || 'Hospital Name'}
                 </h1>
-                <p style={{ margin: '2px 0', fontSize: '11px' }}>
-                  Registration No: <strong>{hospital?.registration_no || 'N/A'}</strong>
-                </p>
-                <p style={{ margin: '2px 0', fontSize: '11px' }}>
-                  {hospital?.address || 'N/A'}
-                </p>
-                <p style={{ margin: '2px 0', fontSize: '11px' }}>
-                  {hospital?.city || 'N/A'}, {hospital?.state || 'N/A'} - {hospital?.postal_code || 'N/A'}
-                </p>
-                <p style={{ margin: '2px 0', fontSize: '11px' }}>
-                  Phone: <strong>{hospital?.phone || 'N/A'}</strong>
-                </p>
-                <p style={{ margin: '2px 0', fontSize: '11px' }}>
-                  Email: {hospital?.email || 'N/A'}
-                </p>
+                {hospital?.registration_no && (
+                  <p style={{ margin: '2px 0', fontSize: '11px' }}>
+                    Registration No: <strong>{hospital.registration_no}</strong>
+                  </p>
+                )}
+                {hospital?.address && (
+                  <p style={{ margin: '2px 0', fontSize: '11px' }}>{hospital.address}</p>
+                )}
+                {hospitalLocation && (
+                  <p style={{ margin: '2px 0', fontSize: '11px' }}>{hospitalLocation}</p>
+                )}
+                {hospital?.phone && (
+                  <p style={{ margin: '2px 0', fontSize: '11px' }}>
+                    Phone: <strong>{hospital.phone}</strong>
+                  </p>
+                )}
+                {hospital?.email && (
+                  <p style={{ margin: '2px 0', fontSize: '11px' }}>Email: {hospital.email}</p>
+                )}
               </td>
               <td style={{ width: '40%', verticalAlign: 'top', textAlign: 'right', paddingBottom: '15px' }}>
                 <h2 style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 10px 0', letterSpacing: '2px' }}>
@@ -141,7 +165,7 @@ export function AppointmentInvoicePrint({ invoice, hospital, patient, appointmen
                     </tr>
                     <tr>
                       <td style={{ padding: '4px 0', fontSize: '11px' }}>Address:</td>
-                      <td style={{ padding: '4px 0', fontSize: '11px' }}>{patientAddress}, {patientCity} {patientState} {patientPincode}</td>
+                      <td style={{ padding: '4px 0', fontSize: '11px' }}>{patientAddress}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -205,7 +229,9 @@ export function AppointmentInvoicePrint({ invoice, hospital, patient, appointmen
             </tr>
             {parseFloat(invoice?.tax_amount || 0) > 0 && (
               <tr style={{ borderBottom: '1px solid #000' }}>
-                <td style={{ padding: '10px 8px', fontSize: '11px' }}>Tax (2.5%)</td>
+                <td style={{ padding: '10px 8px', fontSize: '11px' }}>
+                  Tax{taxPercentLabel ? ` (${taxPercentLabel})` : ''}
+                </td>
                 <td style={{ padding: '10px 8px', fontSize: '11px', textAlign: 'right' }}>
                   ₹{parseFloat(invoice?.tax_amount || 0).toFixed(2)}
                 </td>

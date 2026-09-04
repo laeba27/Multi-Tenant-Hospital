@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { sendPasswordResetEmail } from '@/lib/email/send-email'
 
@@ -40,25 +40,28 @@ export async function POST(request) {
     // Unknown registration or no email on file -> stay generic.
     if (!profile || !profile.email) return generic
 
-    // Send without blocking the response -- same reason as the registration
-    // route. This endpoint deliberately answers the same way whether or not the
-    // account exists, so there is nothing in the reply that depends on the send
-    // succeeding; awaiting Gmail only exposed the request to a serverless
-    // timeout, which turned "we mailed you a link" into no response at all.
-    sendPasswordResetEmail({
-      email: profile.email,
-      name: profile.name,
-      registration_no: profile.registration_no,
-      user_id: profile.id,
+    // Wrapped in after(), NOT left as a floating promise.
+    //
+    // Keeping the response fast is right -- this endpoint answers identically
+    // whether or not the account exists, so nothing in the reply depends on the
+    // send. But a bare unawaited promise does not survive on Vercel: the
+    // instance is frozen the moment the response is flushed, suspending the
+    // in-flight SMTP handshake mid-socket so it never completes. Nothing throws
+    // and nothing logs, which is exactly how this returned success while no
+    // mail was ever delivered. `next dev` freezes nothing, so it always worked
+    // locally. The registration route hit this same bug and fixed it this way.
+    after(async () => {
+      const result = await sendPasswordResetEmail({
+        email: profile.email,
+        name: profile.name,
+        registration_no: profile.registration_no,
+        user_id: profile.id,
+      }).catch((error) => ({ success: false, error: error?.message }))
+
+      if (!result?.success) {
+        console.error('[ForgotPassword] email failed:', result?.error)
+      }
     })
-      .then((result) => {
-        if (!result?.success) {
-          console.error('[ForgotPassword] email failed:', result?.error)
-        }
-      })
-      .catch((error) => {
-        console.error('[ForgotPassword] email threw:', error)
-      })
 
     return generic
   } catch (error) {

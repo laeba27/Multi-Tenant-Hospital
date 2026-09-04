@@ -1,7 +1,14 @@
 'use client'
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Check } from 'lucide-react'
+
 /**
- * The bookable blocks for a doctor on a date, colour-coded.
+ * The bookable blocks for a doctor on a date, as a single dropdown.
+ *
+ * A grid of blocks grew unusable once doctors ran long shifts -- a 12-hour day
+ * at 30-minute steps is 24 tiles, which pushed the rest of the form off-screen.
+ * One control, fixed height, however long the shift.
  *
  *   green   available    -- room left, click to book
  *   yellow  full         -- capacity reached, NOT bookable
@@ -11,6 +18,13 @@
  * sees "3/5 booked", a patient sees only the colour. A patient has no business
  * knowing how full a doctor's afternoon is.
  */
+
+const DOT = {
+  available: 'bg-emerald-500',
+  full: 'bg-amber-500',
+  unavailable: 'bg-rose-500',
+}
+
 export default function SlotPicker({
   slots = [],
   value,
@@ -22,7 +36,8 @@ export default function SlotPicker({
 }) {
   if (loading) {
     return (
-      <div className="rounded-lg border border-gray-100 bg-gray-50 p-6 text-center">
+      <div className="flex h-9 items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3">
+        <span className="h-2 w-2 animate-pulse rounded-full bg-gray-300" />
         <p className="text-sm text-gray-400">Checking availability…</p>
       </div>
     )
@@ -30,62 +45,83 @@ export default function SlotPicker({
 
   if (!slots.length) {
     return (
-      <div className="rounded-lg border border-rose-100 bg-rose-50 p-6 text-center">
-        <p className="text-sm text-rose-700">{reason || 'No slots available on this date.'}</p>
+      <div className="flex h-9 items-center rounded-md border border-rose-200 bg-rose-50 px-3">
+        <p className="truncate text-xs text-rose-700">{reason || 'No slots available on this date.'}</p>
       </div>
     )
   }
 
+  const openCount = slots.filter((s) => s.bookable).length
+  const selected = slots.find((s) => s.slot === value)
+
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {slots.map((s) => {
-          const selected = value === s.slot
-          const style = selected
-            ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-200'
-            : s.state === 'available'
-              ? 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-100'
-              : s.state === 'full'
-                ? 'bg-amber-50 text-amber-900 border-amber-200 cursor-not-allowed'
-                : 'bg-rose-50 text-rose-900 border-rose-200 cursor-not-allowed'
-
-          return (
-            <button
-              key={s.slot}
-              type="button"
-              disabled={disabled || !s.bookable}
-              onClick={() => s.bookable && onChange?.(s.slot)}
-              className={`rounded-lg border px-3 py-2.5 text-left transition ${style} ${
-                disabled ? 'opacity-60' : ''
-              }`}
-            >
-              <span className="block text-sm font-semibold leading-tight">{s.label}</span>
-
-              <span className="block text-[11px] mt-0.5 opacity-80">
-                {s.state === 'available'
-                  ? showCapacity
-                    ? `${s.taken}/${s.capacity} booked`
-                    : 'Available'
-                  : s.state === 'full'
-                    ? showCapacity
-                      ? `Full — ${s.taken}/${s.capacity}`
-                      : 'Full'
-                    : 'Unavailable'}
+    <div className="space-y-1.5">
+      <Select value={value || ''} onValueChange={onChange} disabled={disabled}>
+        <SelectTrigger className="h-9 w-full text-sm">
+          <SelectValue
+            placeholder={
+              openCount === 0 ? 'No slots free — pick another date' : `Select a time (${openCount} free)`
+            }
+          >
+            {selected && (
+              <span className="flex items-center gap-2">
+                <span className={`h-2 w-2 shrink-0 rounded-full ${DOT[selected.state]}`} />
+                <span className="font-medium">{selected.label}</span>
               </span>
-            </button>
-          )
-        })}
-      </div>
+            )}
+          </SelectValue>
+        </SelectTrigger>
 
-      <div className="flex items-center gap-4 text-[11px] text-gray-500">
+        <SelectContent className="max-h-72">
+          {slots.map((s) => (
+            <SelectItem
+              key={s.slot}
+              value={s.slot}
+              disabled={!s.bookable}
+              // The check lives in the row itself, so the default indicator
+              // would only crowd an already-tight line.
+              className="pl-2 [&>span:first-child]:hidden"
+            >
+              <div className="flex w-full items-center gap-2 pr-1">
+                <span className={`h-2 w-2 shrink-0 rounded-full ${DOT[s.state]}`} />
+                <span className={`flex-1 text-sm ${s.bookable ? 'text-gray-900' : 'text-gray-400'}`}>
+                  {s.label}
+                </span>
+                <span
+                  className={`shrink-0 text-[11px] tabular-nums ${
+                    s.state === 'available'
+                      ? 'text-emerald-600'
+                      : s.state === 'full'
+                        ? 'text-amber-600'
+                        : 'text-rose-500'
+                  }`}
+                >
+                  {s.state === 'available'
+                    ? showCapacity
+                      ? `${s.taken}/${s.capacity}`
+                      : 'Free'
+                    : s.state === 'full'
+                      ? showCapacity
+                        ? `Full ${s.taken}/${s.capacity}`
+                        : 'Full'
+                      : 'Unavailable'}
+                </span>
+                {value === s.slot && <Check className="h-3.5 w-3.5 shrink-0 text-indigo-600" />}
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <div className="flex items-center gap-3 text-[11px] text-gray-500">
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-sm bg-emerald-400" /> Available
+          <span className="h-2 w-2 rounded-full bg-emerald-500" /> Available
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-sm bg-amber-400" /> Full
+          <span className="h-2 w-2 rounded-full bg-amber-500" /> Full
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-sm bg-rose-400" /> Unavailable
+          <span className="h-2 w-2 rounded-full bg-rose-500" /> Unavailable
         </span>
       </div>
     </div>

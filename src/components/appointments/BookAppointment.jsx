@@ -184,15 +184,25 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
   const treatmentsTotal = selectedTreatments.reduce((sum, t) => sum + (parseFloat(t.price || 0) - parseFloat(t.discount || 0)), 0)
   const totalAmount = consultationFee + treatmentsTotal
 
-  const handlePreview = () => {
-    if (!selectedDept || !selectedDoc || !selectedDate || !selectedSlot) {
-      toast.error('Please fill all required fields')
-      return
-    }
+  // Continue is gated on a genuinely complete booking, not just four non-empty
+  // fields. The slot in state must still be bookable in the CURRENT slot list --
+  // a slot can fill up between the fetch and the click, and a stale selection
+  // would otherwise book a time the doctor has no room for.
+  const slotIsBookable = availableSlots.some(s => s.slot === selectedSlot && s.bookable)
+  const treatmentsSatisfied = !showTreatment || selectedTreatments.length > 0
 
-    // Validate based on appointment type
-    if (showTreatment && selectedTreatments.length === 0) {
-      toast.error('Please add at least one treatment')
+  const missing = []
+  if (!selectedDept) missing.push('department')
+  if (!selectedDoc) missing.push('doctor')
+  if (!selectedDate) missing.push('date')
+  if (!selectedSlot || !slotIsBookable) missing.push('time slot')
+  if (!treatmentsSatisfied) missing.push('at least one treatment')
+
+  const canContinue = missing.length === 0 && !isFetchingSlots
+
+  const handlePreview = () => {
+    if (!canContinue) {
+      toast.error(`Please select ${missing.join(', ')}`)
       return
     }
 
@@ -219,6 +229,9 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
       doctor_consultation_fee: doc?.consultation_fee || 0,
       appointment_date: selectedDate,
       appointment_slot: selectedSlot,
+      // The 12-hour range ('10:00 AM – 11:00 AM') for display only. The raw
+      // 24-hour `appointment_slot` stays the key everything else stores.
+      appointment_slot_label: availableSlots.find(s => s.slot === selectedSlot)?.label || null,
       appointment_type: appointmentType,
       reason: reason || null,
       consultation_fee_snapshot: consultationFee,
@@ -236,7 +249,7 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
     name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'
 
   return (
-    <div className="flex flex-col bg-white" style={{ height: '600px' }}>
+    <div className="flex min-h-0 flex-1 flex-col bg-white">
       {/* Progress Header */}
       <div className="border-b px-4 py-3 bg-gray-50">
         <div className="flex items-center gap-2">
@@ -415,7 +428,8 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
                 </div>
               </div>
 
-              {/* Date + Slot */}
+              {/* Date + Slot, side by side. The slot picker is a dropdown so a
+                  long shift can't push the rest of the form off-screen. */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-gray-700">Date *</Label>
@@ -429,28 +443,27 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
                   />
                 </div>
 
-              </div>
-
-              {/* Slots. Reception sees remaining capacity ("3/5 booked");
-                  the patient-facing picker hides it. */}
-              <div className="space-y-1.5 mt-4">
-                <Label className="text-xs font-medium text-gray-700">Time Slot *</Label>
-                {!selectedDoc || !selectedDate ? (
-                  <div className="rounded-lg border border-gray-100 bg-gray-50 p-6 text-center">
-                    <p className="text-sm text-gray-400">
-                      Pick a doctor and a date to see available slots.
-                    </p>
-                  </div>
-                ) : (
-                  <SlotPicker
-                    slots={availableSlots}
-                    value={selectedSlot}
-                    onChange={setSelectedSlot}
-                    loading={isFetchingSlots}
-                    reason={slotsReason}
-                    showCapacity
-                  />
-                )}
+                {/* Reception sees remaining capacity ("3/5"); the patient-facing
+                    picker hides it. */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-gray-700">Time Slot *</Label>
+                  {!selectedDoc || !selectedDate ? (
+                    <div className="flex h-9 items-center rounded-md border border-gray-200 bg-gray-50 px-3">
+                      <p className="truncate text-xs text-gray-400">
+                        {!selectedDoc ? 'Select a doctor first' : 'Pick a date first'}
+                      </p>
+                    </div>
+                  ) : (
+                    <SlotPicker
+                      slots={availableSlots}
+                      value={selectedSlot}
+                      onChange={setSelectedSlot}
+                      loading={isFetchingSlots}
+                      reason={slotsReason}
+                      showCapacity
+                    />
+                  )}
+                </div>
               </div>
 
               {/* Consultation Fee Display */}
@@ -593,12 +606,20 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
             </div>
 
             {/* Footer */}
-            <div className="border-t px-4 py-3 bg-gray-50 flex items-center justify-between">
-              <div className="text-sm">
-                <span className="text-gray-500">Total: </span>
-                <span className="font-bold text-gray-900">₹{totalAmount.toFixed(2)}</span>
+            <div className="border-t px-4 py-3 bg-gray-50 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-sm">
+                  <span className="text-gray-500">Total: </span>
+                  <span className="font-bold text-gray-900">₹{totalAmount.toFixed(2)}</span>
+                </div>
+                {/* Say what is still missing rather than leaving a dead button. */}
+                {!canContinue && (
+                  <p className="truncate text-[11px] text-amber-600">
+                    {isFetchingSlots ? 'Checking availability…' : `Select ${missing.join(', ')}`}
+                  </p>
+                )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 shrink-0">
                 <Button variant="outline" size="sm" onClick={onSkip} className="h-9 text-sm px-4">
                   Cancel
                 </Button>
@@ -606,7 +627,8 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
                   size="sm"
                   type="button"
                   onClick={handlePreview}
-                  className="h-9 text-sm px-4 bg-gray-900 hover:bg-gray-800"
+                  disabled={!canContinue}
+                  className="h-9 text-sm px-4 bg-gray-900 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Continue
                 </Button>

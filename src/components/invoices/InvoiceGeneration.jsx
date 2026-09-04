@@ -14,19 +14,23 @@ import { Plus, Trash2, CreditCard, Wallet, ArrowLeft, Check } from 'lucide-react
 export function InvoiceGeneration({ hospitalId, patient, appointment, currentUser, onSuccess, onSkip, onBack }) {
   const { user: fetchedUser, hospital: userHospital, isLoading: userLoading } = useUserDetails()
 
+  // Tax was a hardcoded 2.5%. It stays the default so nothing changes unless
+  // reception actually edits it.
+  const [taxRate, setTaxRate] = useState('2.5')
   const [discountType, setDiscountType] = useState('none')
   const [discountValue, setDiscountValue] = useState('')
   const [notes, setNotes] = useState('')
   const [paymentEntries, setPaymentEntries] = useState([])
   const [newPayment, setNewPayment] = useState({ payment_method: 'cash', amount: '', reference_id: '' })
   const [isLoading, setIsLoading] = useState(false)
-  const [hospitalDetails, setHospitalDetails] = useState(null)
+  const [hospitalDetailsState, setHospitalDetails] = useState(null)
   const [amountClickCount, setAmountClickCount] = useState(0)
 
   const consultationFee = parseFloat(appointment?.consultation_fee_snapshot || 0)
   const treatmentPrice = parseFloat(appointment?.treatmentPrice || 0)
   const subtotal = consultationFee + treatmentPrice
-  const taxAmount = subtotal * 0.025
+  const taxPercent = Math.min(Math.max(parseFloat(taxRate) || 0, 0), 100)
+  const taxAmount = subtotal * (taxPercent / 100)
 
   let discountAmount = 0
   if (discountType === 'percentage') {
@@ -95,12 +99,15 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
       return
     }
 
-    const hospitalRegistrationNo = appointment?.hospital_registration_no || userHospital?.registration_no
+    const hospitalRegistrationNo = appointment?.hospital_registration_no ||
+                                  userHospital?.registration_no ||
+                                  hospitalId
     setIsLoading(true)
 
     try {
-      const hospitalDetails = await getHospitalDetails(hospitalRegistrationNo)
-      const patientDetails = await getPatientDetails(patient.id)
+      const hospitalDetails =
+        (await getHospitalDetails(hospitalRegistrationNo)) || hospitalDetailsState
+      const patientDetails = (await getPatientDetails(patient.id)) || patient
 
       const data = {
         hospital_id: hospitalRegistrationNo,
@@ -137,7 +144,7 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
   }
 
   return (
-    <div className="flex flex-col bg-white" style={{ height: '600px' }}>
+    <div className="flex min-h-0 flex-1 flex-col bg-white">
       {/* Header */}
       <div className="border-b px-4 py-3 bg-gray-50">
         <div className="flex items-center gap-2">
@@ -150,15 +157,15 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
       </div>
 
       {/* Hospital Details Bar */}
-      {hospitalDetails && (
+      {hospitalDetailsState && (
         <div className="border-b px-4 py-2 bg-gray-50">
           <div className="flex items-center justify-between text-xs">
             <div>
-              <span className="font-semibold text-gray-900">{hospitalDetails.name}</span>
+              <span className="font-semibold text-gray-900">{hospitalDetailsState.name}</span>
               <span className="text-gray-500 mx-2">|</span>
-              <span className="text-gray-600">{hospitalDetails.city}</span>
+              <span className="text-gray-600">{hospitalDetailsState.city}</span>
             </div>
-            <span className="text-gray-600">{hospitalDetails.phone}</span>
+            <span className="text-gray-600">{hospitalDetailsState.phone}</span>
           </div>
         </div>
       )}
@@ -166,40 +173,85 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
 
-        {/* Summary */}
-        <div className="border rounded-lg p-3 space-y-2">
-          <div className="flex items-center gap-1.5 pb-2 border-b">
+        {/* Summary: a single running total, one line per component, so the
+            number at the bottom is traceable to what produced it. */}
+        <div className="border rounded-lg overflow-hidden">
+          <div className="flex items-center gap-1.5 bg-gray-50 border-b px-3 py-2">
             <Wallet className="w-3.5 h-3.5 text-gray-600" />
             <p className="text-xs font-semibold text-gray-700">BILLING SUMMARY</p>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="divide-y">
             {consultationFee > 0 && (
-              <div className="flex justify-between">
+              <div className="flex justify-between px-3 py-2 text-xs">
                 <span className="text-gray-600">Consultation Fee</span>
-                <span className="font-medium">₹{consultationFee.toFixed(2)}</span>
+                <span className="font-medium tabular-nums">₹{consultationFee.toFixed(2)}</span>
               </div>
             )}
             {treatmentPrice > 0 && (
-              <div className="flex justify-between">
+              <div className="flex justify-between px-3 py-2 text-xs">
                 <span className="text-gray-600">Treatment Charges</span>
-                <span className="font-medium">₹{treatmentPrice.toFixed(2)}</span>
+                <span className="font-medium tabular-nums">₹{treatmentPrice.toFixed(2)}</span>
               </div>
             )}
-            <div className="flex justify-between col-span-2 pt-2 border-t">
-              <span className="font-semibold">Subtotal</span>
-              <span className="font-bold">₹{subtotal.toFixed(2)}</span>
+            <div className="flex justify-between bg-gray-50/60 px-3 py-2 text-xs">
+              <span className="font-semibold text-gray-700">Subtotal</span>
+              <span className="font-bold tabular-nums">₹{subtotal.toFixed(2)}</span>
+            </div>
+            {discountAmount > 0 && (
+              <div className="flex justify-between px-3 py-2 text-xs">
+                <span className="text-red-600">
+                  Discount {discountType === 'percentage' ? `(${discountValue}%)` : '(Fixed)'}
+                </span>
+                <span className="font-medium text-red-600 tabular-nums">-₹{discountAmount.toFixed(2)}</span>
+              </div>
+            )}
+            {taxAmount > 0 && (
+              <div className="flex justify-between px-3 py-2 text-xs">
+                <span className="text-gray-600">Tax ({taxPercent}%)</span>
+                <span className="font-medium tabular-nums">+₹{taxAmount.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between bg-gray-900 px-3 py-2.5">
+              <span className="text-xs font-semibold text-white">TOTAL PAYABLE</span>
+              <span className="text-base font-bold text-white tabular-nums">₹{totalAmount.toFixed(2)}</span>
             </div>
           </div>
         </div>
 
-        {/* Tax + Discount */}
+        {/* Tax + Discount. Both are rate-or-amount controls of the same weight --
+            tax used to be a locked box while discount got a real input. */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-gray-700">Tax (2.5%)</Label>
-            <Input value={taxAmount.toFixed(2)} disabled className="h-9 w-full text-sm bg-gray-50" />
+            <div className="flex items-baseline justify-between">
+              <Label className="text-xs font-medium text-gray-700">Tax</Label>
+              <span className="text-[11px] font-semibold text-gray-900 tabular-nums">
+                +₹{taxAmount.toFixed(2)}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <div className="flex h-9 w-20 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-gray-50 text-sm text-gray-600">
+                %
+              </div>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                value={taxRate}
+                onChange={(e) => setTaxRate(e.target.value)}
+                placeholder="0.00"
+                className="h-9 flex-1 text-sm"
+              />
+            </div>
           </div>
+
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-gray-700">Discount</Label>
+            <div className="flex items-baseline justify-between">
+              <Label className="text-xs font-medium text-gray-700">Discount</Label>
+              <span className="text-[11px] font-semibold text-red-600 tabular-nums">
+                {discountAmount > 0 ? `-₹${discountAmount.toFixed(2)}` : '—'}
+              </span>
+            </div>
             <div className="flex gap-2">
               <Select value={discountType} onValueChange={setDiscountType}>
                 <SelectTrigger className="h-9 w-20 text-sm shrink-0">
@@ -213,22 +265,16 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
               </Select>
               <Input
                 type="number"
+                min="0"
                 disabled={discountType === 'none'}
                 value={discountValue}
                 onChange={(e) => setDiscountValue(e.target.value)}
                 placeholder="0.00"
-                className="h-9 text-sm flex-1"
+                className="h-9 flex-1 text-sm"
               />
             </div>
           </div>
         </div>
-
-        {discountAmount > 0 && (
-          <div className="flex justify-between items-center bg-red-50 border border-red-200 rounded px-3 py-1.5 text-xs">
-            <span className="font-medium text-red-700">Discount ({discountType === 'percentage' ? `${discountValue}%` : 'Fixed'})</span>
-            <span className="font-bold text-red-700">-₹{discountAmount.toFixed(2)}</span>
-          </div>
-        )}
 
         {/* Add Payment - Symmetrical Layout */}
         <div className="space-y-2">

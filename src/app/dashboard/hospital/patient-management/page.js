@@ -52,6 +52,15 @@ import { getPendingRequestCount } from '@/actions/notifications'
  * in the dialog header. Reception staff rotate, and the flow spans seven
  * screens -- this is cheaper than training everyone on every step.
  */
+// Steps whose own root is flex-1 and which pin their own footer: they size
+// themselves against the dialog body, so that body must not also scroll.
+const SELF_SIZING_WIZARD_STEPS = new Set([
+  'preview',
+  'appointment',
+  'appointmentConfirm',
+  'invoice',
+])
+
 const WIZARD_HELP = {
   choice: {
     title: 'Existing or new patient?',
@@ -142,6 +151,7 @@ export default function PatientManagementPage() {
   const [createdInvoice, setCreatedInvoice] = useState(null)
   const [createdAppointment, setCreatedAppointment] = useState(null)
   const [invoiceHospitalDetails, setInvoiceHospitalDetails] = useState(null)
+  const [invoicePatientDetails, setInvoicePatientDetails] = useState(null)
   const [isBookingAppointment, setIsBookingAppointment] = useState(false)
 
   // Temporary RBAC bypass for development
@@ -264,8 +274,12 @@ export default function PatientManagementPage() {
       if (res.success) {
         const enrichedAppointment = {
           ...res.appointment,
+          // The invoice header looks the hospital up by registration_no, so it
+          // has to survive the draft -> booked handoff.
+          hospital_registration_no: appointmentDraft.hospital_registration_no,
           department_name: appointmentDraft.department_name,
           doctor_name: appointmentDraft.doctor_name,
+          doctor_id: appointmentDraft.doctor_id,
           appointment_type: appointmentDraft.appointment_type,
           appointment_slot: appointmentDraft.appointment_slot,
           appointment_date: appointmentDraft.appointment_date,
@@ -293,6 +307,9 @@ export default function PatientManagementPage() {
     if (invoice.hospital) {
       setInvoiceHospitalDetails(invoice.hospital)
     }
+    if (invoice.patient) {
+      setInvoicePatientDetails(invoice.patient)
+    }
     setWizardStep('print') // After invoice, show print
   }
 
@@ -306,6 +323,7 @@ export default function PatientManagementPage() {
       setCreatedAppointment(null)
       setCreatedInvoice(null)
       setInvoiceHospitalDetails(null)
+      setInvoicePatientDetails(null)
       setWizardStep('choice') // Reset to choice
     }
   }
@@ -434,7 +452,18 @@ export default function PatientManagementPage() {
                           </DialogDescription>
                         </DialogHeader>
                         
-                        <div className="mt-4 flex-1 overflow-y-auto min-h-0">
+                        {/* The tall steps (review, book, confirm, invoice) are
+                            flex-1: they fill this box, scroll internally and pin
+                            their own footer -- so this parent must NOT scroll,
+                            or it would size them by content and push those
+                            footers out of view. The short steps (choice, lookup,
+                            register) have no internal scroller, so for those
+                            this parent takes the overflow instead. */}
+                        <div
+                          className={`mt-4 flex min-h-0 flex-1 flex-col ${
+                            SELF_SIZING_WIZARD_STEPS.has(wizardStep) ? '' : 'overflow-y-auto'
+                          }`}
+                        >
                           {wizardStep === 'choice' && (
                             <PatientTypeChoice
                               onSelectExisting={handleChoiceExisting}
@@ -509,10 +538,11 @@ export default function PatientManagementPage() {
 
                           {wizardStep === 'print' && selectedPatientForAppointment && createdInvoice && createdAppointment && (
                             <AppointmentInvoicePrint
-                              hospital={invoiceHospitalDetails || user.profile?.hospital}
-                              patient={selectedPatientForAppointment}
+                              hospital={invoiceHospitalDetails || user.profile?.hospitals}
+                              patient={invoicePatientDetails || selectedPatientForAppointment}
                               appointment={createdAppointment}
                               invoice={createdInvoice}
+                              doctor={{ name: createdAppointment.doctor_name }}
                             />
                           )}
                         </div>

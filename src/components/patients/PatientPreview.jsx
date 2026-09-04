@@ -21,7 +21,7 @@ export function PatientPreview({ patient, onConfirm, onEdit, isLoading }) {
     : 'N/A'
 
   return (
-    <div className="flex flex-col bg-white" style={{ height: '600px' }}>
+    <div className="flex min-h-0 flex-1 flex-col bg-white">
       {/* Header */}
       <div className="border-b px-4 py-3 bg-gray-50">
         <div className="flex items-center gap-2">
