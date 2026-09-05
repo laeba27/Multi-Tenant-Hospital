@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { verifyStaffInviteToken } from '@/lib/utils/jwt'
 import { createAdminClient } from '@/lib/supabase/server'
 
+// The Supabase admin API needs Node APIs the edge runtime does not have, and
+// walking the user pages can outlast the default limit on a large tenant.
+export const runtime = 'nodejs'
+export const maxDuration = 30
+
 export async function POST(request) {
   try {
     const { token, password } = await request.json()
@@ -41,29 +46,51 @@ export async function POST(request) {
       if (user_id) {
         console.log('[VerifyInvite] Attempting lookup by user_id:', user_id)
         const { data: userById, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(user_id)
+
+        // Do NOT bail out here. getUserById returns a 404 user_not_found
+        // whenever the id in the token no longer resolves -- the account was
+        // recreated, or the invite was reissued and carries an older id. This
+        // used to return 400 immediately, which made the email fallback below
+        // dead code for every token that carried a user_id (i.e. all of them)
+        // and surfaced as "Failed to find user account" on a link that was
+        // perfectly valid. Log it and let the email lookup decide.
         if (getUserError) {
-          console.error('Get user by id error:', getUserError)
-          return NextResponse.json(
-            { error: 'Failed to find user account' },
-            { status: 400 }
-          )
+          console.warn('[VerifyInvite] Lookup by id failed, trying email:', getUserError.message)
         }
-        existingUser = userById?.user
+        existingUser = userById?.user || null
         console.log('[VerifyInvite] Lookup by ID result:', existingUser ? 'found' : 'not found')
       }
 
       if (!existingUser) {
-        console.log('[VerifyInvite] Falling back to listUsers search for email')
-        const { users, error: listError } = await supabaseAdmin.auth.admin.listUsers()
-        if (listError) {
-          console.error('List users error:', listError)
+        console.log('[VerifyInvite] Falling back to paged listUsers search for email')
+
+        // listUsers() is paginated and defaults to 50 per page. A single bare
+        // call silently stopped looking after the 50th user, so on a tenant
+        // with more accounts than that the invite failed in production while
+        // still working on a small local database. Walk the pages.
+        let listFailed = false
+        for (let page = 1; ; page += 1) {
+          const { data: pageData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+            page,
+            perPage: 200,
+          })
+          if (listError) {
+            console.error('List users error:', listError)
+            listFailed = true
+            break
+          }
+
+          const batch = pageData?.users || []
+          existingUser = batch.find((u) => u.email?.toLowerCase() === String(email).toLowerCase())
+          if (existingUser || batch.length < 200) break
+        }
+
+        if (!existingUser && listFailed) {
           return NextResponse.json(
             { error: 'Failed to find user account' },
             { status: 400 }
           )
         }
-        console.log('[VerifyInvite] Users returned:', users?.length || 0)
-        existingUser = users?.find(u => u.email === email)
       }
 
       if (!existingUser) {
@@ -113,12 +140,13 @@ export async function POST(request) {
 
       if (updateError) {
         console.error('Profile update error:', updateError)
-        // Try to delete the auth user we just created
-        try {
-          await supabaseAdmin.auth.admin.deleteUser(userId)
-        } catch (deleteError) {
-          console.error('Failed to rollback auth user:', deleteError)
-        }
+
+        // Deliberately NOT deleting the auth user here. This route does not
+        // create that account -- inviteStaff already did, before the email went
+        // out -- so deleting it destroys a real staff member's login over a
+        // transient profile-update failure and makes the invite permanently
+        // unusable. The password is already set, so the row can be corrected
+        // and the invite retried.
         return NextResponse.json(
           { error: 'Failed to verify registration' },
           { status: 500 }
