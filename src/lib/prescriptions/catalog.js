@@ -724,8 +724,8 @@ export function getPrescriptionOptionSetMap() {
   }, {})
 }
 
-export function getRecommendedTemplateId(specialization = '') {
-  const normalized = specialization.toLowerCase()
+export function getRecommendedTemplateId(specialization) {
+  const normalized = String(specialization || '').toLowerCase()
 
   if (normalized.includes('dental') || normalized.includes('dentist')) {
     return 'tpl-dental-exam'
