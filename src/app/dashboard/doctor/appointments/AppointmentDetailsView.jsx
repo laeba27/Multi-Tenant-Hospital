@@ -46,23 +46,23 @@ export function AppointmentDetailsView({
     <div className="bg-slate-50/60 rounded-lg">
       {/* Top bar — flat, dense */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 h-11 flex items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 h-12 sm:h-11 flex items-center justify-between gap-2 sm:gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <Link href="/dashboard/doctor/appointments">
-              <Button variant="ghost" size="icon" className="h-7 w-7 -ml-1 text-slate-500 hover:text-slate-900">
+              <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-7 sm:w-7 -ml-1 text-slate-500 hover:text-slate-900">
                 <ChevronLeft className="w-4 h-4" />
               </Button>
             </Link>
             <h1 className="text-[14px] font-semibold text-slate-900 tracking-tight uppercase">
               Prescription
             </h1>
-            <span className="text-slate-300">·</span>
-            <span className="text-[13px] text-slate-500 font-mono truncate">
+            <span className="hidden sm:inline text-slate-300">·</span>
+            <span className="hidden sm:inline text-[13px] text-slate-500 font-mono truncate">
               {appointmentId}
             </span>
             {appointmentStatus && (
               <Badge
-                className={`ml-1 text-[11px] font-semibold uppercase tracking-wide ring-1 ring-inset border-0 px-2 py-0 h-5 ${
+                className={`ml-1 shrink-0 text-[11px] font-semibold uppercase tracking-wide ring-1 ring-inset border-0 px-2 py-0 h-5 ${
                   statusColors[appointmentStatus] || 'bg-slate-50 text-slate-600 ring-slate-200'
                 }`}
               >
@@ -74,7 +74,7 @@ export function AppointmentDetailsView({
             asChild
             variant="ghost"
             size="sm"
-            className="h-8 px-2 gap-1.5 text-[13px] font-semibold uppercase tracking-wide text-slate-600 hover:text-slate-900"
+            className="h-9 sm:h-8 px-2 gap-1.5 shrink-0 text-[13px] font-semibold uppercase tracking-wide text-slate-600 hover:text-slate-900"
           >
             <Link href={`/dashboard/doctor/ai/${appointmentId}/prescribe/ai`}>
               <Sparkles className="h-4 w-4" />
@@ -85,7 +85,7 @@ export function AppointmentDetailsView({
       </div>
 
       {/* Main */}
-      <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 space-y-3">
         {/* Patient strip — single dense row */}
         <div className="bg-white border border-slate-200 rounded-md">
           <div className="flex items-stretch divide-x divide-slate-200">
@@ -101,6 +101,9 @@ export function AppointmentDetailsView({
                 <div className="text-[12px] text-slate-500 font-mono leading-tight mt-0.5">
                   {patient.registrationNo || 'N/A'}
                 </div>
+                <div className="md:hidden text-[12px] text-slate-500 leading-tight mt-1 truncate">
+                  {[patient.mobile, formatDate(appointment?.appointmentDate)].filter(Boolean).join(' · ')}
+                </div>
               </div>
             </div>
 
@@ -112,11 +115,11 @@ export function AppointmentDetailsView({
           </div>
 
           {appointment?.reason && (
-            <div className="border-t border-slate-200 px-3 py-2 flex items-baseline gap-2">
+            <div className="border-t border-slate-200 px-3 py-2 flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2">
               <span className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
                 Complaint
               </span>
-              <span className="text-[13px] text-slate-700 truncate capitalize">
+              <span className="text-[13px] text-slate-700 sm:truncate capitalize">
                 {appointment.reason}
               </span>
             </div>

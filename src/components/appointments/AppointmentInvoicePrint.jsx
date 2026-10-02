@@ -3,6 +3,7 @@
 import React, { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Printer, Check, X } from 'lucide-react'
+import { buildInvoiceLineItems } from '@/lib/invoices/lineItems'
 
 export function AppointmentInvoicePrint({ invoice, hospital, patient, appointment, doctor }) {
   const printRef = useRef(null)
@@ -66,6 +67,10 @@ export function AppointmentInvoicePrint({ invoice, hospital, patient, appointmen
   const taxPercentLabel = taxableBase > 0
     ? `${parseFloat(((parseFloat(invoice?.tax_amount || 0) / taxableBase) * 100).toFixed(2))}%`
     : ''
+
+  // Same itemised Date | Treatment | Amount rows as the Billing page view.
+  const subtotal = parseFloat(invoice?.subtotal || 0)
+  const billedItems = buildInvoiceLineItems(invoice, { ...appointment, doctor_name: doctorName !== 'N/A' ? doctorName : null })
 
   const invoiceContent = (
     <div style={{ padding: '40px', fontFamily: 'Arial, sans-serif', fontSize: '12px', lineHeight: '1.4', color: '#000', textTransform: 'uppercase', margin: '0' }}>
@@ -193,7 +198,7 @@ export function AppointmentInvoicePrint({ invoice, hospital, patient, appointmen
                       <td style={{ padding: '4px 0', fontSize: '11px' }}>{appointmentDate} at {appointmentTime}</td>
                     </tr>
                     <tr>
-                      <td style={{ padding: '4px 0', fontSize: '11px' }}>Purpose:</td>
+                      <td style={{ padding: '4px 0', fontSize: '11px' }}>Visit Type:</td>
                       <td style={{ padding: '4px 0', fontSize: '11px' }}>{appointment?.appointment_type || 'N/A'}</td>
                     </tr>
                   </tbody>
@@ -203,6 +208,18 @@ export function AppointmentInvoicePrint({ invoice, hospital, patient, appointmen
           </tbody>
         </table>
 
+        {/* PAYMENT FOR */}
+        {invoice?.description && (
+          <div style={{ border: '1px solid #000', padding: '10px 12px', marginBottom: '20px' }}>
+            <p style={{ margin: '0 0 4px 0', fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px' }}>
+              PAYMENT FOR
+            </p>
+            <p style={{ margin: 0, fontSize: '13px', fontWeight: 'bold', textTransform: 'none' }}>
+              {invoice.description}
+            </p>
+          </div>
+        )}
+
         {/* LINE */}
         <div style={{ borderTop: '1px solid #000', marginBottom: '20px' }}></div>
 
@@ -210,26 +227,41 @@ export function AppointmentInvoicePrint({ invoice, hospital, patient, appointmen
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid #000' }}>
-              <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '11px', fontWeight: 'bold' }}>
-                Description
+              <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '11px', fontWeight: 'bold', width: '110px' }}>
+                Date
               </th>
-              <th style={{ padding: '10px 8px', textAlign: 'right', fontSize: '11px', fontWeight: 'bold', width: '150px' }}>
+              <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '11px', fontWeight: 'bold' }}>
+                Treatment / Service
+              </th>
+              <th style={{ padding: '10px 8px', textAlign: 'right', fontSize: '11px', fontWeight: 'bold', width: '130px' }}>
                 Amount (INR)
               </th>
             </tr>
           </thead>
           <tbody>
+            {billedItems.map((item, index) => (
+              <tr key={index} style={{ borderBottom: '1px solid #000' }}>
+                <td style={{ padding: '10px 8px', fontSize: '11px', whiteSpace: 'nowrap' }}>{item.date}</td>
+                <td style={{ padding: '10px 8px', fontSize: '11px' }}>
+                  {item.label}
+                  {item.detail && (
+                    <div style={{ fontSize: '10px', color: '#555', marginTop: '2px' }}>{item.detail}</div>
+                  )}
+                </td>
+                <td style={{ padding: '10px 8px', fontSize: '11px', textAlign: 'right', fontWeight: 'bold' }}>
+                  ₹{item.amount.toFixed(2)}
+                </td>
+              </tr>
+            ))}
             <tr style={{ borderBottom: '1px solid #000' }}>
-              <td style={{ padding: '10px 8px', fontSize: '11px' }}>
-                Consultation Fee ({appointment?.appointment_type || 'General'})
-              </td>
+              <td colSpan={2} style={{ padding: '10px 8px', fontSize: '11px', fontWeight: 'bold' }}>Subtotal</td>
               <td style={{ padding: '10px 8px', fontSize: '11px', textAlign: 'right', fontWeight: 'bold' }}>
-                ₹{parseFloat(invoice?.subtotal || 0).toFixed(2)}
+                ₹{subtotal.toFixed(2)}
               </td>
             </tr>
             {parseFloat(invoice?.tax_amount || 0) > 0 && (
               <tr style={{ borderBottom: '1px solid #000' }}>
-                <td style={{ padding: '10px 8px', fontSize: '11px' }}>
+                <td colSpan={2} style={{ padding: '10px 8px', fontSize: '11px' }}>
                   Tax{taxPercentLabel ? ` (${taxPercentLabel})` : ''}
                 </td>
                 <td style={{ padding: '10px 8px', fontSize: '11px', textAlign: 'right' }}>
@@ -239,7 +271,7 @@ export function AppointmentInvoicePrint({ invoice, hospital, patient, appointmen
             )}
             {parseFloat(invoice?.discount_amount || 0) > 0 && (
               <tr style={{ borderBottom: '1px solid #000' }}>
-                <td style={{ padding: '10px 8px', fontSize: '11px' }}>
+                <td colSpan={2} style={{ padding: '10px 8px', fontSize: '11px' }}>
                   Discount ({invoice?.discount_type === 'percentage' ? `${invoice?.discount_value}%` : 'Fixed'})
                 </td>
                 <td style={{ padding: '10px 8px', fontSize: '11px', textAlign: 'right' }}>

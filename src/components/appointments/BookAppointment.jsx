@@ -276,7 +276,7 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
       {!loadingUser && hospitalId && (
         <div className="flex flex-1 overflow-hidden">
           {/* Patient Sidebar */}
-          <div className="w-56 border-r bg-gray-50 flex-shrink-0 overflow-y-auto">
+          <div className="hidden md:block w-56 border-r bg-gray-50 flex-shrink-0 overflow-y-auto">
             <div className="p-3 space-y-3">
               {loadingPatient ? (
                 <div className="animate-pulse space-y-2">
@@ -345,7 +345,32 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
 
           {/* Booking Form */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
+
+              {/* Phones have no room for the sidebar -- show the patient as a
+                  compact strip instead, keeping allergies visible. */}
+              {patient && (
+                <div className="md:hidden rounded-md border bg-gray-50 px-3 py-2 space-y-1.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">
+                      {getInitials(patient.name)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{patient.name}</p>
+                      <p className="text-[11px] text-gray-500 truncate">
+                        <span className="capitalize">{patient.gender || patient.profile?.gender || 'N/A'}</span>
+                        {' · '}
+                        {patient.mobile || patient.profile?.mobile || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                  {patient.allergies && (
+                    <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 truncate">
+                      <span className="font-medium">Allergies:</span> {patient.allergies}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {deptError && (
                 <div className="bg-red-50 border border-red-200 rounded px-3 py-2">
@@ -386,7 +411,7 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
               </div>
 
               {/* Department + Doctor */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-gray-700">Department *</Label>
                   <Select value={selectedDept} onValueChange={(val) => {
@@ -430,7 +455,7 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
 
               {/* Date + Slot, side by side. The slot picker is a dropdown so a
                   long shift can't push the rest of the form off-screen. */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-gray-700">Date *</Label>
                   <Input
@@ -533,19 +558,19 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
                   {/* Add custom treatment */}
                   <div className="space-y-1.5">
                     <Label className="text-xs font-medium text-gray-700">Or Add Custom</Label>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
                       <Input
                         placeholder="Treatment name"
                         value={customTreatmentName}
                         onChange={(e) => setCustomTreatmentName(e.target.value)}
-                        className="h-9 flex-1 text-sm"
+                        className="h-9 w-full sm:w-auto sm:flex-1 text-sm"
                       />
                       <Input
                         type="number"
                         placeholder="Price ₹"
                         value={customTreatmentPrice}
                         onChange={(e) => setCustomTreatmentPrice(e.target.value)}
-                        className="h-9 w-28 text-sm"
+                        className="h-9 flex-1 sm:flex-none sm:w-28 text-sm"
                       />
                       <Button
                         onClick={addCustomTreatment}
@@ -561,36 +586,36 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
                   {/* Selected Treatments List */}
                   {selectedTreatments.length > 0 && (
                     <div className="border-t border-gray-100 pt-2 space-y-1.5">
-                      <div className="flex items-center gap-2 px-2 text-[10px] font-medium uppercase tracking-wide text-gray-400">
+                      <div className="hidden sm:flex items-center gap-2 px-2 text-[10px] font-medium uppercase tracking-wide text-gray-400">
                         <span className="flex-1">Treatment</span>
                         <span className="w-16 text-right">Price</span>
                         <span className="w-20 text-center">Discount</span>
                         <span className="w-16 text-right">Subtotal</span>
                         <span className="w-5" />
                       </div>
-                      <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                      <div className="space-y-1.5 max-h-48 sm:max-h-32 overflow-y-auto">
                         {selectedTreatments.map(t => (
-                          <div key={t.id} className="flex items-center gap-2 bg-gray-50 rounded-md px-2 py-1.5">
-                            <span className="flex-1 text-sm font-medium truncate">
+                          <div key={t.id} className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-gray-50 rounded-md px-2 py-1.5">
+                            <span className="basis-[calc(100%-2rem)] sm:basis-auto flex-1 text-sm font-medium truncate">
                               {t.name}
                               {t.isCustom && (
                                 <span className="ml-1.5 text-[10px] font-normal text-gray-400">(custom)</span>
                               )}
                             </span>
-                            <span className="w-16 text-right text-xs text-gray-600">₹{parseFloat(t.price || 0).toFixed(0)}</span>
+                            <span className="order-last sm:order-none w-16 text-left sm:text-right text-xs text-gray-600">₹{parseFloat(t.price || 0).toFixed(0)}</span>
                             <Input
                               type="number"
-                              placeholder="0"
+                              placeholder="Discount"
                               value={t.discount || ''}
                               onChange={(e) => updateTreatmentDiscount(t.id, e.target.value)}
-                              className="h-8 w-20 text-xs text-center px-2"
+                              className="order-last sm:order-none h-8 w-24 sm:w-20 text-xs text-center px-2"
                             />
-                            <span className="w-16 text-right text-xs font-semibold text-gray-900">
+                            <span className="order-last sm:order-none ml-auto sm:ml-0 w-auto sm:w-16 text-right text-xs font-semibold text-gray-900">
                               ₹{(parseFloat(t.price || 0) - parseFloat(t.discount || 0)).toFixed(2)}
                             </span>
                             <button
                               onClick={() => removeTreatment(t.id)}
-                              className="w-5 flex justify-center text-gray-400 hover:text-red-600 transition-colors"
+                              className="w-6 h-6 sm:w-5 sm:h-auto flex items-center justify-center text-gray-400 hover:text-red-600 transition-colors"
                               title="Remove"
                             >
                               <X className="w-3.5 h-3.5" />
@@ -606,7 +631,7 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
             </div>
 
             {/* Footer */}
-            <div className="border-t px-4 py-3 bg-gray-50 flex items-center justify-between gap-3">
+            <div className="border-t px-3 sm:px-4 py-3 bg-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
               <div className="min-w-0">
                 <div className="text-sm">
                   <span className="text-gray-500">Total: </span>
@@ -620,7 +645,7 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
                 )}
               </div>
               <div className="flex gap-2 shrink-0">
-                <Button variant="outline" size="sm" onClick={onSkip} className="h-9 text-sm px-4">
+                <Button variant="outline" size="sm" onClick={onSkip} className="flex-1 sm:flex-none h-10 sm:h-9 text-sm px-4">
                   Cancel
                 </Button>
                 <Button
@@ -628,7 +653,7 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
                   type="button"
                   onClick={handlePreview}
                   disabled={!canContinue}
-                  className="h-9 text-sm px-4 bg-gray-900 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 sm:flex-none h-10 sm:h-9 text-sm px-4 bg-gray-900 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Continue
                 </Button>

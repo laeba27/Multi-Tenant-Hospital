@@ -11,6 +11,26 @@ import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import { Plus, Trash2, CreditCard, Wallet, ArrowLeft, Check } from 'lucide-react'
 
+/**
+ * A sensible default for "Payment for", built from what was booked:
+ *   "Consultation – Dr. Mehta (Dental); Treatment – Scaling, Root Canal"
+ * Reception can edit it before generating.
+ */
+function defaultPurpose(appointment) {
+  if (!appointment) return ''
+  const parts = []
+  const type = appointment.appointment_type
+  const fee = parseFloat(appointment.consultation_fee_snapshot || 0)
+  if (type === 'consultation' || type === 'both' || (!type && fee > 0)) {
+    const who = appointment.doctor_name ? ` – Dr. ${appointment.doctor_name}` : ''
+    const dept = appointment.department_name ? ` (${appointment.department_name})` : ''
+    parts.push(`Consultation${who}${dept}`)
+  }
+  const treatments = (appointment.treatment_details || []).map((t) => t?.name).filter(Boolean)
+  if (treatments.length) parts.push(`Treatment – ${treatments.join(', ')}`)
+  return parts.join('; ')
+}
+
 export function InvoiceGeneration({ hospitalId, patient, appointment, currentUser, onSuccess, onSkip, onBack }) {
   const { user: fetchedUser, hospital: userHospital, isLoading: userLoading } = useUserDetails()
 
@@ -19,6 +39,7 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
   const [taxRate, setTaxRate] = useState('2.5')
   const [discountType, setDiscountType] = useState('none')
   const [discountValue, setDiscountValue] = useState('')
+  const [description, setDescription] = useState(() => defaultPurpose(appointment))
   const [notes, setNotes] = useState('')
   const [paymentEntries, setPaymentEntries] = useState([])
   const [newPayment, setNewPayment] = useState({ payment_method: 'cash', amount: '', reference_id: '' })
@@ -94,6 +115,10 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
   }
 
   const handleGenerateInvoice = async () => {
+    if (!description.trim()) {
+      toast.error('Enter what this payment is for')
+      return
+    }
     if (paymentEntries.length === 0) {
       toast.error('Add at least one payment')
       return
@@ -122,6 +147,7 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
         paid_amount: totalPaid,
         due_amount: dueAmount,
         payment_status: totalPaid >= totalAmount ? 'paid' : totalPaid > 0 ? 'partially_paid' : 'unpaid',
+        description: description.trim(),
         notes: notes || null,
         payments: paymentEntries,
         hospital: hospitalDetails,
@@ -171,7 +197,24 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
       )}
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
+
+        {/* Purpose comes first: it is the line a patient reads on the receipt. */}
+        <div className="space-y-1.5">
+          <Label htmlFor="invoice-description" className="text-xs font-medium text-gray-700">
+            Payment For *
+          </Label>
+          <Textarea
+            id="invoice-description"
+            placeholder="e.g. Consultation – Dr. Mehta (Dental); Scaling"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={2}
+            maxLength={300}
+            className="resize-none text-sm min-h-[56px]"
+          />
+          <p className="text-[11px] text-gray-500">Printed on the invoice so the patient knows what they paid for.</p>
+        </div>
 
         {/* Summary: a single running total, one line per component, so the
             number at the bottom is traceable to what produced it. */}
@@ -220,7 +263,7 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
 
         {/* Tax + Discount. Both are rate-or-amount controls of the same weight --
             tax used to be a locked box while discount got a real input. */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <div className="flex items-baseline justify-between">
               <Label className="text-xs font-medium text-gray-700">Tax</Label>
@@ -287,8 +330,8 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
             )}
           </div>
 
-          <div className="grid grid-cols-12 gap-2 items-end">
-            <div className="col-span-3 space-y-1">
+          <div className="grid grid-cols-2 sm:grid-cols-12 gap-2 items-end">
+            <div className="col-span-1 sm:col-span-3 space-y-1">
               <Label className="text-[11px] font-medium text-gray-500">Method</Label>
               <Select value={newPayment.payment_method} onValueChange={(val) => setNewPayment({ ...newPayment, payment_method: val })}>
                 <SelectTrigger className="h-9 w-full text-sm">
@@ -303,7 +346,7 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-3 space-y-1">
+            <div className="col-span-1 sm:col-span-3 space-y-1">
               <Label className="text-[11px] font-medium text-gray-500">Amount</Label>
               <Input
                 type="number"
@@ -324,7 +367,7 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
                 className="h-9 w-full text-sm"
               />
             </div>
-            <div className="col-span-4 space-y-1">
+            <div className="col-span-2 sm:col-span-4 space-y-1">
               <Label className="text-[11px] font-medium text-gray-500">Reference</Label>
               <Input
                 placeholder="Optional"
@@ -333,8 +376,8 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
                 className="h-9 w-full text-sm"
               />
             </div>
-            <div className="col-span-2">
-              <Button onClick={addPaymentEntry} className="w-full h-9 text-sm gap-1 bg-gray-900 hover:bg-gray-800" disabled={dueAmount <= 0}>
+            <div className="col-span-2 sm:col-span-2">
+              <Button onClick={addPaymentEntry} className="w-full h-10 sm:h-9 text-sm gap-1 bg-gray-900 hover:bg-gray-800" disabled={dueAmount <= 0}>
                 <Plus className="w-3.5 h-3.5" /> Add
               </Button>
             </div>
@@ -379,7 +422,7 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
 
         {/* Notes */}
         <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-gray-700">Notes</Label>
+          <Label className="text-xs font-medium text-gray-700">Notes (optional)</Label>
           <Textarea
             placeholder="Additional notes..."
             value={notes}
@@ -392,9 +435,9 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
       </div>
 
       {/* Footer */}
-      <div className="border-t px-4 py-3 bg-gray-50 space-y-2">
+      <div className="border-t px-3 sm:px-4 py-3 bg-gray-50 space-y-2">
 
-        <div className="grid grid-cols-3 gap-2 text-xs">
+        <div className="hidden sm:grid grid-cols-3 gap-2 text-xs">
           <div className="flex justify-between">
             <span className="text-gray-600">Subtotal</span>
             <span className="font-medium">₹{subtotal.toFixed(2)}</span>
@@ -410,7 +453,7 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
         </div>
 
         {discountAmount > 0 && (
-          <div className="flex justify-between text-red-600 text-xs">
+          <div className="hidden sm:flex justify-between text-red-600 text-xs">
             <span>Discount</span>
             <span className="font-medium">-₹{discountAmount.toFixed(2)}</span>
           </div>
@@ -433,18 +476,18 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
 
         <div className="flex gap-2 pt-1">
           {onBack && (
-            <Button variant="outline" onClick={onBack} className="flex-1 h-9 text-sm">
+            <Button variant="outline" onClick={onBack} className="flex-1 h-10 sm:h-9 px-2 text-sm">
               <ArrowLeft className="w-3.5 h-3.5 mr-1" />
               Back
             </Button>
           )}
-          <Button variant="outline" onClick={onSkip} className="flex-1 h-9 text-sm">
+          <Button variant="outline" onClick={onSkip} className="flex-1 h-10 sm:h-9 px-2 text-sm">
             Cancel
           </Button>
           <Button
             onClick={handleGenerateInvoice}
-            disabled={isLoading || paymentEntries.length === 0}
-            className="flex-1 h-9 text-sm bg-gray-900 hover:bg-gray-800 flex items-center justify-center gap-1.5"
+            disabled={isLoading || paymentEntries.length === 0 || !description.trim()}
+            className="flex-1 h-10 sm:h-9 px-2 text-sm bg-gray-900 hover:bg-gray-800 flex items-center justify-center gap-1.5"
           >
             {isLoading ? (
               <>

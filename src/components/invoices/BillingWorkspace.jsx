@@ -78,6 +78,7 @@ export function BillingWorkspace() {
     total_amount: '',
     paid_amount: '0',
     payment_method: 'cash',
+    description: '',
     notes: '',
   })
 
@@ -166,6 +167,10 @@ export function BillingWorkspace() {
   }
 
   const handleCreateInvoice = async () => {
+    if (!newInvoice.description.trim()) {
+      toast.error('Enter what this payment is for')
+      return
+    }
     try {
       const invoiceData = {
         hospital_id: staffDetails.hospitals.registration_no,
@@ -181,6 +186,7 @@ export function BillingWorkspace() {
             : 'unpaid',
         payment_method:
           parseFloat(newInvoice.paid_amount) > 0 ? newInvoice.payment_method : null,
+        description: newInvoice.description.trim(),
         notes: newInvoice.notes,
       }
 
@@ -196,6 +202,7 @@ export function BillingWorkspace() {
           total_amount: '',
           paid_amount: '0',
           payment_method: 'cash',
+          description: '',
           notes: '',
         })
         fetchInvoices()
@@ -257,7 +264,8 @@ export function BillingWorkspace() {
     return (
       invoice.id?.toLowerCase().includes(query) ||
       invoice.patients?.profile?.name?.toLowerCase().includes(query) ||
-      invoice.patients?.profile?.mobile?.includes(query)
+      invoice.patients?.profile?.mobile?.includes(query) ||
+      invoice.description?.toLowerCase().includes(query)
     )
   })
 
@@ -443,7 +451,14 @@ export function BillingWorkspace() {
                   <tbody>
                     {filteredInvoices.map((invoice) => (
                       <tr key={invoice.id} className="border-b hover:bg-gray-50">
-                        <td className="py-3 px-4 font-mono text-sm">{invoice.id}</td>
+                        <td className="py-3 px-4">
+                          <div className="font-mono text-sm">{invoice.id}</div>
+                          {invoice.description && (
+                            <div className="text-xs text-gray-500 max-w-[220px] truncate" title={invoice.description}>
+                              {invoice.description}
+                            </div>
+                          )}
+                        </td>
                         <td className="py-3 px-4">
                           <div>
                             <div className="font-medium">{invoice.patients?.profile?.name || 'N/A'}</div>
@@ -522,6 +537,16 @@ export function BillingWorkspace() {
               />
             </div>
             <div>
+              <Label htmlFor="description">Payment For *</Label>
+              <Input
+                id="description"
+                placeholder="e.g. Consultation, X-ray, Root canal – 2nd sitting"
+                value={newInvoice.description}
+                maxLength={300}
+                onChange={(e) => setNewInvoice({ ...newInvoice, description: e.target.value })}
+              />
+            </div>
+            <div>
               <Label htmlFor="total_amount">Total Amount (₹)</Label>
               <Input
                 id="total_amount"
@@ -561,7 +586,7 @@ export function BillingWorkspace() {
               </div>
             )}
             <div>
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="notes">Notes (optional)</Label>
               <Textarea
                 id="notes"
                 placeholder="Additional notes..."

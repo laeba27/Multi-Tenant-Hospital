@@ -113,7 +113,7 @@ export default function SlotPicker({
         </SelectContent>
       </Select>
 
-      <div className="flex items-center gap-3 text-[11px] text-gray-500">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500">
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-emerald-500" /> Available
         </span>

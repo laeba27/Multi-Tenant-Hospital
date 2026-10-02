@@ -400,7 +400,7 @@ export default function PatientManagementPage() {
           <TabsContent value="list">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <CardTitle>All Patients</CardTitle>
                     <CardDescription>
@@ -420,11 +420,12 @@ export default function PatientManagementPage() {
                         // between them reads as a series of unrelated popups.
                         // `h-` rather than `max-h-`: a ceiling still lets a
                         // short step (the lookup) collapse to a fraction of the
-                        // height of a tall one.
-                        className="max-w-4xl! w-full h-[85vh] flex flex-col overflow-hidden"
+                        // height of a tall one. On phones it goes full-screen:
+                        // a floating box would waste the edges of a small screen.
+                        className="max-w-full! sm:max-w-4xl! w-full h-dvh sm:h-[85vh] rounded-none sm:rounded-lg p-4 sm:p-6 gap-3 sm:gap-4 flex flex-col overflow-hidden"
                       >
                         <DialogHeader>
-                          <DialogTitle className="flex items-center gap-1.5">
+                          <DialogTitle className="flex items-center gap-1.5 pr-8 text-left">
                             {wizardStep === 'choice' ? 'New Appointment Booking'
                               : wizardStep === 'lookup' ? 'Find Patient'
                               : wizardStep === 'register' ? (editingPatient ? 'Edit Patient' : 'Step 1: Register New Patient')
@@ -440,7 +441,7 @@ export default function PatientManagementPage() {
                               />
                             )}
                            </DialogTitle>
-                          <DialogDescription>
+                          <DialogDescription className="text-left text-xs sm:text-sm">
                             {wizardStep === 'choice' ? 'Are you an existing patient or registering for the first time?'
                               : wizardStep === 'lookup' ? 'Search this hospital\u2019s patients by ID, name, phone or email.'
                               : wizardStep === 'register' ? 'Fill in the patient information below.'
@@ -460,7 +461,7 @@ export default function PatientManagementPage() {
                             register) have no internal scroller, so for those
                             this parent takes the overflow instead. */}
                         <div
-                          className={`mt-4 flex min-h-0 flex-1 flex-col ${
+                          className={`sm:mt-4 flex min-h-0 flex-1 flex-col ${
                             SELF_SIZING_WIZARD_STEPS.has(wizardStep) ? '' : 'overflow-y-auto'
                           }`}
                         >

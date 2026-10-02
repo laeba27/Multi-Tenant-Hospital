@@ -34,20 +34,20 @@ export function PatientPreview({ patient, onConfirm, onEdit, isLoading }) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
         {/* Patient Summary */}
         <div className="border rounded-lg p-4 space-y-3 bg-blue-50">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-lg">
+            <div className="w-12 h-12 shrink-0 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-lg">
               {patient.profile?.name?.charAt(0) || 'P'}
             </div>
-            <div className="flex-1">
-              <h3 className="text-base font-semibold text-gray-900">{patient.profile?.name || 'N/A'}</h3>
-              <p className="text-sm text-gray-600 font-mono">{patient.id || 'N/A'}</p>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-semibold text-gray-900 truncate">{patient.profile?.name || 'N/A'}</h3>
+              <p className="text-sm text-gray-600 font-mono truncate">{patient.id || 'N/A'}</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
             <div>
               <p className="text-gray-600">Mobile</p>
               <p className="font-semibold text-gray-900">{patient.profile?.mobile || 'N/A'}</p>
@@ -69,21 +69,21 @@ export function PatientPreview({ patient, onConfirm, onEdit, isLoading }) {
           {(patient.profile?.email || patient.chronic_conditions || patient.allergies) && (
             <div className="pt-3 border-t space-y-1 text-xs">
               {patient.profile?.email && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Email</span>
-                  <span className="font-medium text-gray-900 truncate max-w-[200px]">{patient.profile.email}</span>
+                <div className="flex justify-between gap-3">
+                  <span className="text-gray-600 shrink-0">Email</span>
+                  <span className="font-medium text-gray-900 truncate min-w-0 text-right">{patient.profile.email}</span>
                 </div>
               )}
               {patient.chronic_conditions && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Chronic Conditions</span>
-                  <span className="font-medium text-gray-900 truncate max-w-[200px]">{patient.chronic_conditions}</span>
+                <div className="flex justify-between gap-3">
+                  <span className="text-gray-600 shrink-0">Chronic Conditions</span>
+                  <span className="font-medium text-gray-900 truncate min-w-0 text-right">{patient.chronic_conditions}</span>
                 </div>
               )}
               {patient.allergies && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Allergies</span>
-                  <span className="font-medium text-red-600 truncate max-w-[200px]">{patient.allergies}</span>
+                <div className="flex justify-between gap-3">
+                  <span className="text-gray-600 shrink-0">Allergies</span>
+                  <span className="font-medium text-red-600 truncate min-w-0 text-right">{patient.allergies}</span>
                 </div>
               )}
             </div>
@@ -108,19 +108,19 @@ export function PatientPreview({ patient, onConfirm, onEdit, isLoading }) {
       </div>
 
       {/* Footer */}
-      <div className="border-t px-4 py-3 bg-gray-50 flex gap-3">
+      <div className="border-t px-3 sm:px-4 py-3 bg-gray-50 flex gap-2 sm:gap-3">
         <Button
           variant="outline"
           onClick={onEdit}
           disabled={isLoading}
-          className="flex-1 h-9 text-xs"
+          className="flex-1 h-10 sm:h-9 text-sm sm:text-xs"
         >
           Edit Details
         </Button>
         <Button
           onClick={onConfirm}
           disabled={isLoading}
-          className="flex-1 h-9 text-xs bg-gray-900 hover:bg-gray-800"
+          className="flex-1 h-10 sm:h-9 text-sm sm:text-xs bg-gray-900 hover:bg-gray-800"
         >
           <Calendar className="h-3 w-3 mr-1" />
           Book Appointment

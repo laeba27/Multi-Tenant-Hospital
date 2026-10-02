@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { buildInvoiceLineItems } from '@/lib/invoices/lineItems'
 import {
   Printer,
   Download,
@@ -39,6 +40,22 @@ export function InvoiceView({ invoice, hospital, patient, onClose }) {
         minute: '2-digit'
       })
     : 'N/A'
+
+  const appointment = invoice?.appointments || null
+  const lineItems = buildInvoiceLineItems(invoice, appointment)
+  const appointmentDate = appointment?.appointment_date
+    ? new Date(appointment.appointment_date).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      })
+    : null
+
+  // Tax is editable at generation time; derive the label from stored amounts.
+  const taxableBase = parseFloat(invoice?.subtotal || 0)
+  const taxPercentLabel = taxableBase > 0
+    ? `${parseFloat(((parseFloat(invoice?.tax_amount || 0) / taxableBase) * 100).toFixed(2))}%`
+    : ''
 
   const invoiceContent = (
     <div style={{ padding: '40px', fontFamily: 'Arial, sans-serif', fontSize: '12px', lineHeight: '1.4', color: '#000', textTransform: 'uppercase', margin: '0' }}>
@@ -137,30 +154,98 @@ export function InvoiceView({ invoice, hospital, patient, onClose }) {
           </table>
         </div>
 
+        {/* APPOINTMENT DETAILS */}
+        {appointment && (
+          <div style={{ marginBottom: '20px' }}>
+            <p style={{ fontWeight: 'bold', margin: '0 0 10px 0', fontSize: '12px', borderBottom: '1px solid #000', paddingBottom: '5px', display: 'inline-block' }}>
+              APPOINTMENT DETAILS
+            </p>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <tbody>
+                <tr>
+                  <td style={{ padding: '4px 0', fontSize: '11px', width: '35%' }}>Appointment ID:</td>
+                  <td style={{ padding: '4px 0', fontSize: '11px' }}>{appointment.id || 'N/A'}</td>
+                </tr>
+                {appointment.doctors?.name && (
+                  <tr>
+                    <td style={{ padding: '4px 0', fontSize: '11px' }}>Doctor:</td>
+                    <td style={{ padding: '4px 0', fontSize: '11px', fontWeight: 'bold' }}>Dr. {appointment.doctors.name}</td>
+                  </tr>
+                )}
+                {appointment.departments?.name && (
+                  <tr>
+                    <td style={{ padding: '4px 0', fontSize: '11px' }}>Department:</td>
+                    <td style={{ padding: '4px 0', fontSize: '11px' }}>{appointment.departments.name}</td>
+                  </tr>
+                )}
+                <tr>
+                  <td style={{ padding: '4px 0', fontSize: '11px' }}>Date & Time:</td>
+                  <td style={{ padding: '4px 0', fontSize: '11px' }}>
+                    {appointmentDate || 'N/A'}{appointment.appointment_slot ? ` at ${appointment.appointment_slot}` : ''}
+                  </td>
+                </tr>
+                {appointment.appointment_type && (
+                  <tr>
+                    <td style={{ padding: '4px 0', fontSize: '11px' }}>Visit Type:</td>
+                    <td style={{ padding: '4px 0', fontSize: '11px' }}>{appointment.appointment_type}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* PAYMENT FOR */}
+        {invoice?.description && (
+          <div style={{ border: '1px solid #000', padding: '10px 12px', marginBottom: '20px' }}>
+            <p style={{ margin: '0 0 4px 0', fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px' }}>
+              PAYMENT FOR
+            </p>
+            <p style={{ margin: 0, fontSize: '13px', fontWeight: 'bold', textTransform: 'none' }}>
+              {invoice.description}
+            </p>
+          </div>
+        )}
+
         {/* BILLING SUMMARY */}
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid #000' }}>
-              <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '11px', fontWeight: 'bold' }}>
-                Description
+              <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '11px', fontWeight: 'bold', width: '110px' }}>
+                Date
               </th>
-              <th style={{ padding: '10px 8px', textAlign: 'right', fontSize: '11px', fontWeight: 'bold', width: '150px' }}>
+              <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '11px', fontWeight: 'bold' }}>
+                Treatment / Service
+              </th>
+              <th style={{ padding: '10px 8px', textAlign: 'right', fontSize: '11px', fontWeight: 'bold', width: '130px' }}>
                 Amount (INR)
               </th>
             </tr>
           </thead>
           <tbody>
+            {lineItems.map((item, index) => (
+              <tr key={index} style={{ borderBottom: '1px solid #000' }}>
+                <td style={{ padding: '10px 8px', fontSize: '11px', whiteSpace: 'nowrap' }}>{item.date}</td>
+                <td style={{ padding: '10px 8px', fontSize: '11px' }}>
+                  {item.label}
+                  {item.detail && (
+                    <div style={{ fontSize: '10px', color: '#555', marginTop: '2px' }}>{item.detail}</div>
+                  )}
+                </td>
+                <td style={{ padding: '10px 8px', fontSize: '11px', textAlign: 'right', fontWeight: 'bold' }}>
+                  ₹{item.amount.toFixed(2)}
+                </td>
+              </tr>
+            ))}
             <tr style={{ borderBottom: '1px solid #000' }}>
-              <td style={{ padding: '10px 8px', fontSize: '11px' }}>
-                Subtotal
-              </td>
+              <td colSpan={2} style={{ padding: '10px 8px', fontSize: '11px', fontWeight: 'bold' }}>Subtotal</td>
               <td style={{ padding: '10px 8px', fontSize: '11px', textAlign: 'right', fontWeight: 'bold' }}>
                 ₹{parseFloat(invoice?.subtotal || 0).toFixed(2)}
               </td>
             </tr>
             {parseFloat(invoice?.tax_amount || 0) > 0 && (
               <tr style={{ borderBottom: '1px solid #000' }}>
-                <td style={{ padding: '10px 8px', fontSize: '11px' }}>Tax (2.5%)</td>
+                <td colSpan={2} style={{ padding: '10px 8px', fontSize: '11px' }}>Tax{taxPercentLabel ? ` (${taxPercentLabel})` : ''}</td>
                 <td style={{ padding: '10px 8px', fontSize: '11px', textAlign: 'right' }}>
                   ₹{parseFloat(invoice?.tax_amount || 0).toFixed(2)}
                 </td>
@@ -168,7 +253,7 @@ export function InvoiceView({ invoice, hospital, patient, onClose }) {
             )}
             {parseFloat(invoice?.discount_amount || 0) > 0 && (
               <tr style={{ borderBottom: '1px solid #000' }}>
-                <td style={{ padding: '10px 8px', fontSize: '11px' }}>
+                <td colSpan={2} style={{ padding: '10px 8px', fontSize: '11px' }}>
                   Discount ({invoice?.discount_type === 'percentage' ? `${invoice?.discount_value}%` : 'Fixed'})
                 </td>
                 <td style={{ padding: '10px 8px', fontSize: '11px', textAlign: 'right' }}>

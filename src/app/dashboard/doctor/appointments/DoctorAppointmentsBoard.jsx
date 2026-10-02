@@ -177,9 +177,10 @@ function AppointmentRow({ appointment, onReschedule, onDelete, onViewProfile }) 
   const hasRx = appointment.has_prescription
 
   return (
-    <div className="grid grid-cols-12 items-center gap-4 px-4 py-3.5 transition-colors hover:bg-slate-50/70">
+    // Stacked card on phones, one 12-column row from md up.
+    <div className="flex flex-col gap-3 md:grid md:grid-cols-12 md:items-center md:gap-4 px-4 py-3.5 transition-colors hover:bg-slate-50/70">
       {/* Patient */}
-      <div className="col-span-4 flex items-center gap-3 min-w-0">
+      <div className="md:col-span-4 flex items-center gap-3 min-w-0">
         <div className="h-9 w-9 shrink-0 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[12px] font-semibold">
           {initialsOf(patient.name)}
         </div>
@@ -190,13 +191,13 @@ function AppointmentRow({ appointment, onReschedule, onDelete, onViewProfile }) 
       </div>
 
       {/* Date & time */}
-      <div className="col-span-3">
+      <div className="md:col-span-3 flex items-baseline gap-2 md:block">
         <p className="text-sm font-medium text-gray-900">{formatAppointmentDate(appointment.appointment_date)}</p>
         <p className="text-xs text-gray-500">{appointment.appointment_slot || '—'}</p>
       </div>
 
       {/* Status + prescription state */}
-      <div className="col-span-2 flex flex-col items-start gap-1.5">
+      <div className="md:col-span-2 flex flex-wrap md:flex-col items-center md:items-start gap-1.5">
         <Badge className={cn('capitalize text-[11px] font-medium', statusMeta.className)}>
           {statusMeta.label}
         </Badge>
@@ -212,12 +213,12 @@ function AppointmentRow({ appointment, onReschedule, onDelete, onViewProfile }) 
       </div>
 
       {/* Actions */}
-      <div className="col-span-3 flex items-center gap-2 justify-end">
+      <div className="md:col-span-3 flex items-center gap-2 md:justify-end">
         <Button
           asChild
           size="sm"
           className={cn(
-            'h-9 font-semibold',
+            'h-10 md:h-9 flex-1 md:flex-none font-semibold',
             hasRx
               ? 'bg-violet-600 hover:bg-violet-700 text-white'
               : 'bg-indigo-600 hover:bg-indigo-700 text-white'
@@ -229,7 +230,7 @@ function AppointmentRow({ appointment, onReschedule, onDelete, onViewProfile }) 
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-9 border border-gray-200">
+            <Button variant="ghost" size="sm" className="h-10 md:h-9 flex-1 md:flex-none border border-gray-200">
               Manage
             </Button>
           </DropdownMenuTrigger>
@@ -316,7 +317,7 @@ export function DoctorAppointmentsBoard({ appointments = [] }) {
   const renderAppointments = (items) => {
     if (!items?.length) {
       return (
-        <div className="rounded-xl border border-dashed border-gray-200 bg-white p-10 text-center text-gray-500">
+        <div className="rounded-xl border border-dashed border-gray-200 bg-white p-6 sm:p-10 text-center text-gray-500">
           No appointments to display in this tab.
         </div>
       )
@@ -324,7 +325,7 @@ export function DoctorAppointmentsBoard({ appointments = [] }) {
 
     return (
       <div className="divide-y divide-gray-100 rounded-xl border border-gray-100 bg-white overflow-hidden">
-        <div className="grid grid-cols-12 gap-4 bg-slate-50/80 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+        <div className="hidden md:grid grid-cols-12 gap-4 bg-slate-50/80 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
           <span className="col-span-4">Patient</span>
           <span className="col-span-3">Date &amp; Time</span>
           <span className="col-span-2">Status / Rx</span>
@@ -371,7 +372,7 @@ export function DoctorAppointmentsBoard({ appointments = [] }) {
         </CardHeader>
         <CardContent className="space-y-6">
           <Tabs defaultValue="today">
-            <TabsList>
+            <TabsList className="w-full justify-start overflow-x-auto sm:w-fit">
               <TabsTrigger value="today">Today ({summary.today})</TabsTrigger>
               <TabsTrigger value="upcoming">Upcoming ({summary.upcoming})</TabsTrigger>
               <TabsTrigger value="prescribed">Prescribed ({summary.prescribed})</TabsTrigger>

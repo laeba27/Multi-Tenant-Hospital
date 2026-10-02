@@ -359,7 +359,7 @@ export function AppointmentCustomPrescriptionComposer({
   return (
     <div className="space-y-3">
       {templates.length > 1 && (
-        <div className="bg-white border border-slate-200 rounded-md p-2 flex items-center gap-2">
+        <div className="bg-white border border-slate-200 rounded-md p-2 flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
           <Label className="text-[12px] font-semibold uppercase tracking-wide text-slate-500 shrink-0">
             Template
           </Label>
@@ -416,7 +416,7 @@ export function AppointmentCustomPrescriptionComposer({
           </div>
 
           <div className="sticky bottom-3 z-10">
-            <div className="bg-white border border-slate-200 rounded-md shadow-sm flex gap-2 p-2">
+            <div className="bg-white border border-slate-200 rounded-md shadow-sm grid grid-cols-2 sm:flex gap-2 p-2">
               <Button
                 onClick={() => setShowPreview(true)}
                 variant="outline"
@@ -440,7 +440,7 @@ export function AppointmentCustomPrescriptionComposer({
               <Button
                 onClick={() => handleSubmit(false)}
                 size="sm"
-                className="flex-1 gap-1.5 h-10 text-[14px] font-semibold uppercase tracking-wide bg-blue-600 hover:bg-blue-700"
+                className="col-span-2 sm:col-span-1 flex-1 gap-1.5 h-11 sm:h-10 text-[14px] font-semibold uppercase tracking-wide bg-blue-600 hover:bg-blue-700"
                 disabled={isLoading || isPending || !selectedTemplate}
               >
                 <FileText className="w-4 h-4" />
@@ -559,14 +559,14 @@ function SectionBlock({
     <div className="bg-white border border-slate-200 rounded-md">
       <button
         onClick={onToggle}
-        className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-blue-50/40 transition-colors text-left border-b border-slate-200 rounded-t-md"
+        className="w-full px-3 py-3 sm:py-2.5 flex items-center justify-between hover:bg-blue-50/40 transition-colors text-left border-b border-slate-200 rounded-t-md"
       >
         <div className="flex items-center gap-2 min-w-0">
           <h3 className="font-semibold text-slate-900 text-[14px] tracking-tight uppercase">
             {section.name}
           </h3>
           {section.description && (
-            <span className="text-[12px] text-slate-500 truncate normal-case">
+            <span className="hidden sm:inline text-[12px] text-slate-500 truncate normal-case">
               {section.description}
             </span>
           )}
@@ -589,9 +589,9 @@ function SectionBlock({
       {expanded && fields.length > 0 && (
         <div className="p-3 space-y-3">
           {/* Composer row — labeled inputs share the row equally */}
-          <div className="flex items-end gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:items-end gap-2">
             {fields.map((field) => (
-              <div key={field.id} className="space-y-1 flex-1 min-w-0">
+              <div key={field.id} className="space-y-1 md:flex-1 min-w-0">
                 <Label className="text-[12px] font-semibold text-slate-700 flex items-center gap-0.5 uppercase tracking-wide">
                   {field.label}
                   {field.required && <span className="text-rose-500">*</span>}
@@ -608,7 +608,7 @@ function SectionBlock({
             <Button
               type="button"
               onClick={onAdd}
-              className="h-9 shrink-0 gap-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white shadow-none text-[13px] font-semibold uppercase tracking-wide"
+              className="h-10 md:h-9 w-full md:w-auto sm:col-span-2 shrink-0 gap-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white shadow-none text-[13px] font-semibold uppercase tracking-wide"
               title="Add entry to table"
             >
               <Plus className="w-4 h-4" />
@@ -1316,50 +1316,54 @@ function PrescriptionPreviewModal({
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/50 z-50 flex items-start justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 bg-slate-900/50 z-50 flex items-start justify-center p-0 sm:p-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-md shadow-xl w-full max-w-3xl my-6"
+        className="bg-white sm:rounded-md shadow-xl w-full max-w-3xl min-h-dvh sm:min-h-0 sm:my-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Toolbar */}
-        <div className="flex items-center justify-between px-4 h-12 border-b border-slate-200 sticky top-0 bg-white rounded-t-md z-10">
-          <h2 className="text-[14px] font-semibold uppercase tracking-tight text-slate-900">
+        <div className="flex items-center justify-between gap-2 px-3 sm:px-4 h-12 border-b border-slate-200 sticky top-0 bg-white sm:rounded-t-md z-10">
+          <h2 className="text-[13px] sm:text-[14px] font-semibold uppercase tracking-tight text-slate-900 truncate">
             Prescription Preview
           </h2>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Button
               onClick={handleDownload}
               size="sm"
               disabled={busy}
-              className="h-8 gap-1.5 text-[13px] font-semibold uppercase tracking-wide bg-blue-600 hover:bg-blue-700"
+              className="h-9 sm:h-8 px-2.5 sm:px-3 gap-1.5 text-[13px] font-semibold uppercase tracking-wide bg-blue-600 hover:bg-blue-700"
+              title="Download"
             >
               <Download className="w-4 h-4" />
-              {busy ? 'Preparing…' : 'Download'}
+              <span className="hidden sm:inline">{busy ? 'Preparing…' : 'Download'}</span>
             </Button>
             <Button
               onClick={handleShare}
               size="sm"
               variant="outline"
               disabled={busy}
-              className="h-8 gap-1.5 text-[13px] font-semibold uppercase tracking-wide"
+              className="h-9 sm:h-8 px-2.5 sm:px-3 gap-1.5 text-[13px] font-semibold uppercase tracking-wide"
+              title="Share"
             >
               <Share2 className="w-4 h-4" />
-              Share
+              <span className="hidden sm:inline">Share</span>
             </Button>
             <Button
               onClick={handlePrint}
               size="sm"
               variant="outline"
-              className="h-8 gap-1.5 text-[13px] font-semibold uppercase tracking-wide"
+              className="h-9 sm:h-8 px-2.5 sm:px-3 gap-1.5 text-[13px] font-semibold uppercase tracking-wide"
+              title="Print"
             >
               <Printer className="w-4 h-4" />
-              Print
+              <span className="hidden sm:inline">Print</span>
             </Button>
             <button
               onClick={onClose}
-              className="h-8 w-8 inline-flex items-center justify-center rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              title="Close"
+              className="h-9 w-9 sm:h-8 sm:w-8 inline-flex items-center justify-center rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100"
             >
               <X className="w-4 h-4" />
             </button>
@@ -1368,8 +1372,8 @@ function PrescriptionPreviewModal({
 
         {/* Share fallback — shown when the browser can't attach the file natively */}
         {showShareFallback && (
-          <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-200 bg-slate-50">
-            <span className="text-[12px] text-slate-600 mr-1">Share the downloaded PDF via:</span>
+          <div className="flex flex-wrap items-center gap-2 px-3 sm:px-4 py-2 border-b border-slate-200 bg-slate-50">
+            <span className="w-full sm:w-auto text-[12px] text-slate-600 mr-1">Share the downloaded PDF via:</span>
             <Button
               onClick={openWhatsApp}
               size="sm"
@@ -1398,9 +1402,9 @@ function PrescriptionPreviewModal({
         )}
 
         {/* On-screen preview (the print uses the same HTML in a new window) */}
-        <div className="bg-slate-100 p-4">
+        <div className="bg-slate-100 p-2 sm:p-4 overflow-x-auto">
           <div
-            className="bg-white shadow-sm mx-auto"
+            className="bg-white shadow-sm mx-auto min-w-[560px]"
             style={{ maxWidth: '794px' }}
             dangerouslySetInnerHTML={{ __html: html }}
           />

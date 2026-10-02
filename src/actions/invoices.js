@@ -3,6 +3,37 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 /**
+ * Insert an invoice row, tolerating a database that predates migration 033.
+ *
+ * Until `invoices.description` exists, PostgREST rejects the whole insert --
+ * which would stop billing outright. In that case the purpose is folded into
+ * `notes` (so it is still recorded and printed) and the insert is retried.
+ * `run` receives the row and returns the Supabase query.
+ */
+async function insertInvoiceRow(row, run) {
+  let result = await run(row)
+  const err = result.error
+  const missingColumn =
+    err && row.description != null &&
+    (err.code === 'PGRST204' || err.code === '42703') &&
+    /description/i.test(err.message || '')
+
+  if (missingColumn) {
+    const { description, ...rest } = row
+    const notes = [`Payment for: ${description}`, row.notes].filter(Boolean).join('\n')
+    result = await run({ ...rest, notes })
+    // Hand the caller the purpose anyway, so the receipt printed right after
+    // creation still shows it.
+    if (!result.error && result.data) {
+      result.data = Array.isArray(result.data)
+        ? result.data.map((r) => ({ ...r, description }))
+        : { ...result.data, description }
+    }
+  }
+  return result
+}
+
+/**
  * Fetch hospital details by registration number
  */
 export async function getHospitalDetails(registrationNo) {
@@ -126,9 +157,12 @@ export async function generateInvoice(data, currentUserId) {
           : 'unpaid'
 
     // Insert invoice with registration_no as hospital_id (matches foreign key constraint)
-    const { data: invoice, error } = await adminClient
-      .from('invoices')
-      .insert({
+    const description = String(data.description || '').trim()
+    if (!description) {
+      return { success: false, error: 'Enter what this payment is for.' }
+    }
+
+    const { data: invoice, error } = await insertInvoiceRow({
         id: invoiceId,
         hospital_id: data.hospital_id,
         patient_id: data.patient_id,
@@ -142,10 +176,10 @@ export async function generateInvoice(data, currentUserId) {
         paid_amount: paidAmount,
         due_amount: dueAmount,
         payment_status: paymentStatus,
+        description,
         notes: data.notes || null,
         created_by: currentUserId
-      })
-      .select()
+      }, (row) => adminClient.from('invoices').insert(row).select())
 
     if (error) throw error
 
@@ -452,7 +486,11 @@ export async function getHospitalInvoicesWithDetails(hospitalId, filters = {}) {
           id,
           appointment_date,
           appointment_slot,
+          appointment_type,
           status,
+          reason,
+          consultation_fee_snapshot,
+          treatment_details,
           doctors:doctor_id(
             name,
             specialization
@@ -545,6 +583,11 @@ export async function createInvoice(invoiceData, userId) {
       return { data: null, error: gate.error || 'You cannot create invoices.' }
     }
 
+    const description = String(invoiceData.description || '').trim()
+    if (!description) {
+      return { data: null, error: 'Enter what this payment is for.' }
+    }
+
     const adminClient = await createAdminClient()
 
     // Generate invoice ID
@@ -582,15 +625,14 @@ export async function createInvoice(invoiceData, userId) {
       paid_amount: paidAmount,
       due_amount: dueAmount,
       payment_status: paymentStatus,
+      description,
       notes: invoiceData.notes || null,
       created_by: userId,
     }
 
-    const { data, error } = await adminClient
-      .from('invoices')
-      .insert(invoice)
-      .select()
-      .single()
+    const { data, error } = await insertInvoiceRow(invoice, (row) =>
+      adminClient.from('invoices').insert(row).select().single()
+    )
 
     if (error) throw error
 
