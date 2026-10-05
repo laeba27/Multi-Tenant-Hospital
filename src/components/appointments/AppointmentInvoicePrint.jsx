@@ -68,7 +68,7 @@ export function AppointmentInvoicePrint({ invoice, hospital, patient, appointmen
     ? `${parseFloat(((parseFloat(invoice?.tax_amount || 0) / taxableBase) * 100).toFixed(2))}%`
     : ''
 
-  // Same itemised Date | Treatment | Amount rows as the Billing page view.
+  // Same itemised Treatment | Amount rows as the Billing page view.
   const subtotal = parseFloat(invoice?.subtotal || 0)
   const billedItems = buildInvoiceLineItems(invoice, { ...appointment, doctor_name: doctorName !== 'N/A' ? doctorName : null })
 
@@ -227,9 +227,6 @@ export function AppointmentInvoicePrint({ invoice, hospital, patient, appointmen
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid #000' }}>
-              <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '11px', fontWeight: 'bold', width: '110px' }}>
-                Date
-              </th>
               <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '11px', fontWeight: 'bold' }}>
                 Treatment / Service
               </th>
@@ -241,7 +238,6 @@ export function AppointmentInvoicePrint({ invoice, hospital, patient, appointmen
           <tbody>
             {billedItems.map((item, index) => (
               <tr key={index} style={{ borderBottom: '1px solid #000' }}>
-                <td style={{ padding: '10px 8px', fontSize: '11px', whiteSpace: 'nowrap' }}>{item.date}</td>
                 <td style={{ padding: '10px 8px', fontSize: '11px' }}>
                   {item.label}
                   {item.detail && (
@@ -254,14 +250,14 @@ export function AppointmentInvoicePrint({ invoice, hospital, patient, appointmen
               </tr>
             ))}
             <tr style={{ borderBottom: '1px solid #000' }}>
-              <td colSpan={2} style={{ padding: '10px 8px', fontSize: '11px', fontWeight: 'bold' }}>Subtotal</td>
+              <td style={{ padding: '10px 8px', fontSize: '11px', fontWeight: 'bold' }}>Subtotal</td>
               <td style={{ padding: '10px 8px', fontSize: '11px', textAlign: 'right', fontWeight: 'bold' }}>
                 ₹{subtotal.toFixed(2)}
               </td>
             </tr>
             {parseFloat(invoice?.tax_amount || 0) > 0 && (
               <tr style={{ borderBottom: '1px solid #000' }}>
-                <td colSpan={2} style={{ padding: '10px 8px', fontSize: '11px' }}>
+                <td style={{ padding: '10px 8px', fontSize: '11px' }}>
                   Tax{taxPercentLabel ? ` (${taxPercentLabel})` : ''}
                 </td>
                 <td style={{ padding: '10px 8px', fontSize: '11px', textAlign: 'right' }}>
@@ -271,7 +267,7 @@ export function AppointmentInvoicePrint({ invoice, hospital, patient, appointmen
             )}
             {parseFloat(invoice?.discount_amount || 0) > 0 && (
               <tr style={{ borderBottom: '1px solid #000' }}>
-                <td colSpan={2} style={{ padding: '10px 8px', fontSize: '11px' }}>
+                <td style={{ padding: '10px 8px', fontSize: '11px' }}>
                   Discount ({invoice?.discount_type === 'percentage' ? `${invoice?.discount_value}%` : 'Fixed'})
                 </td>
                 <td style={{ padding: '10px 8px', fontSize: '11px', textAlign: 'right' }}>

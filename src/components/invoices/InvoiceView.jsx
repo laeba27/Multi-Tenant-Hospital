@@ -211,9 +211,6 @@ export function InvoiceView({ invoice, hospital, patient, onClose }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid #000' }}>
-              <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '11px', fontWeight: 'bold', width: '110px' }}>
-                Date
-              </th>
               <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '11px', fontWeight: 'bold' }}>
                 Treatment / Service
               </th>
@@ -225,7 +222,6 @@ export function InvoiceView({ invoice, hospital, patient, onClose }) {
           <tbody>
             {lineItems.map((item, index) => (
               <tr key={index} style={{ borderBottom: '1px solid #000' }}>
-                <td style={{ padding: '10px 8px', fontSize: '11px', whiteSpace: 'nowrap' }}>{item.date}</td>
                 <td style={{ padding: '10px 8px', fontSize: '11px' }}>
                   {item.label}
                   {item.detail && (
@@ -238,14 +234,14 @@ export function InvoiceView({ invoice, hospital, patient, onClose }) {
               </tr>
             ))}
             <tr style={{ borderBottom: '1px solid #000' }}>
-              <td colSpan={2} style={{ padding: '10px 8px', fontSize: '11px', fontWeight: 'bold' }}>Subtotal</td>
+              <td style={{ padding: '10px 8px', fontSize: '11px', fontWeight: 'bold' }}>Subtotal</td>
               <td style={{ padding: '10px 8px', fontSize: '11px', textAlign: 'right', fontWeight: 'bold' }}>
                 ₹{parseFloat(invoice?.subtotal || 0).toFixed(2)}
               </td>
             </tr>
             {parseFloat(invoice?.tax_amount || 0) > 0 && (
               <tr style={{ borderBottom: '1px solid #000' }}>
-                <td colSpan={2} style={{ padding: '10px 8px', fontSize: '11px' }}>Tax{taxPercentLabel ? ` (${taxPercentLabel})` : ''}</td>
+                <td style={{ padding: '10px 8px', fontSize: '11px' }}>Tax{taxPercentLabel ? ` (${taxPercentLabel})` : ''}</td>
                 <td style={{ padding: '10px 8px', fontSize: '11px', textAlign: 'right' }}>
                   ₹{parseFloat(invoice?.tax_amount || 0).toFixed(2)}
                 </td>
@@ -253,7 +249,7 @@ export function InvoiceView({ invoice, hospital, patient, onClose }) {
             )}
             {parseFloat(invoice?.discount_amount || 0) > 0 && (
               <tr style={{ borderBottom: '1px solid #000' }}>
-                <td colSpan={2} style={{ padding: '10px 8px', fontSize: '11px' }}>
+                <td style={{ padding: '10px 8px', fontSize: '11px' }}>
                   Discount ({invoice?.discount_type === 'percentage' ? `${invoice?.discount_value}%` : 'Fixed'})
                 </td>
                 <td style={{ padding: '10px 8px', fontSize: '11px', textAlign: 'right' }}>
