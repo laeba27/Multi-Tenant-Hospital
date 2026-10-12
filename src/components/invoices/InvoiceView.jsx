@@ -3,6 +3,7 @@
 import React, { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { buildInvoiceLineItems } from '@/lib/invoices/lineItems'
+import { INVOICE_RESPONSIVE_CSS } from '@/lib/invoices/responsiveInvoiceStyles'
 import {
   Printer,
   Download,
@@ -58,13 +59,15 @@ export function InvoiceView({ invoice, hospital, patient, onClose }) {
     : ''
 
   const invoiceContent = (
-    <div style={{ padding: '40px', fontFamily: 'Arial, sans-serif', fontSize: '12px', lineHeight: '1.4', color: '#000', textTransform: 'uppercase', margin: '0' }}>
+    <div className="inv-doc" style={{ padding: '40px', fontFamily: 'Arial, sans-serif', fontSize: '12px', lineHeight: '1.4', color: '#000', textTransform: 'uppercase', margin: '0' }}>
+
+      <style>{INVOICE_RESPONSIVE_CSS}</style>
 
       {/* Main Container */}
-      <div style={{ border: '1px solid #000', padding: '30px' }}>
+      <div className="inv-box" style={{ border: '1px solid #000', padding: '30px' }}>
 
         {/* HEADER */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+        <table className="inv-stack" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
           <tbody>
             <tr>
               <td style={{ width: '60%', verticalAlign: 'top', paddingBottom: '15px', textTransform: 'uppercase' }}>
@@ -208,7 +211,7 @@ export function InvoiceView({ invoice, hospital, patient, onClose }) {
         )}
 
         {/* BILLING SUMMARY */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+        <table className="inv-items" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid #000' }}>
               <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '11px', fontWeight: 'bold' }}>
@@ -261,7 +264,7 @@ export function InvoiceView({ invoice, hospital, patient, onClose }) {
         </table>
 
         {/* TOTALS */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px', marginLeft: 'auto' }}>
+        <table className="inv-totals" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px', marginLeft: 'auto' }}>
           <tbody>
             <tr style={{ borderTop: '2px solid #000' }}>
               <td style={{ padding: '10px 20px', textAlign: 'right', fontSize: '12px', fontWeight: 'bold', width: '150px' }}>
@@ -400,7 +403,7 @@ export function InvoiceView({ invoice, hospital, patient, onClose }) {
 
       {/* Invoice Display */}
       <div className="w-full border border-gray-300 rounded-lg overflow-auto max-h-[65vh] bg-white">
-        <div className="p-4 md:p-6">
+        <div className="p-2 sm:p-4 md:p-6">
           {invoiceContent}
         </div>
       </div>

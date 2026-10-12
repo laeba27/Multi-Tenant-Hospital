@@ -678,8 +678,8 @@ export function BillingWorkspace() {
       {selectedInvoiceForView && (
         <Dialog open={!!selectedInvoiceForView} onOpenChange={() => setSelectedInvoiceForView(null)}>
           <DialogContent className="max-w-4xl! w-full h-[85vh] flex flex-col overflow-hidden p-0">
-            <DialogHeader className="px-6 pt-6 pb-2">
-              <DialogTitle className="flex items-center gap-1.5">
+            <DialogHeader className="px-4 sm:px-6 pt-6 pb-2 pr-10">
+              <DialogTitle className="flex items-center gap-1.5 text-left">
                 Invoice Details - {selectedInvoiceForView.id}
                 <HelpHint
                   title="Invoice"
@@ -690,7 +690,7 @@ export function BillingWorkspace() {
                 />
               </DialogTitle>
             </DialogHeader>
-            <div className="px-6 pb-6 flex-1 overflow-y-auto min-h-0">
+            <div className="px-3 sm:px-6 pb-4 sm:pb-6 flex-1 overflow-y-auto min-h-0">
               <InvoiceView
                 invoice={selectedInvoiceForView}
                 hospital={staffDetails?.hospitals}
