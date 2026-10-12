@@ -135,7 +135,7 @@ export async function sendHospitalRegistrationPendingEmail({
         )}
         ${detailsTable(
           codeRow('Hospital registration', registrationNo) +
-            codeRow('Admin registration', userRegistrationNo)
+            (userRegistrationNo ? codeRow('Admin registration', userRegistrationNo) : '')
         )}
         ${para('Once approved, you will be able to sign in here:')}
         ${button('Go to sign in', signInLink)}
@@ -153,8 +153,7 @@ Your hospital registration for ${hospitalName} has been received.
 Status: Pending Approval
 
 Hospital registration: ${registrationNo}
-Admin registration: ${userRegistrationNo}
-
+${userRegistrationNo ? `Admin registration: ${userRegistrationNo}\n` : ''}
 A super administrator will review your registration and enable login access.
 You will receive another email once your account is approved.
 
@@ -197,7 +196,7 @@ export async function sendHospitalApprovalEmail({
         )}
         ${detailsTable(
           codeRow('Hospital registration', registrationNo) +
-            codeRow('Admin registration', userRegistrationNo)
+            (userRegistrationNo ? codeRow('Admin registration', userRegistrationNo) : '')
         )}
         ${button('Sign in to your dashboard', signInLink)}
       `,
@@ -213,8 +212,7 @@ export async function sendHospitalApprovalEmail({
 Your hospital ${hospitalName} has been approved and your login access is now enabled.
 
 Hospital registration: ${registrationNo}
-Admin registration: ${userRegistrationNo}
-
+${userRegistrationNo ? `Admin registration: ${userRegistrationNo}\n` : ''}
 Sign in here:
 ${signInLink}
 

@@ -242,8 +242,11 @@ export async function POST(request) {
     // immediately, and the platform keeps the function alive until the work
     // inside finishes. Fast response AND a mail that actually leaves.
     after(async () => {
+      // Mail both the admin's sign-in address and the hospital's own contact
+      // address -- they are separate fields on the form and often differ.
+      const recipients = [...new Set([email, administratorEmail].map((e) => e.trim().toLowerCase()))]
       const result = await sendHospitalRegistrationPendingEmail({
-        email,
+        email: recipients,
         hospitalName,
         administratorName,
         registrationNo: hospitalId,

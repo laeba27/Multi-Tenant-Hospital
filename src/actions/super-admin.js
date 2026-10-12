@@ -12,6 +12,15 @@ import {
 const ACTIVE_HOSPITAL_STATUSES = new Set(['active', 'approved'])
 const PENDING_HOSPITAL_STATUSES = new Set(['pending', 'pending approval', 'pending_approval'])
 
+// Registration stores two addresses: the admin's sign-in email on the profile
+// and the hospital's own contact email on the hospital row. They are often
+// different, and the hospital expects its notices at its own address -- so it
+// is always mailed too, not only when no admin email exists.
+function needsHospitalContact(recipients, hospital) {
+  const contact = hospital?.email?.trim().toLowerCase()
+  return !!contact && !recipients.some((r) => r.email?.trim().toLowerCase() === contact)
+}
+
 function normalizeStatus(value) {
   return (value || '').trim().toLowerCase()
 }
@@ -225,11 +234,8 @@ export async function approveHospitalRegistration(hospitalRegistrationNo) {
 
     const adminRecipients = (hospitalAdmins || []).filter((adminProfile) => !!adminProfile.email)
 
-    // Fall back to the hospital's own contact address when no admin profile
-    // carries one. Registration writes two DIFFERENT addresses -- the sign-in
-    // address onto the profile, `administratorEmail` onto the hospital -- so a
-    // profile with a blank email would otherwise be approved with nobody told.
-    if (adminRecipients.length === 0 && hospital.email) {
+    // Also notify the hospital's own contact address -- see needsHospitalContact.
+    if (needsHospitalContact(adminRecipients, hospital)) {
       adminRecipients.push({
         email: hospital.email,
         name: hospital.administrator_name,
@@ -344,9 +350,7 @@ export async function setHospitalAccess(hospitalRegistrationNo, grant) {
 
     const recipients = (hospitalAdmins || []).filter((adminProfile) => !!adminProfile.email)
 
-    // Same fallback as approval -- see the note there on the two addresses
-    // registration writes.
-    if (recipients.length === 0 && hospital.email) {
+    if (needsHospitalContact(recipients, hospital)) {
       recipients.push({ email: hospital.email, name: hospital.administrator_name })
     }
 
@@ -430,7 +434,7 @@ export async function requestHospitalDetails(hospitalRegistrationNo, note = '') 
         administratorName: adminProfile.name || hospital.administrator_name || 'Hospital Admin',
       }))
 
-    if (recipients.length === 0 && hospital.email) {
+    if (needsHospitalContact(recipients, hospital)) {
       recipients.push({
         email: hospital.email,
         administratorName: hospital.administrator_name || 'Hospital Admin',
