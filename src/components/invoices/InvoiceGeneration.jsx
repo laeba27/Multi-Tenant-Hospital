@@ -171,8 +171,9 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white">
-      {/* Header */}
-      <div className="border-b px-4 py-3 bg-gray-50">
+      {/* Header. Phones drop it: the dialog title above already names the step,
+          and every line here is a line less for the form. */}
+      <div className="hidden sm:block border-b px-4 py-3 bg-gray-50">
         <div className="flex items-center gap-2">
           <CreditCard className="w-4 h-4 text-gray-600" />
           <div>
@@ -211,7 +212,9 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
             maxLength={300}
-            className="resize-none text-sm min-h-[56px]"
+            // Grow with the text: the default purpose often runs to three
+            // lines on a phone, and a clipped line is easy to miss.
+            className="resize-none text-sm min-h-[56px] max-h-32 field-sizing-content"
           />
           <p className="text-[11px] text-gray-500">Printed on the invoice so the patient knows what they paid for.</p>
         </div>
@@ -272,7 +275,7 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
               </span>
             </div>
             <div className="flex gap-2">
-              <div className="flex h-9 w-20 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-gray-50 text-sm text-gray-600">
+              <div className="flex h-9 w-24 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-gray-50 text-sm text-gray-600">
                 %
               </div>
               <Input
@@ -297,7 +300,7 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
             </div>
             <div className="flex gap-2">
               <Select value={discountType} onValueChange={setDiscountType}>
-                <SelectTrigger className="h-9 w-20 text-sm shrink-0">
+                <SelectTrigger className="h-9 w-24 text-sm shrink-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -459,12 +462,14 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-2 pt-1 border-t">
-          <div className="text-center p-2 bg-green-50 rounded">
+        {/* On phones each tile is one line (label left, amount right) so the
+            pinned footer doesn't eat half the screen. */}
+        <div className="grid grid-cols-2 gap-2 sm:pt-1 sm:border-t">
+          <div className="flex items-center justify-between gap-1 px-2.5 py-1.5 sm:block sm:text-center sm:p-2 bg-green-50 rounded">
             <p className="text-[10px] text-green-600">Collected</p>
             <p className="text-sm font-bold text-green-700">₹{totalPaid.toFixed(2)}</p>
           </div>
-          <div className={`text-center p-2 rounded ${dueAmount > 0 ? 'bg-orange-50' : 'bg-blue-50'}`}>
+          <div className={`flex items-center justify-between gap-1 px-2.5 py-1.5 sm:block sm:text-center sm:p-2 rounded ${dueAmount > 0 ? 'bg-orange-50' : 'bg-blue-50'}`}>
             <p className={`text-[10px] ${dueAmount > 0 ? 'text-orange-600' : 'text-blue-600'}`}>
               {dueAmount > 0 ? 'Due' : 'Complete'}
             </p>
@@ -474,7 +479,7 @@ export function InvoiceGeneration({ hospitalId, patient, appointment, currentUse
           </div>
         </div>
 
-        <div className="flex gap-2 pt-1">
+        <div className="flex gap-2 sm:pt-1">
           {onBack && (
             <Button variant="outline" onClick={onBack} className="flex-1 h-10 sm:h-9 px-2 text-sm">
               <ArrowLeft className="w-3.5 h-3.5 mr-1" />

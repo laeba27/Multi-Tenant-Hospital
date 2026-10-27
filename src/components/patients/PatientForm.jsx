@@ -27,6 +27,7 @@ import { toast } from 'sonner'
 import { onboardPatient } from '@/actions/patients'
 import { ChevronDown } from 'lucide-react'
 import { readJsonResponse } from '@/lib/utils/safe-json'
+import { ageFromDob } from '@/lib/patients/age'
 
 const patientSchema = z.object({
   // Required. The patient supplies and verifies their own email on first
@@ -36,10 +37,17 @@ const patientSchema = z.object({
     .string()
     .refine((m) => m.replace(/[^\d]/g, '').length >= 10, 'Enter a valid 10-digit phone number'),
   gender: z.enum(['Male', 'Female', 'Other'], { message: 'Gender is required' }),
+  // Reception nearly always knows an age, rarely an exact birth date -- so age
+  // is required and date of birth is optional (it fills the age in when given).
+  age: z
+    .string()
+    .min(1, 'Age is required')
+    .refine((a) => /^\d{1,3}$/.test(a) && Number(a) <= 150, 'Enter age in whole years'),
   date_of_birth: z
     .string()
-    .min(1, 'Date of birth is required')
+    .optional()
     .refine((d) => {
+      if (!d) return true
       const parsed = new Date(d)
       return !Number.isNaN(parsed.valueOf()) && parsed <= new Date()
     }, 'Date of birth must be a valid past date'),
@@ -74,6 +82,7 @@ export function PatientForm({ onSuccess, currentUser }) {
       name: '',
       mobile: '',
       gender: undefined,
+      age: '',
       date_of_birth: '',
       blood_group: undefined,
       height: '',
@@ -169,7 +178,7 @@ export function PatientForm({ onSuccess, currentUser }) {
             )}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <FormField
               control={form.control}
               name="gender"
@@ -178,7 +187,7 @@ export function PatientForm({ onSuccess, currentUser }) {
                   <FormLabel>Gender *</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                     </FormControl>
@@ -195,12 +204,37 @@ export function PatientForm({ onSuccess, currentUser }) {
 
             <FormField
               control={form.control}
+              name="age"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Age (years) *</FormLabel>
+                  <FormControl>
+                    <Input type="number" inputMode="numeric" min={0} max={150} placeholder="e.g., 34" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="date_of_birth"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Date of Birth *</FormLabel>
+                  <FormLabel>Date of Birth</FormLabel>
                   <FormControl>
-                    <Input type="date" max={new Date().toISOString().slice(0, 10)} {...field} />
+                    <Input
+                      type="date"
+                      max={new Date().toISOString().slice(0, 10)}
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e)
+                        // A birth date settles the age -- fill it in rather
+                        // than make reception work it out.
+                        const age = ageFromDob(e.target.value)
+                        if (age !== '') form.setValue('age', age, { shouldValidate: true })
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

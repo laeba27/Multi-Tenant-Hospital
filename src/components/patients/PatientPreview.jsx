@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle, Calendar } from 'lucide-react'
+import { ageFromDob } from '@/lib/patients/age'
 
 export function PatientPreview({ patient, onConfirm, onEdit, isLoading }) {
   if (!patient) {
@@ -22,8 +23,8 @@ export function PatientPreview({ patient, onConfirm, onEdit, isLoading }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white">
-      {/* Header */}
-      <div className="border-b px-4 py-3 bg-gray-50">
+      {/* Header. Hidden on phones, where the dialog title already names the step. */}
+      <div className="hidden sm:block border-b px-4 py-3 bg-gray-50">
         <div className="flex items-center gap-2">
           <CheckCircle className="w-4 h-4 text-green-600" />
           <div>
@@ -59,9 +60,7 @@ export function PatientPreview({ patient, onConfirm, onEdit, isLoading }) {
             <div>
               <p className="text-gray-600">Age</p>
               <p className="font-semibold text-gray-900">
-                {patient.profile?.date_of_birth
-                  ? new Date().getFullYear() - new Date(patient.profile.date_of_birth).getFullYear()
-                  : 'N/A'}
+                {ageFromDob(profile.date_of_birth) || 'N/A'}
               </p>
             </div>
           </div>

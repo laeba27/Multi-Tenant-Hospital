@@ -349,10 +349,10 @@ function BookingForm({ hospital, onBack, onBooked }) {
         </div>
       </div>
 
-      <form onSubmit={submit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <form onSubmit={submit} className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Left / main column */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm space-y-5">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+          <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-6 shadow-sm space-y-5">
             <div>
               <Label className="mb-2 block">Appointment Type *</Label>
               <div className="grid grid-cols-3 gap-2 max-w-md">
@@ -422,7 +422,7 @@ function BookingForm({ hospital, onBack, onBooked }) {
           </div>
 
           {/* Doctor step: your doctors vs others */}
-          <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+          <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-6 shadow-sm space-y-4">
             <Label className="block">Doctor *</Label>
 
             {loadingDoctors ? (
@@ -476,7 +476,7 @@ function BookingForm({ hospital, onBack, onBooked }) {
 
           {/* Optional: complete your details */}
           {missing.length > 0 && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-6 space-y-4">
+            <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 sm:p-6 space-y-4">
               <div className="flex items-start gap-2">
                 <InfoIcon className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
                 <div>
@@ -516,7 +516,7 @@ function BookingForm({ hospital, onBack, onBooked }) {
 
         {/* Right column: schedule + confirm */}
         <div className="space-y-6">
-          <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm space-y-4 lg:sticky lg:top-6">
+          <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-6 shadow-sm space-y-4 lg:sticky lg:top-6">
             <div>
               <Label className="mb-2 block">Date *</Label>
               <Input

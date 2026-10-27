@@ -124,6 +124,28 @@
   }
 }
 
+/* ── Phones: everything one notch smaller ────────────────────────────────
+   Tailwind sizes text, spacing and control heights in rem, so a 14px root
+   (from 16px) shrinks the whole UI ~12% below 640px in one place, without
+   touching every component. Tablets and desktop are unchanged. */
+@media (max-width: 639px) {
+  html {
+    font-size: 14px;
+  }
+
+  /* iOS Safari zooms the page into any focused field whose text is under
+     16px, and leaves it zoomed. Keep fields at 16px there -- and only there
+     (the @supports test matches iOS WebKit alone). Deliberately outside
+     @layer so it beats the text-sm utilities on the inputs. */
+  @supports (-webkit-touch-callout: none) {
+    input:not([type='checkbox']):not([type='radio']):not([type='range']),
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+}
+
 /* ── Brand ───────────────────────────────────────────────────────────────
    Sampled straight out of the tooth mark in /public/logo-mark.png so the UI
    and the artwork cannot drift apart. The mark sweeps teal → cyan → blue →

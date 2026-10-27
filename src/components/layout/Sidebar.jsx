@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 import { useUserDetails } from '@/hooks/use-user-details'
 import { useRbac } from '@/hooks/use-rbac'
+import { LogoWordmark } from '@/components/brand/Logo'
 
 const roleBasedSidebarItems = {
   super_admin: [
@@ -137,31 +138,50 @@ export function Sidebar({ isOpen = false, onClose = () => {} }) {
     return match > max ? match : max
   }, -1)
 
+  // Collapsing is a desktop affordance. The phone drawer always shows labels,
+  // even if the sidebar was collapsed on a wider screen.
+  const collapsed = isCollapsed && !isOpen
+
+  // Escape closes the phone drawer, like any other overlay.
+  useEffect(() => {
+    if (!isOpen) return
+    const onKey = (e) => e.key === 'Escape' && onClose()
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [isOpen, onClose])
+
   return (
     <>
-      {/* Mobile Overlay - Only render after hydration */}
-      {mounted && isOpen && (
+      {/* Mobile backdrop. Covers the navbar too, since the drawer sits over it. */}
+      {mounted && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 lg:hidden z-40"
+          className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 lg:hidden ${
+            isOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+          }`}
           onClick={onClose}
+          aria-hidden="true"
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar: a full-height drawer over the page on phones and tablets,
+          an in-flow column from lg up. */}
       <aside
-        className={`fixed left-0 top-16 bottom-0 bg-white border-r border-gray-200 transition-all duration-300 ease-in-out z-40 lg:relative lg:top-0 ${
-          isCollapsed ? 'w-20' : 'w-64'
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col bg-white border-r border-gray-200 shadow-xl transition-transform duration-300 ease-in-out lg:relative lg:inset-auto lg:z-auto lg:max-w-none lg:shadow-none lg:transition-[width] ${
+          isCollapsed ? 'lg:w-20' : 'lg:w-64'
         } ${mounted && isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
-        {/* Close button for mobile - Only render after hydration */}
-        {mounted && (
+        {/* Drawer header (phones only): the brand plus a close button that
+            sits in its own row instead of floating over the user card. */}
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 px-4 lg:hidden">
+          <LogoWordmark size={32} />
           <button
             onClick={onClose}
-            className="absolute top-4 right-10 lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg z-50"
+            className="-mr-2 p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            aria-label="Close menu"
           >
             <X size={20} />
           </button>
-        )}
+        </div>
 
         {/* Toggle Button - Positioned to be visible on top */}
         <button
@@ -178,23 +198,23 @@ export function Sidebar({ isOpen = false, onClose = () => {} }) {
         </button>
 
         {/* Scrollable Sidebar Content */}
-        <div className="h-full overflow-y-auto flex flex-col">
-          <div className={`${isCollapsed ? 'p-2' : 'p-4'} pt-4 flex-1`}>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain flex flex-col">
+          <div className={`${collapsed ? 'p-2' : 'p-4'} pt-4 flex-1`}>
             {/* User Info Card */}
-            {!isLoading && profile && !isCollapsed && (
-              <div className="mb-6 p-4 bg-indigo-50 flex  gap-2 rounded-lg">
-                <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center text-white font-semibold mb-3">
+            {!isLoading && profile && !collapsed && (
+              <div className="mb-4 lg:mb-6 p-3 lg:p-4 bg-indigo-50 flex items-center gap-3 rounded-lg">
+                <div className="w-11 h-11 shrink-0 bg-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
                   {profile.name?.charAt(0).toUpperCase()}
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">{profile.name}</p>
-                  <p className="text-xs text-gray-600 capitalize">{profile.role?.replace('_', ' ')}</p>
+                <div className="min-w-0">
+                  <p className="font-semibold text-gray-900 text-sm truncate">{profile.name}</p>
+                  <p className="text-xs text-gray-600 capitalize truncate">{profile.role?.replace('_', ' ')}</p>
                 </div>
               </div>
             )}
 
             {/* Collapsed User Avatar */}
-            {!isLoading && profile && isCollapsed && (
+            {!isLoading && profile && collapsed && (
               <div className="mb-4 flex justify-center">
                 <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
                   {profile.name?.charAt(0).toUpperCase()}
@@ -214,15 +234,15 @@ export function Sidebar({ isOpen = false, onClose = () => {} }) {
                     key={item.href}
                     href={item.href}
                     onClick={onClose}
-                    className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-4 py-3 rounded-lg font-medium transition-colors ${
+                    className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-4 py-3 rounded-lg font-medium transition-colors ${
                       isActive
                         ? 'bg-indigo-100 text-indigo-600'
                         : 'text-gray-700 hover:bg-gray-100'
                     }`}
-                    title={isCollapsed ? item.label : ''}
+                    title={collapsed ? item.label : ''}
                   >
-                    <IconComponent size={20} />
-                    {!isCollapsed && <span className="text-sm">{item.label}</span>}
+                    <IconComponent size={20} className="shrink-0" />
+                    {!collapsed && <span className="text-sm truncate">{item.label}</span>}
                   </Link>
                 )
               })}

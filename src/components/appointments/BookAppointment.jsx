@@ -7,6 +7,7 @@ import { getTreatments } from '@/actions/treatments'
 import { useHospitalDoctorsAndDepartments } from '@/hooks/useHospitalDoctorsAndDepartments'
 import { usePatientDetails } from '@/hooks/usePatientDetails'
 import { useUserDetails } from '@/hooks/use-user-details'
+import { ageFromDob } from '@/lib/patients/age'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -250,8 +251,9 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white">
-      {/* Progress Header */}
-      <div className="border-b px-4 py-3 bg-gray-50">
+      {/* Progress Header. Hidden on phones, where the dialog title already
+          names the step. */}
+      <div className="hidden sm:block border-b px-4 py-3 bg-gray-50">
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-gray-600" />
           <div>
@@ -301,9 +303,7 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
                       <div>
                         <p className="text-gray-500">Age</p>
                         <p className="font-semibold text-gray-900">
-                          {patient.date_of_birth || patient.profile?.date_of_birth
-                            ? new Date().getFullYear() - new Date(patient.date_of_birth || patient.profile?.date_of_birth).getFullYear()
-                            : 'N/A'}
+                          {ageFromDob(patient.date_of_birth || patient.profile?.date_of_birth) || 'N/A'}
                         </p>
                       </div>
                       <div>

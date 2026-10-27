@@ -415,32 +415,38 @@ export function AppointmentCustomPrescriptionComposer({
             )}
           </div>
 
+          {/* One row at every width. On phones Preview and Save Draft shrink to
+              icons -- a two-row bar pinned over the form hid a whole field. */}
           <div className="sticky bottom-3 z-10">
-            <div className="bg-white border border-slate-200 rounded-md shadow-sm grid grid-cols-2 sm:flex gap-2 p-2">
+            <div className="bg-white border border-slate-200 rounded-md shadow-sm flex gap-2 p-2">
               <Button
                 onClick={() => setShowPreview(true)}
                 variant="outline"
                 size="sm"
-                className="flex-1 gap-1.5 h-10 text-[14px] font-semibold uppercase tracking-wide"
+                className="shrink-0 w-11 px-0 sm:w-auto sm:px-3 sm:flex-1 gap-1.5 h-11 sm:h-10 text-[14px] font-semibold uppercase tracking-wide"
                 disabled={isLoading || isPending || !selectedTemplate}
+                title="Preview"
+                aria-label="Preview"
               >
                 <Eye className="w-4 h-4" />
-                Preview
+                <span className="hidden sm:inline">Preview</span>
               </Button>
               <Button
                 onClick={handleSaveDraft}
                 variant="outline"
                 size="sm"
-                className="flex-1 gap-1.5 h-10 text-[14px] font-semibold uppercase tracking-wide"
+                className="shrink-0 w-11 px-0 sm:w-auto sm:px-3 sm:flex-1 gap-1.5 h-11 sm:h-10 text-[14px] font-semibold uppercase tracking-wide"
                 disabled={isLoading || isPending}
+                title="Save Draft"
+                aria-label="Save Draft"
               >
                 <Save className="w-4 h-4" />
-                Save Draft
+                <span className="hidden sm:inline">Save Draft</span>
               </Button>
               <Button
                 onClick={() => handleSubmit(false)}
                 size="sm"
-                className="col-span-2 sm:col-span-1 flex-1 gap-1.5 h-11 sm:h-10 text-[14px] font-semibold uppercase tracking-wide bg-blue-600 hover:bg-blue-700"
+                className="flex-1 min-w-0 gap-1.5 h-11 sm:h-10 text-[13px] sm:text-[14px] font-semibold uppercase tracking-wide bg-blue-600 hover:bg-blue-700"
                 disabled={isLoading || isPending || !selectedTemplate}
               >
                 <FileText className="w-4 h-4" />
@@ -1402,14 +1408,42 @@ function PrescriptionPreviewModal({
         )}
 
         {/* On-screen preview (the print uses the same HTML in a new window) */}
-        <div className="bg-slate-100 p-2 sm:p-4 overflow-x-auto">
-          <div
-            className="bg-white shadow-sm mx-auto min-w-[560px]"
-            style={{ maxWidth: '794px' }}
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
+        <div className="bg-slate-100 p-2 sm:p-4">
+          <FitToWidth minWidth={560}>
+            <div
+              className="bg-white shadow-sm mx-auto"
+              style={{ maxWidth: '794px' }}
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          </FitToWidth>
         </div>
       </div>
+    </div>
+  )
+}
+
+/**
+ * Lays its child out at no less than `minWidth` and, on anything narrower,
+ * zooms it down to fit -- so a phone sees the whole prescription page at a
+ * glance (pinch to read) instead of a sideways-scrolling half of it.
+ */
+function FitToWidth({ minWidth, children }) {
+  const ref = useRef(null)
+  const [width, setWidth] = useState(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  const zoom = width && width < minWidth ? width / minWidth : 1
+
+  return (
+    <div ref={ref}>
+      <div style={zoom < 1 ? { width: minWidth, zoom } : undefined}>{children}</div>
     </div>
   )
 }

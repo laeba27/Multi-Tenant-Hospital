@@ -394,7 +394,7 @@ export function AppointmentInvoicePrint({ invoice, hospital, patient, appointmen
   }
 
   return (
-    <div className="flex flex-col items-center justify-center p-6 space-y-4 text-center">
+    <div className="flex flex-col items-center justify-center p-2 sm:p-6 space-y-4 text-center">
       <div className="space-y-2">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100">
           <Check className="w-6 h-6 text-gray-700" />
@@ -425,7 +425,9 @@ export function AppointmentInvoicePrint({ invoice, hospital, patient, appointmen
       </div>
 
       {showInvoice && (
-        <div className="w-full border border-gray-300 rounded-lg overflow-auto max-h-96 bg-white">
+        // Phones let the invoice run full length (the dialog scrolls); a
+        // 384px window inside a full-screen dialog is a keyhole.
+        <div className="w-full border border-gray-300 rounded-lg overflow-auto sm:max-h-96 bg-white text-left">
           {invoiceContent}
         </div>
       )}

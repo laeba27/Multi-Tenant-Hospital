@@ -35,8 +35,8 @@ export function AppointmentConfirmation({ patient, appointment, onConfirm, onEdi
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white">
-      {/* Header */}
-      <div className="border-b px-4 py-3 bg-gray-50">
+      {/* Header. Hidden on phones, where the dialog title already names the step. */}
+      <div className="hidden sm:block border-b px-4 py-3 bg-gray-50">
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-gray-600" />
           <div>

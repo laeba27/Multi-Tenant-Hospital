@@ -87,28 +87,30 @@ export function Navbar({ onMenuToggle }) {
   return (
     <>
     <nav className="bg-white shadow-sm border-b border-gray-200">
-      <div className="px-4 py-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+      <div className="px-2 py-1 sm:px-6 sm:py-3 lg:px-8">
+        <div className="flex items-center justify-between gap-2 h-14 sm:h-16">
           {/* Logo and Brand */}
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
             <button
               onClick={onMenuToggle}
               className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 lg:hidden"
+              aria-label="Open menu"
             >
               <Menu size={24} />
             </button>
-            <div className="flex items-center gap-2">
-              <Logo size={44} />
-              <div className="hidden sm:block">
+            <div className="flex min-w-0 items-center gap-2">
+              <Logo size={36} className="sm:hidden" />
+              <Logo size={44} className="hidden sm:block" />
+              <div className="hidden sm:block min-w-0">
                 <p className="text-xs text-gray-500">Hospital Management</p>
-                <p className="text-sm font-bold text-gray-900">{hospitalName}</p>
+                <p className="text-sm font-bold text-gray-900 truncate">{hospitalName}</p>
               </div>
             </div>
           </div>
 
           {/* Right Side Actions */}
-          <div className="flex items-center gap-4">
-            <div ref={menuRef} className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-4">
+            <div ref={menuRef} className="flex items-center gap-1 sm:gap-2">
               {/* Notifications */}
               <div className="relative">
                 <button
@@ -125,14 +127,17 @@ export function Navbar({ onMenuToggle }) {
                 </button>
 
                 {openMenu === 'notifications' && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+                  // The bell isn't at the screen edge, so a 320px panel
+                  // anchored to it ran off the left of a phone. Below sm it
+                  // spans the screen under the navbar instead.
+                  <div className="fixed inset-x-2 top-16 sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 mt-2 sm:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
                     <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                       <p className="text-sm font-semibold text-gray-900">Notifications</p>
                       {unreadCount > 0 && (
                         <span className="text-[11px] text-gray-400">{unreadCount} unread</span>
                       )}
                     </div>
-                    <div className="max-h-96 overflow-y-auto">
+                    <div className="max-h-[70dvh] sm:max-h-96 overflow-y-auto">
                       {notifLoading ? (
                         <p className="px-4 py-6 text-sm text-gray-400 text-center">Loading…</p>
                       ) : !hasNotifications ? (
@@ -238,7 +243,7 @@ export function Navbar({ onMenuToggle }) {
             <div className="relative">
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+                className="flex items-center gap-2 px-1.5 sm:px-3 py-2 rounded-lg hover:bg-gray-100"
               >
                 <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
                   {profile?.name?.charAt(0).toUpperCase()}

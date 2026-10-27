@@ -8,10 +8,12 @@ export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    // dvh, not vh: on phones 100vh includes the area under the browser's
+    // address bar, which pushed the bottom of every page out of reach.
+    <div className="h-dvh flex flex-col bg-gray-50">
       {/* Fixed Navbar */}
       <div className="flex-shrink-0">
-        <Navbar onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
+        <Navbar onMenuToggle={() => setSidebarOpen((open) => !open)} />
       </div>
 
       {/* Main Content Area */}
