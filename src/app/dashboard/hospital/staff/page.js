@@ -151,10 +151,10 @@ export default function StaffPage() {
                     <TableRow>
                         <TableHead>Name</TableHead>
                         <TableHead>Role</TableHead>
-                        <TableHead>Department</TableHead>
-                        <TableHead>Contact</TableHead>
+                        <TableHead className="hidden md:table-cell">Department</TableHead>
+                        <TableHead className="hidden sm:table-cell">Contact</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Joined</TableHead>
+                        <TableHead className="hidden lg:table-cell">Joined</TableHead>
                         <TableHead className="text-right">Invite</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -189,10 +189,10 @@ export default function StaffPage() {
                                         {member.role.replace('_', ' ')}
                                     </Badge>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="hidden md:table-cell">
                                     {member.departments?.name || '-'}
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="hidden sm:table-cell">
                                     <a 
                                         href={`mailto:${member.profiles?.email}`}
                                         className="flex items-center gap-2 text-sm text-primary hover:underline"
@@ -208,7 +208,7 @@ export default function StaffPage() {
                                         onValueChange={(value) => handleStatusChange(member.id, value === 'active')}
                                         disabled={updatingStaffId === member.id}
                                     >
-                                        <SelectTrigger className="w-32">
+                                        <SelectTrigger className="w-28 sm:w-32">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -217,7 +217,7 @@ export default function StaffPage() {
                                         </SelectContent>
                                     </Select>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="hidden lg:table-cell">
                                     {member.created_at ? format(new Date(member.created_at), 'MMM d, yyyy') : '-'}
                                 </TableCell>
                                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
@@ -236,7 +236,7 @@ export default function StaffPage() {
                                             ) : (
                                                 <Send className="h-3.5 w-3.5" />
                                             )}
-                                            <span className="ml-1.5">Resend</span>
+                                            <span className="ml-1.5 hidden sm:inline">Resend</span>
                                         </Button>
                                     )}
                                 </TableCell>
@@ -259,7 +259,7 @@ export default function StaffPage() {
                         Manage your hospital staff, doctors, and employees.
                     </p>
                 </div>
-                <Button onClick={() => setIsDialogOpen(true)}>
+                <Button onClick={() => setIsDialogOpen(true)} className="w-full sm:w-auto">
                     <Plus className="mr-2 h-4 w-4" /> Add Staff
                 </Button>
             </div>
@@ -278,7 +278,7 @@ export default function StaffPage() {
                             placeholder="Search by name or role..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="max-w-sm"
+                            className="sm:max-w-sm"
                         />
                     </div>
 

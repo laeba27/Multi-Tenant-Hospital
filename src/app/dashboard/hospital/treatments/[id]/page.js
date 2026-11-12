@@ -177,23 +177,24 @@ export default function TreatmentDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header with Back Button and Actions */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
           <Button 
             variant="ghost" 
             size="sm"
+            className="shrink-0"
             onClick={() => router.push('/dashboard/hospital/treatments')}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Treatment Details</h2>
-            <p className="text-muted-foreground">
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Treatment Details</h2>
+            <p className="text-muted-foreground wrap-anywhere">
               {capitalizeWords(treatment.treatment_name)}
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 [&>button]:flex-1 sm:[&>button]:flex-none">
           {!isEditing ? (
             <>
               <Button 

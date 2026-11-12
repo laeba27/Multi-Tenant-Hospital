@@ -229,7 +229,7 @@ export default function InventoryPage() {
             Manage hospital inventory and stock levels
           </p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
+        <Button onClick={() => setIsDialogOpen(true)} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" /> Add Item
         </Button>
       </div>
@@ -268,7 +268,7 @@ export default function InventoryPage() {
                   placeholder="Search by name or code..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="max-w-sm"
+                  className="sm:max-w-sm"
                 />
               </div>
               <div className="flex gap-2 flex-wrap">
@@ -316,14 +316,14 @@ export default function InventoryPage() {
                     <TableHead>
                       <SortableHeader sortKey="item_name">Item Name</SortableHeader>
                     </TableHead>
-                    <TableHead>
+                    <TableHead className="hidden md:table-cell">
                       <SortableHeader sortKey="departments">Department</SortableHeader>
                     </TableHead>
                     <TableHead className="text-center">
                       <SortableHeader sortKey="quantity">Quantity</SortableHeader>
                     </TableHead>
-                    <TableHead className="text-center">Min Qty</TableHead>
-                    <TableHead>
+                    <TableHead className="hidden sm:table-cell text-center">Min Qty</TableHead>
+                    <TableHead className="hidden sm:table-cell">
                       <SortableHeader sortKey="unit">Unit</SortableHeader>
                     </TableHead>
                     <TableHead>Status</TableHead>
@@ -342,23 +342,23 @@ export default function InventoryPage() {
                       const stockStatus = getStockStatus(item.quantity, item.minimum_quantity)
                       return (
                         <TableRow key={item.id}>
-                          <TableCell className="font-medium">
+                          <TableCell className="font-medium whitespace-normal min-w-28">
                             {capitalizeWords(item.item_name)}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="hidden md:table-cell">
                             {item.departments?.name || '-'}
                           </TableCell>
                           <TableCell className={`text-center ${getQuantityColor(stockStatus)}`}>
                             {item.quantity}
                           </TableCell>
-                          <TableCell className="text-center text-muted-foreground">
+                          <TableCell className="hidden sm:table-cell text-center text-muted-foreground">
                             {item.minimum_quantity}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="hidden sm:table-cell">
                             {item.unit || '-'}
                           </TableCell>
                           <TableCell>
-                            <div className="flex gap-2">
+                            <div className="flex flex-col items-start gap-1 sm:flex-row sm:gap-2">
                               {stockStatus === 'low' && (
                                 <Badge variant="destructive">Low Stock</Badge>
                               )}

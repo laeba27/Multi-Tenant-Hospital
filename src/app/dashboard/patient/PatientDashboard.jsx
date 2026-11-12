@@ -52,10 +52,10 @@ export default function PatientDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Change-password advisory banner */}
       {mustChange && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <div className="flex flex-wrap items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
           <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-amber-900">Please change your password</p>
@@ -66,7 +66,7 @@ export default function PatientDashboard() {
           </div>
           <Button
             size="sm"
-            className="bg-amber-600 hover:bg-amber-700 shrink-0"
+            className="bg-amber-600 hover:bg-amber-700 w-full sm:w-auto shrink-0"
             onClick={() => setShowPwDialog(true)}
           >
             <KeyRound className="h-4 w-4" /> Change password
@@ -85,14 +85,14 @@ export default function PatientDashboard() {
       </Link>
 
       {/* Quick stats */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <Stat icon={Building2} label="Hospitals" value={records.length} color="text-indigo-600 bg-indigo-50" />
         <Stat icon={CalendarDays} label="Upcoming" value={upcoming.length} color="text-blue-600 bg-blue-50" />
         <Stat icon={Clock} label="Past Visits" value={past.length} color="text-violet-600 bg-violet-50" />
       </div>
 
       {/* Upcoming appointments + emergency contacts, side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <Section
           title="Upcoming Appointments"
           icon={CalendarDays}
@@ -136,13 +136,13 @@ export default function PatientDashboard() {
 
       {/* Profile & security */}
       <Section title="Profile & Security" icon={BadgeCheck}>
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="space-y-2">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-2 min-w-0">
             <Info icon={Phone} label="Phone" value={profile?.mobile} />
             <Info icon={Mail} label="Email" value={profile?.email} />
             <Info icon={BadgeCheck} label="Patient ID" value={profile?.registration_no} mono />
           </div>
-          <Button variant="outline" size="sm" onClick={() => setShowPwDialog(true)}>
+          <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => setShowPwDialog(true)}>
             <KeyRound className="h-4 w-4" /> Change password
           </Button>
         </div>

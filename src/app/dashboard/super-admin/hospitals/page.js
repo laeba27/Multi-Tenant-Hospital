@@ -267,21 +267,21 @@ function CreateHospitalDialog({ open, onClose, onCreated }) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-lg sm:max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>New Hospital</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <Field label="Hospital name *"><Input value={form.hospitalName} onChange={set('hospitalName')} required /></Field>
           <Field label="License number *"><Input value={form.licenseNumber} onChange={set('licenseNumber')} required /></Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Admin name"><Input value={form.adminName} onChange={set('adminName')} /></Field>
             <Field label="Phone"><Input value={form.phone} onChange={set('phone')} /></Field>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Admin email *"><Input type="email" value={form.email} onChange={set('email')} required /></Field>
             <Field label="Password *"><Input type="password" value={form.password} onChange={set('password')} required /></Field>
           </div>
           <Field label="Address"><Input value={form.address} onChange={set('address')} /></Field>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Field label="City"><Input value={form.city} onChange={set('city')} /></Field>
             <Field label="State"><Input value={form.state} onChange={set('state')} /></Field>
             <Field label="Postal"><Input value={form.postalCode} onChange={set('postalCode')} /></Field>

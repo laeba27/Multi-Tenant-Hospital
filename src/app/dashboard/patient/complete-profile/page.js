@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function CompleteProfilePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-10 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6 sm:py-10 px-4">
       <div className="mx-auto max-w-lg">
         <CompleteProfileForm />
       </div>

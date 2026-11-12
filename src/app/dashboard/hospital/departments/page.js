@@ -126,7 +126,7 @@ export default function DepartmentsPage() {
                         Manage your hospital departments and units.
                     </p>
                 </div>
-                <Button onClick={handleCreate}>
+                <Button onClick={handleCreate} className="w-full sm:w-auto">
                     <Plus className="mr-2 h-4 w-4" /> Add Department
                 </Button>
             </div>
@@ -145,7 +145,7 @@ export default function DepartmentsPage() {
                             placeholder="Search departments..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="max-w-sm"
+                            className="sm:max-w-sm"
                         />
                     </div>
 
@@ -154,7 +154,7 @@ export default function DepartmentsPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Name</TableHead>
-                                    <TableHead>Code</TableHead>
+                                    <TableHead className="hidden sm:table-cell">Code</TableHead>
                                     <TableHead>Status</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
@@ -183,13 +183,13 @@ export default function DepartmentsPage() {
                                                     </div>
                                                 )}
                                             </TableCell>
-                                            <TableCell>{dept.code || '-'}</TableCell>
+                                            <TableCell className="hidden sm:table-cell">{dept.code || '-'}</TableCell>
                                             <TableCell>
                                                 <Badge variant={dept.is_active ? 'default' : 'secondary'}>
                                                     {dept.is_active ? 'Active' : 'Inactive'}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="text-right space-x-2">
+                                            <TableCell className="text-right space-x-1 sm:space-x-2 whitespace-nowrap">
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"

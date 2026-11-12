@@ -197,12 +197,12 @@ export function BookingRequestsList({ hospitalId, onChange }) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Request ID</TableHead>
+                    <TableHead className="hidden lg:table-cell">Request ID</TableHead>
                     <TableHead>Patient</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Doctor / Dept</TableHead>
+                    <TableHead className="hidden lg:table-cell">Contact</TableHead>
+                    <TableHead className="hidden md:table-cell">Doctor / Dept</TableHead>
                     <TableHead>Requested For</TableHead>
-                    <TableHead>Payment</TableHead>
+                    <TableHead className="hidden sm:table-cell">Payment</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -211,13 +211,15 @@ export function BookingRequestsList({ hospitalId, onChange }) {
                     const p = req.patients?.profiles
                     return (
                       <TableRow key={req.id}>
-                        <TableCell className="font-medium">{req.id}</TableCell>
+                        <TableCell className="hidden lg:table-cell font-medium">{req.id}</TableCell>
 
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-gray-400" />
+                            <User className="hidden sm:block h-4 w-4 text-gray-400" />
                             <div>
                               <div>{p?.name || 'Unknown'}</div>
+                              {/* Mobile lives in the Contact column from lg up. */}
+                              <div className="lg:hidden text-xs text-gray-500">{p?.mobile}</div>
                               <div className="text-xs text-gray-500">
                                 {req.patients?.registration_no || p?.registration_no || '-'}
                               </div>
@@ -225,12 +227,12 @@ export function BookingRequestsList({ hospitalId, onChange }) {
                           </div>
                         </TableCell>
 
-                        <TableCell className="text-sm text-gray-600">
+                        <TableCell className="hidden lg:table-cell text-sm text-gray-600">
                           <div>{p?.mobile || '-'}</div>
                           <div className="text-xs text-gray-400">{p?.email || '-'}</div>
                         </TableCell>
 
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell">
                           <div className="flex items-center gap-2">
                             <Stethoscope className="h-4 w-4 text-blue-400" />
                             <div>
@@ -253,15 +255,16 @@ export function BookingRequestsList({ hospitalId, onChange }) {
                           </div>
                         </TableCell>
 
-                        <TableCell>
+                        <TableCell className="hidden sm:table-cell">
                           <Badge className="bg-red-100 text-red-800">Unpaid</Badge>
                           <div className="text-xs text-gray-600 mt-1">{money(req.amount_due)}</div>
                         </TableCell>
 
                         <TableCell>
-                          <div className="flex gap-2 justify-end">
+                          <div className="flex flex-col gap-1.5 sm:flex-row sm:gap-2 sm:justify-end">
                             <Button size="sm" onClick={() => openConfirm(req)}>
-                              View &amp; Approve
+                              <span className="sm:hidden">Review</span>
+                              <span className="hidden sm:inline">View &amp; Approve</span>
                             </Button>
                             <Button
                               size="sm"
@@ -286,9 +289,9 @@ export function BookingRequestsList({ hospitalId, onChange }) {
       {/* Confirm */}
       {selected && mode === 'confirm' && (
         <Dialog open onOpenChange={closeDialog}>
-          <DialogContent className="max-w-4xl! w-full h-[85vh] flex flex-col overflow-hidden">
+          <DialogContent fullScreenOnMobile className="sm:max-w-4xl h-[85vh] flex flex-col overflow-hidden">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-1.5">
+              <DialogTitle className="flex items-center gap-1.5 text-left pr-6">
                 Approve Booking Request
                 <HelpHint
                   title="Approving a request"
@@ -299,13 +302,13 @@ export function BookingRequestsList({ hospitalId, onChange }) {
                   ]}
                 />
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-left">
                 {selected.id} · requested by the patient on {fmtDate(selected.created_at)}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-5 mt-2 flex-1 overflow-y-auto min-h-0">
-              <div className="border rounded-lg p-4 bg-gray-50 grid grid-cols-2 gap-4 text-sm">
+              <div className="border rounded-lg p-3 sm:p-4 bg-gray-50 grid grid-cols-2 gap-3 sm:gap-4 text-sm wrap-anywhere">
                 <Field label="Patient" value={selected.patients?.profiles?.name} />
                 <Field
                   label="Patient Reg. No."
@@ -328,16 +331,16 @@ export function BookingRequestsList({ hospitalId, onChange }) {
                   </p>
                   <ul className="space-y-1 text-sm">
                     {selected.treatment_details.map((t, i) => (
-                      <li key={t.id || i} className="flex justify-between">
+                      <li key={t.id || i} className="flex justify-between gap-3">
                         <span>{t.name}</span>
-                        <span className="text-gray-600">{money(t.price)}</span>
+                        <span className="text-gray-600 shrink-0">{money(t.price)}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
 
-              <div className="border rounded-lg p-4 space-y-4">
+              <div className="border rounded-lg p-3 sm:p-4 space-y-4">
                 <div>
                   <Label htmlFor="amountDue">Amount Due (₹)</Label>
                   <Input
@@ -365,7 +368,7 @@ export function BookingRequestsList({ hospitalId, onChange }) {
                 </label>
 
                 {collectPayment && (
-                  <div className="grid grid-cols-2 gap-4 pt-1">
+                  <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3 sm:gap-4 pt-1">
                     <div>
                       <Label htmlFor="paidAmount">Amount Paid (₹)</Label>
                       <Input
@@ -397,7 +400,7 @@ export function BookingRequestsList({ hospitalId, onChange }) {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 sm:pt-4 sm:mt-2 border-t">
               <Button variant="outline" onClick={closeDialog} disabled={submitting}>
                 Cancel
               </Button>
@@ -417,9 +420,9 @@ export function BookingRequestsList({ hospitalId, onChange }) {
       {/* Decline */}
       {selected && mode === 'reject' && (
         <Dialog open onOpenChange={closeDialog}>
-          <DialogContent className="max-w-4xl! w-full h-[85vh] flex flex-col overflow-hidden">
+          <DialogContent fullScreenOnMobile className="sm:max-w-4xl h-[85vh] flex flex-col overflow-hidden">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-1.5">
+              <DialogTitle className="flex items-center gap-1.5 text-left pr-6">
                 Decline Booking Request
                 <HelpHint
                   title="Declining a request"
@@ -430,7 +433,7 @@ export function BookingRequestsList({ hospitalId, onChange }) {
                   ]}
                 />
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-left">
                 {selected.patients?.profiles?.name} will be notified with the reason you give here.
               </DialogDescription>
             </DialogHeader>
@@ -447,7 +450,7 @@ export function BookingRequestsList({ hospitalId, onChange }) {
               />
             </div>
 
-            <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 sm:pt-4 sm:mt-2 border-t">
               <Button variant="outline" onClick={closeDialog} disabled={submitting}>
                 Cancel
               </Button>

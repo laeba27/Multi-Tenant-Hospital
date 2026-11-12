@@ -33,7 +33,7 @@ export default function WelcomeGuide() {
   if (!visible) return null
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-5">
+    <div className="relative overflow-hidden rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-4 sm:p-5">
       <button
         onClick={dismiss}
         className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
@@ -42,7 +42,7 @@ export default function WelcomeGuide() {
         <X className="h-4 w-4" />
       </button>
 
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-3 pr-6">
         <Sparkles className="h-4 w-4 text-indigo-600" />
         <h2 className="text-sm font-bold text-gray-900">Welcome to your patient portal</h2>
       </div>

@@ -48,10 +48,10 @@ export default function ReceptionAnalyticsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Data Analytics</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Data Analytics</h1>
           <p className="text-gray-600 mt-2">
             View insights and analytics for your hospital
           </p>
@@ -67,14 +67,14 @@ export default function ReceptionAnalyticsPage() {
         )} */}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Patients</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">1,234</div>
+              <div className="text-xl sm:text-2xl font-bold">1,234</div>
               <p className="text-xs text-muted-foreground">+12% from last month</p>
             </CardContent>
           </Card>
@@ -85,7 +85,7 @@ export default function ReceptionAnalyticsPage() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">456</div>
+              <div className="text-xl sm:text-2xl font-bold">456</div>
               <p className="text-xs text-muted-foreground">+8% from last month</p>
             </CardContent>
           </Card>
@@ -96,7 +96,7 @@ export default function ReceptionAnalyticsPage() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₹1.2L</div>
+              <div className="text-xl sm:text-2xl font-bold">₹1.2L</div>
               <p className="text-xs text-muted-foreground">+15% from last month</p>
             </CardContent>
           </Card>
@@ -107,7 +107,7 @@ export default function ReceptionAnalyticsPage() {
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">24</div>
+              <div className="text-xl sm:text-2xl font-bold">24</div>
               <p className="text-xs text-muted-foreground">+3 new this month</p>
             </CardContent>
           </Card>

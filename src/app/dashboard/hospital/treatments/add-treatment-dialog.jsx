@@ -98,7 +98,7 @@ export function AddTreatmentDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-4xl sm:max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Treatment</DialogTitle>
           <DialogDescription>
@@ -112,7 +112,7 @@ export function AddTreatmentDialog({
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-gray-700">Basic Information</h3>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="treatment_name"
@@ -190,7 +190,7 @@ export function AddTreatmentDialog({
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-gray-700">Pricing & Duration</h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="base_price"
@@ -234,7 +234,7 @@ export function AddTreatmentDialog({
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-gray-700">Instructions</h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="preparation_instructions"

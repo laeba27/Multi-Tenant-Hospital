@@ -51,7 +51,7 @@ export default async function DoctorAppointmentsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Appointments</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Appointments</h1>
           <p className="text-gray-600 mt-2">
             Your staff profile is not linked to a doctor record yet. Please contact the hospital administrator.
           </p>
@@ -63,7 +63,7 @@ export default async function DoctorAppointmentsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold text-gray-900">Appointments</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Appointments</h1>
         <p className="text-gray-600">
           Review today&apos;s consultations, upcoming visits, and prescriptions in one view.
         </p>

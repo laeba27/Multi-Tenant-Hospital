@@ -128,7 +128,20 @@
    Tailwind sizes text, spacing and control heights in rem, so a 14px root
    (from 16px) shrinks the whole UI ~12% below 640px in one place, without
    touching every component. Tablets and desktop are unchanged. */
+/* Card padding (header/content/footer insets and the gap between them).
+   24px wastes a lot of a phone's width once cards nest inside the page
+   padding, so cards drop to 16px below 640px. A variable rather than
+   responsive classes in card.jsx, so a caller's own `p-0` / `px-3` still
+   overrides it cleanly. */
+:root {
+  --card-pad: 1.5rem;
+}
+
 @media (max-width: 639px) {
+  :root {
+    --card-pad: 1rem;
+  }
+
   html {
     font-size: 14px;
   }

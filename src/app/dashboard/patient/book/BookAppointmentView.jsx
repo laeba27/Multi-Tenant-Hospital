@@ -67,7 +67,7 @@ export default function BookAppointmentView() {
   const others = hospitals.filter((h) => !h.isRegistered && !h.hasOngoing)
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
         <h1 className="text-xl font-bold text-gray-900">Book an Appointment</h1>
         <p className="text-sm text-gray-500 mt-1">
@@ -122,7 +122,7 @@ function HospitalPickCard({ hospital, onSelect }) {
   return (
     <button
       onClick={onSelect}
-      className="text-left rounded-xl border border-gray-200 bg-white p-5 hover:border-indigo-300 hover:shadow-md transition-all"
+      className="min-w-0 text-left rounded-xl border border-gray-200 bg-white p-4 sm:p-5 hover:border-indigo-300 hover:shadow-md transition-all"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -131,7 +131,7 @@ function HospitalPickCard({ hospital, onSelect }) {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-bold text-gray-900 truncate">{hospital.name}</p>
-            <p className="text-[11px] font-mono text-gray-400">{hospital.hospital_id}</p>
+            <p className="text-[11px] font-mono text-gray-400 truncate">{hospital.hospital_id}</p>
           </div>
         </div>
         {hospital.hasOngoing ? (
@@ -147,7 +147,7 @@ function HospitalPickCard({ hospital, onSelect }) {
         )}
       </div>
 
-      <div className="mt-4 space-y-1.5">
+      <div className="mt-3 sm:mt-4 space-y-1.5 wrap-anywhere">
         <p className="text-xs text-gray-600 flex items-start gap-2">
           <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0 mt-0.5" />
           <span>{location || 'Location not listed'}</span>
@@ -158,7 +158,7 @@ function HospitalPickCard({ hospital, onSelect }) {
         </p>
       </div>
 
-      <div className="mt-4 flex items-center justify-between">
+      <div className="mt-3 sm:mt-4 flex items-center justify-between gap-2">
         {!hospital.isRegistered && (
           <span className="text-[11px] text-amber-700">You&apos;ll be registered here</span>
         )}
@@ -335,7 +335,7 @@ function BookingForm({ hospital, onBack, onBooked }) {
       {/* Chosen hospital summary */}
       <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 flex items-start gap-3">
         <CheckCircle2 className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
-        <div className="min-w-0">
+        <div className="min-w-0 wrap-anywhere">
           <p className="text-sm font-bold text-gray-900">{hospital.name}</p>
           <p className="text-xs text-gray-600">
             {[hospital.city, hospital.state].filter(Boolean).join(', ') || 'Location not listed'}
@@ -361,7 +361,7 @@ function BookingForm({ hospital, onBack, onBooked }) {
                     key={t.value}
                     type="button"
                     onClick={() => setAppointmentType(t.value)}
-                    className={`h-10 rounded-md border text-sm font-medium transition-colors ${
+                    className={`h-10 rounded-md border px-1 text-xs sm:text-sm font-medium transition-colors ${
                       appointmentType === t.value
                         ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
                         : 'border-gray-300 text-gray-700 hover:bg-gray-50'
@@ -373,7 +373,7 @@ function BookingForm({ hospital, onBack, onBooked }) {
               </div>
             </div>
 
-            <div className="max-w-xs">
+            <div className="sm:max-w-xs">
               <Label className="mb-2 block">Department</Label>
               <select
                 value={departmentId}
@@ -515,7 +515,7 @@ function BookingForm({ hospital, onBack, onBooked }) {
         </div>
 
         {/* Right column: schedule + confirm */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-6 shadow-sm space-y-4 lg:sticky lg:top-6">
             <div>
               <Label className="mb-2 block">Date *</Label>
@@ -579,7 +579,7 @@ function DoctorCard({ doctor, selected, onSelect, sub }) {
     <button
       type="button"
       onClick={onSelect}
-      className={`text-left rounded-lg border px-4 py-3 flex items-center gap-3 transition-colors ${
+      className={`min-w-0 text-left rounded-lg border px-3 py-3 sm:px-4 flex items-center gap-3 transition-colors ${
         selected ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:bg-gray-50'
       }`}
     >

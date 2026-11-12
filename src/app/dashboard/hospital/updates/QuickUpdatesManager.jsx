@@ -178,7 +178,7 @@ export default function QuickUpdatesManager({ hospitalId }) {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Quick Updates</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Quick Updates</h1>
           <p className="text-gray-600 mt-2">
             Post announcements to your patients and staff. Choose exactly who sees each one.
           </p>
@@ -213,9 +213,9 @@ export default function QuickUpdatesManager({ hospitalId }) {
                 return (
                   <div
                     key={n.id}
-                    className={`rounded-lg border p-4 ${expired ? 'border-gray-100 bg-gray-50 opacity-70' : 'border-gray-200 bg-white'}`}
+                    className={`rounded-lg border p-3 sm:p-4 wrap-anywhere ${expired ? 'border-gray-100 bg-gray-50 opacity-70' : 'border-gray-200 bg-white'}`}
                   >
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start justify-between gap-2 sm:gap-4">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           {n.is_pinned && <Pin className="h-3.5 w-3.5 text-indigo-600" />}
@@ -267,7 +267,7 @@ export default function QuickUpdatesManager({ hospitalId }) {
 
       {/* Create / edit */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl sm:max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Edit Update' : 'New Update'}</DialogTitle>
             <DialogDescription>
@@ -402,7 +402,7 @@ export default function QuickUpdatesManager({ hospitalId }) {
               Pin to the top of the feed
             </label>
 
-            <div className="flex justify-end gap-2 pt-4 border-t">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4 border-t">
               <Button
                 type="button"
                 variant="outline"

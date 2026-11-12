@@ -206,7 +206,7 @@ export function AddStaffDialog({
             if (!newOpen) form.reset()
             onOpenChange(newOpen)
         }}>
-            <DialogContent className="sm:max-w-4xl max-h-[95vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-4xl sm:max-h-[95vh] overflow-y-auto">
                 <DialogHeader className="sticky top-0 bg-white z-10 pb-4">
                     <DialogTitle>Add Staff Member</DialogTitle>
                     {hasValidationErrors && missingRequired.length > 0 && (
@@ -235,7 +235,7 @@ export function AddStaffDialog({
                         {/* Section 1: Basic Information */}
                         <div className="space-y-3">
                             <h3 className="font-semibold text-sm">Basic Information</h3>
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="name"
@@ -292,7 +292,7 @@ export function AddStaffDialog({
                                 />
                             </div>
 
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="gender"
@@ -349,7 +349,7 @@ export function AddStaffDialog({
                         {/* Section 2: Role & Assignment */}
                         <div className="space-y-3">
                             <h3 className="font-semibold text-sm">Role & Assignment</h3>
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="role"
@@ -433,7 +433,7 @@ export function AddStaffDialog({
                         {isDoctor && (
                             <div className="space-y-3">
                                 <h3 className="font-semibold text-sm">Doctor Information</h3>
-                                <div className="grid grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <FormField
                                         control={form.control}
                                         name="specialization"
@@ -519,7 +519,7 @@ export function AddStaffDialog({
                         {/* Section 4: Work Details */}
                         <div className="space-y-3">
                             <h3 className="font-semibold text-sm">Work Details</h3>
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="joining_date"
@@ -565,7 +565,7 @@ export function AddStaffDialog({
                         {/* Section 5: Schedule */}
                         <div className="space-y-3">
                             <h3 className="font-semibold text-sm">Schedule & Shifts</h3>
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="shift_name"
@@ -654,7 +654,7 @@ export function AddStaffDialog({
                         {/* Section 6: Additional Details */}
                         <div className="space-y-3">
                             <h3 className="font-semibold text-sm">Additional Details</h3>
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="address"

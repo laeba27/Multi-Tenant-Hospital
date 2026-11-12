@@ -253,7 +253,7 @@ export function PrescriptionTemplateBuilder({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[95vh] overflow-hidden flex flex-col">
+      <DialogContent fullScreenOnMobile className="sm:max-w-5xl sm:max-h-[95vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Layers className="w-5 h-5" />

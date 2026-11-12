@@ -154,7 +154,7 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
 
         <CardContent>
         {/* Search and Filter Section */}
-        <div className="mb-6 space-y-4">
+        <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4">
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -201,16 +201,16 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Appointment ID</TableHead>
+                  <TableHead className="hidden lg:table-cell">Appointment ID</TableHead>
                   {/* Registration number rides under the patient's name rather
                       than claiming a column of its own -- the table was wide
                       enough to scroll horizontally. */}
                   <TableHead>Patient</TableHead>
-                  <TableHead>Doctor</TableHead>
+                  <TableHead className="hidden md:table-cell">Doctor</TableHead>
                   <TableHead>Date</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Payment</TableHead>
+                  <TableHead className="hidden sm:table-cell">Time</TableHead>
+                  <TableHead className="hidden lg:table-cell">Type</TableHead>
+                  <TableHead className="hidden md:table-cell">Payment</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Action</TableHead>
                 </TableRow>
@@ -218,10 +218,10 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
               <TableBody>
                 {filteredAppointments.map(apt => (
                   <TableRow key={apt.id}>
-                    <TableCell className="font-medium">{apt.id}</TableCell>
+                    <TableCell className="hidden lg:table-cell font-medium">{apt.id}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 shrink-0 text-gray-400" />
+                        <User className="hidden sm:block h-4 w-4 shrink-0 text-gray-400" />
                         <div className="min-w-0">
                           <div>{apt.patients?.profiles?.name || 'Unknown'}</div>
                           {apt.patients?.profiles?.registration_no && (
@@ -232,7 +232,7 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <div className="flex items-center gap-2">
                         <Stethoscope className="h-4 w-4 text-blue-400" />
                         <span>{apt.doctor?.name || 'Unknown'}</span>
@@ -240,22 +240,24 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <Calendar className="hidden sm:block h-4 w-4 text-gray-400" />
                         <span>{formatDate(apt.appointment_date)}</span>
                       </div>
+                      {/* Time has its own column from sm up. */}
+                      <div className="sm:hidden text-xs text-gray-500 mt-0.5">{apt.appointment_slot}</div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-gray-400" />
                         <span>{apt.appointment_slot}</span>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden lg:table-cell">
                       <Badge variant="outline" className="capitalize">
                         {apt.appointment_type}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <Badge className={getPaymentColor(apt.payment_status)}>
                         {getPaymentLabel(apt.payment_status)}
                       </Badge>
@@ -299,11 +301,11 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
     {/* Appointment Details Modal */}
     {selectedAppointment && (
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-4xl! w-full h-[85vh] flex flex-col overflow-hidden">
+        <DialogContent fullScreenOnMobile className="sm:max-w-4xl h-[85vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <div className="flex items-center justify-between w-full">
               <div>
-                <DialogTitle className="flex items-center gap-1.5">
+                <DialogTitle className="flex items-center gap-1.5 text-left">
                   Appointment Details
                   <HelpHint
                     title="Appointment details"
@@ -314,17 +316,17 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
                     ]}
                   />
                 </DialogTitle>
-                <DialogDescription>ID: {selectedAppointment.id}</DialogDescription>
+                <DialogDescription className="text-left break-all">ID: {selectedAppointment.id}</DialogDescription>
               </div>
             </div>
           </DialogHeader>
 
-          <div className="space-y-6 mt-4 flex-1 overflow-y-auto min-h-0">
+          <div className="space-y-4 sm:space-y-6 sm:mt-4 flex-1 overflow-y-auto min-h-0">
             {/* Appointment Info */}
-            <div className="border rounded-lg p-4 space-y-4 bg-gray-50">
+            <div className="border rounded-lg p-3 sm:p-4 space-y-3 sm:space-y-4 bg-gray-50 wrap-anywhere">
               <h3 className="font-semibold text-base">Appointment Information</h3>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <p className="text-xs text-gray-600 uppercase font-semibold">Patient Name</p>
                   <p className="font-medium text-sm mt-1">{selectedAppointment.patients?.profiles?.name || 'Unknown'}</p>
@@ -335,7 +337,7 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <p className="text-xs text-gray-600 uppercase font-semibold">Doctor Name</p>
                   <p className="font-medium text-sm mt-1">{selectedAppointment.doctor?.name || 'Unknown'}</p>
@@ -346,7 +348,7 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <p className="text-xs text-gray-600 uppercase font-semibold">Date</p>
                   <p className="font-medium text-sm mt-1">{formatDate(selectedAppointment.appointment_date)}</p>
@@ -357,7 +359,7 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <p className="text-xs text-gray-600 uppercase font-semibold">Type</p>
                   <p className="font-medium text-sm mt-1 capitalize">{selectedAppointment.appointment_type}</p>
@@ -380,10 +382,10 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
 
             {/* Patient Information */}
             {selectedAppointment.patients?.profiles && (
-              <div className="border rounded-lg p-4 space-y-4 bg-blue-50">
+              <div className="border rounded-lg p-3 sm:p-4 space-y-3 sm:space-y-4 bg-blue-50 wrap-anywhere">
                 <h3 className="font-semibold text-base">Patient Information</h3>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <p className="text-xs text-gray-600 uppercase font-semibold">Email</p>
                     <p className="font-medium text-sm mt-1">{selectedAppointment.patients.profiles.email || '-'}</p>
@@ -394,7 +396,7 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <p className="text-xs text-gray-600 uppercase font-semibold">Address</p>
                     <p className="font-medium text-sm mt-1">{selectedAppointment.patients.profiles.address || '-'}</p>
@@ -405,7 +407,7 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <p className="text-xs text-gray-600 uppercase font-semibold">Blood Group</p>
                     <p className="font-medium text-sm mt-1">{selectedAppointment.patients.profiles.blood_group || '-'}</p>
@@ -426,7 +428,7 @@ export function AppointmentsList({ hospitalId, onAppointmentSelect, onApproveReq
             )}
           </div>
 
-          <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3 sm:pt-4 sm:mt-2 border-t">
             <Button variant="outline" onClick={() => setShowModal(false)}>
               Close
             </Button>

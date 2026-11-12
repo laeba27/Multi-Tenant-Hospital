@@ -231,23 +231,24 @@ export default function StaffDetailPage() {
     return (
         <div className="space-y-6">
             {/* Header with Back Button and Action Buttons */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-2 sm:gap-4">
                     <Button 
                         variant="ghost" 
                         size="sm"
+                        className="shrink-0"
                         onClick={() => router.push('/dashboard/hospital/staff')}
                     >
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
-                    <div>
-                        <h2 className="text-2xl font-bold tracking-tight">Staff Profile</h2>
-                        <p className="text-muted-foreground">
+                    <div className="min-w-0">
+                        <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Staff Profile</h2>
+                        <p className="text-sm sm:text-base text-muted-foreground wrap-anywhere">
                             Detailed information about {staff.name}
                         </p>
                     </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 [&>button]:flex-1 sm:[&>button]:flex-none">
                     {!isEditing ? (
                         <>
                             <Button 
@@ -303,12 +304,12 @@ export default function StaffDetailPage() {
             {/* Profile Header Card */}
             <Card>
                 <CardContent className="pt-6">
-                    <div className="flex flex-col md:flex-row gap-6">
+                    <div className="flex flex-col md:flex-row gap-4 sm:gap-6">
                         {/* Avatar Section */}
                         <div className="flex flex-col items-center md:items-start">
-                            <Avatar className="h-32 w-32">
+                            <Avatar className="h-20 w-20 sm:h-32 sm:w-32">
                                 <AvatarImage src={staff.avatar_url} />
-                                <AvatarFallback className="text-4xl">
+                                <AvatarFallback className="text-2xl sm:text-4xl">
                                     {staff.name.charAt(0).toUpperCase()}
                                 </AvatarFallback>
                             </Avatar>
@@ -321,9 +322,9 @@ export default function StaffDetailPage() {
                         </div>
 
                         {/* Info Section */}
-                        <div className="flex-1 space-y-4">
-                            <div>
-                                <h3 className="text-2xl font-bold">{staff.name}</h3>
+                        <div className="flex-1 min-w-0 space-y-4 wrap-anywhere">
+                            <div className="text-center md:text-left">
+                                <h3 className="text-xl sm:text-2xl font-bold">{staff.name}</h3>
                                 <p className="text-muted-foreground">
                                     {staff.employee_registration_no}
                                 </p>
@@ -381,7 +382,7 @@ export default function StaffDetailPage() {
                     <form onSubmit={form.handleSubmit(handleSave)} className="space-y-6">
                         {/* Edit Mode Tabs */}
                         <Tabs defaultValue="personal" className="w-full">
-                            <TabsList className="grid w-full max-w-2xl grid-cols-5">
+                            <TabsList className="w-full sm:grid sm:max-w-2xl sm:grid-cols-5">
                                 <TabsTrigger value="personal">Personal</TabsTrigger>
                                 <TabsTrigger value="professional">Professional</TabsTrigger>
                                 <TabsTrigger value="employment">Employment</TabsTrigger>
@@ -830,7 +831,7 @@ export default function StaffDetailPage() {
             {/* View Mode - Show when not editing */}
             {!isEditing && (
                 <Tabs defaultValue="personal" className="w-full">
-                    <TabsList className="grid w-full max-w-2xl grid-cols-5">
+                    <TabsList className="w-full sm:grid sm:max-w-2xl sm:grid-cols-5">
                     <TabsTrigger value="personal">Personal</TabsTrigger>
                     <TabsTrigger value="professional">Professional</TabsTrigger>
                     <TabsTrigger value="employment">Employment</TabsTrigger>

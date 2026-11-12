@@ -161,7 +161,7 @@ export default function SchedulesManager({ hospitalId }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Shifts &amp; Slots</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Shifts &amp; Slots</h1>
         <p className="text-gray-600 mt-2">
           Set who works when. This controls the time slots reception and patients can book.
         </p>
@@ -286,7 +286,7 @@ export default function SchedulesManager({ hospitalId }) {
 
       {/* Edit schedule */}
       <Dialog open={Boolean(editing)} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl sm:max-h-[90vh] overflow-y-auto">
           {editing && (
             <>
               <DialogHeader>
@@ -377,7 +377,7 @@ export default function SchedulesManager({ hospitalId }) {
                       Appointment slots
                     </p>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
                         <Label htmlFor="sd">Slot length</Label>
                         <Select
@@ -450,7 +450,7 @@ export default function SchedulesManager({ hospitalId }) {
                   </div>
                 )}
 
-                <div className="flex justify-end gap-2 pt-4 border-t">
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4 border-t">
                   <Button type="button" variant="outline" onClick={() => setEditing(null)}>
                     Cancel
                   </Button>
@@ -724,7 +724,7 @@ function LeaveDialog({ open, onClose, hospitalId, staff, onSaved }) {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4 border-t">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>

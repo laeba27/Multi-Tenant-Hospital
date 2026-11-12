@@ -447,7 +447,7 @@ export function DoctorAppointmentsBoard({ appointments = [] }) {
                 <p className="text-xs uppercase text-gray-500">Full name</p>
                 <p className="text-base font-semibold text-gray-900">{profileDialog.name}</p>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 wrap-anywhere">
                 <div>
                   <p className="text-xs uppercase text-gray-500">Registration</p>
                   <p>{profileDialog.registrationNo || '—'}</p>

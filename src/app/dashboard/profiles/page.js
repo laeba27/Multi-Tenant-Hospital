@@ -311,7 +311,7 @@ export default function ProfilePage() {
           A plain title and one action. The old header put a filled button next
           to a 3xl bold heading, which fought for attention on a page whose job
           is mostly reading. */}
-      <div className="flex items-start justify-between gap-4 mb-8">
+      <div className="flex items-start justify-between gap-4 mb-6 sm:mb-8">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Profile</h1>
           <p className="mt-1 text-sm text-slate-500">
@@ -335,8 +335,8 @@ export default function ProfilePage() {
           it is the only place the avatar, name, role and registration number
           appear together, so a doctor's profile and a receptionist's profile
           read identically. */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
           <div className="relative shrink-0">
             {avatarPreview ? (
               // eslint-disable-next-line @next/next/no-img-element -- remote R2 URL, not a static asset
@@ -397,8 +397,8 @@ export default function ProfilePage() {
           Only rendered when there is a second tab to switch to. A lone tab is
           just a label, and patients (who have no hospital) saw exactly that. */}
       {hospital && (
-        <div className="mt-8 border-b border-slate-200">
-          <nav className="-mb-px flex gap-6">
+        <div className="mt-6 sm:mt-8 border-b border-slate-200">
+          <nav className="-mb-px flex gap-4 sm:gap-6 overflow-x-auto [scrollbar-width:none]">
             {[
               { id: 'personal', label: 'Personal details', icon: User },
               { id: 'hospital', label: 'Hospital', icon: Building2 },
@@ -409,7 +409,7 @@ export default function ProfilePage() {
                 <button
                   key={t.id}
                   onClick={() => setActiveTab(t.id)}
-                  className={`inline-flex items-center gap-2 border-b-2 px-1 pb-3 text-sm font-medium transition ${
+                  className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-1 pb-3 text-sm font-medium transition ${
                     on
                       ? 'border-brand-blue text-brand-blue'
                       : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
@@ -431,7 +431,7 @@ export default function ProfilePage() {
 
       {/* ── Personal details ── */}
       {activeTab === 'personal' && (
-        <div className="mt-8 rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
+        <div className="mt-6 sm:mt-8 rounded-xl border border-slate-200 bg-white p-4 sm:p-8">
           <Section
             title="Personal details"
             description={
@@ -517,7 +517,7 @@ export default function ProfilePage() {
 
       {/* ── Hospital details ── */}
       {activeTab === 'hospital' && hospital && (
-        <div className="mt-8 rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
+        <div className="mt-6 sm:mt-8 rounded-xl border border-slate-200 bg-white p-4 sm:p-8">
           {/* Non-admins see this tab read-only; say so once, plainly, instead
               of letting them discover it by finding no inputs. */}
           {!isHospitalAdmin && (

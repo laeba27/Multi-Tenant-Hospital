@@ -153,7 +153,7 @@ export default function TreatmentsPage() {
             Manage treatment services and pricing
           </p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
+        <Button onClick={() => setIsDialogOpen(true)} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" /> Add Treatment
         </Button>
       </div>
@@ -172,7 +172,7 @@ export default function TreatmentsPage() {
               placeholder="Search by name or code..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
+              className="sm:max-w-sm"
             />
           </div>
 
@@ -187,11 +187,11 @@ export default function TreatmentsPage() {
                   <TableRow>
                     <TableHead>Treatment Name</TableHead>
                    
-                    <TableHead>Department</TableHead>
+                    <TableHead className="hidden md:table-cell">Department</TableHead>
                     <TableHead>Price</TableHead>
-                    <TableHead>Duration</TableHead>
+                    <TableHead className="hidden sm:table-cell">Duration</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
+                    <TableHead className="hidden lg:table-cell">Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -210,10 +210,10 @@ export default function TreatmentsPage() {
                         onClick={() => router.push(`/dashboard/hospital/treatments/${treatment.id}`)}
                       >
                         <TableCell>
-                          <span className="font-medium">{capitalizeWords(treatment.treatment_name)}</span>
+                          <span className="font-medium whitespace-normal">{capitalizeWords(treatment.treatment_name)}</span>
                         </TableCell>
                        
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell">
                           {treatment.departments?.name || '-'}
                         </TableCell>
                         <TableCell>
@@ -222,7 +222,7 @@ export default function TreatmentsPage() {
                             {treatment.base_price.toLocaleString()}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden sm:table-cell">
                           {treatment.duration_minutes ? (
                             <div className="flex items-center gap-1">
                               <Clock className="h-4 w-4 text-muted-foreground" />
@@ -238,7 +238,7 @@ export default function TreatmentsPage() {
                             onValueChange={(val) => handleStatusChange(treatment.id, val === 'active')}
                             disabled={updatingId === treatment.id}
                           >
-                            <SelectTrigger className="w-28">
+                            <SelectTrigger className="w-24 sm:w-28">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -247,7 +247,7 @@ export default function TreatmentsPage() {
                             </SelectContent>
                           </Select>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden lg:table-cell">
                           {treatment.created_at ? format(new Date(treatment.created_at), 'MMM d, yyyy') : '-'}
                         </TableCell>
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>

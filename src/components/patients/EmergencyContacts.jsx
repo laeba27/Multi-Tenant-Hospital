@@ -15,9 +15,9 @@ function ContactCard({ icon: Icon, label, number, tone, sub }) {
   return (
     <a
       href={`tel:${number}`}
-      className="flex items-center gap-3 rounded-lg border border-gray-100 bg-white px-4 py-3 hover:border-indigo-200 hover:bg-indigo-50/40 transition-colors"
+      className="flex items-center gap-3 rounded-lg border border-gray-100 bg-white px-3 py-3 sm:px-4 hover:border-indigo-200 hover:bg-indigo-50/40 transition-colors"
     >
-      <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${tone}`}>
+      <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center shrink-0 ${tone}`}>
         <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">

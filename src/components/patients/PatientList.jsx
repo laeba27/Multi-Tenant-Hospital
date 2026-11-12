@@ -179,12 +179,12 @@ export function PatientList({
           <TableHeader>
             <TableRow>
               <TableHead>Patient</TableHead>
-              <TableHead>Patient ID</TableHead>
-              <TableHead>Email</TableHead>
+              <TableHead className="hidden md:table-cell">Patient ID</TableHead>
+              <TableHead className="hidden lg:table-cell">Email</TableHead>
               <TableHead>Mobile</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Registered</TableHead>
-              <TableHead className="w-24">Actions</TableHead>
+              <TableHead className="hidden sm:table-cell">Status</TableHead>
+              <TableHead className="hidden lg:table-cell">Registered</TableHead>
+              <TableHead className="w-12 sm:w-24"><span className="sr-only sm:not-sr-only">Actions</span></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -202,8 +202,8 @@ export function PatientList({
                   onClick={() => onViewPatient?.(patient)}
                 >
                   <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <Avatar className="h-8 w-8 shrink-0">
                         <AvatarImage
                           src={patient.profile?.avatar_url}
                           alt={patient.profile?.name}
@@ -230,17 +230,17 @@ export function PatientList({
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <span className="font-mono text-sm">{patient.id}</span>
                   </TableCell>
-                  <TableCell>{patient.profile?.email || '-'}</TableCell>
+                  <TableCell className="hidden lg:table-cell">{patient.profile?.email || '-'}</TableCell>
                   <TableCell>{patient.profile?.mobile}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">
                     <Badge className={getStatusColor(patient.is_active)}>
                       {patient.is_active ? 'Active' : 'Inactive'}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden lg:table-cell">
                     {new Date(patient.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
@@ -291,7 +291,7 @@ export function PatientList({
           <AlertDialogDescription>
             Are you sure you want to delete this patient? This action cannot be undone.
           </AlertDialogDescription>
-          <div className="flex gap-4">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-4">
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => handleDelete(selectedPatientId)}

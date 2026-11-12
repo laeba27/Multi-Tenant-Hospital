@@ -104,7 +104,7 @@ export default function FinancePage() {
 
           {/* ===== INCOMING ===== */}
           <TabsContent value="incoming" className="space-y-4">
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center justify-between">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-xs text-gray-500">Patient Appointment Income (auto)</p>
                 <p className="text-xl font-bold text-emerald-700">{money(data?.patientIncome)}</p>
@@ -112,7 +112,7 @@ export default function FinancePage() {
                   Calculated from paid patient invoices.
                 </p>
               </div>
-              <Button onClick={() => setDialogDir('incoming')}>
+              <Button onClick={() => setDialogDir('incoming')} className="w-full sm:w-auto">
                 <Plus className="h-4 w-4" /> Add Incoming
               </Button>
             </div>
@@ -129,7 +129,7 @@ export default function FinancePage() {
           {/* ===== OUTGOING ===== */}
           <TabsContent value="outgoing" className="space-y-4">
             <div className="flex justify-end">
-              <Button onClick={() => setDialogDir('outgoing')}>
+              <Button onClick={() => setDialogDir('outgoing')} className="w-full sm:w-auto">
                 <Plus className="h-4 w-4" /> Add Outgoing
               </Button>
             </div>
@@ -155,11 +155,11 @@ export default function FinancePage() {
 
 function SummaryCard({ label, value, icon: Icon, color, sub }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 sm:p-4 min-w-0">
       <span className={`inline-flex rounded-lg p-2 ${color}`}>
         <Icon className="h-4 w-4" />
       </span>
-      <p className="text-xl font-bold text-gray-900 mt-2">{value}</p>
+      <p className="text-lg sm:text-xl font-bold text-gray-900 mt-2 wrap-anywhere">{value}</p>
       <p className="text-xs text-gray-500">{label}</p>
       {sub && <p className="text-[10px] text-gray-400 mt-1">{sub}</p>}
     </div>
@@ -196,7 +196,7 @@ function LedgerTable({ loading, rows, direction, emptyHint, onDeleted }) {
             <TableHead>Date</TableHead>
             <TableHead>Category</TableHead>
             <TableHead>{direction === 'outgoing' ? 'Paid To' : 'Received From'}</TableHead>
-            <TableHead>Method</TableHead>
+            <TableHead className="hidden md:table-cell">Method</TableHead>
             <TableHead className="text-right">Amount</TableHead>
             <TableHead className="w-10" />
           </TableRow>
@@ -210,11 +210,11 @@ function LedgerTable({ loading, rows, direction, emptyHint, onDeleted }) {
               <TableCell>
                 <Badge variant="outline" className="capitalize text-[11px]">{t.category}</Badge>
               </TableCell>
-              <TableCell className="text-[13px] text-gray-800">
+              <TableCell className="text-[13px] text-gray-800 min-w-32 whitespace-normal">
                 {t.party || '—'}
                 {t.notes && <span className="block text-[11px] text-gray-400">{t.notes}</span>}
               </TableCell>
-              <TableCell className="text-[13px] text-gray-600 capitalize">
+              <TableCell className="hidden md:table-cell text-[13px] text-gray-600 capitalize">
                 {t.payment_method ? t.payment_method.replace('_', ' ') : '—'}
               </TableCell>
               <TableCell

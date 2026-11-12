@@ -67,7 +67,7 @@ export default function UpdatesFeed({ limit = 20, title = 'Quick Updates' }) {
             return (
               <div
                 key={n.id}
-                className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"
+                className="rounded-xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm wrap-anywhere"
               >
                 <div className="flex items-center gap-2 flex-wrap">
                   {n.is_pinned && <Pin className="h-3.5 w-3.5 text-indigo-600" />}

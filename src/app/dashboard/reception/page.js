@@ -127,10 +127,10 @@ export default function ReceptionDashboardPage() {
 
   return (
     <DashboardLayout showHeader>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Welcome Section */}
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 wrap-anywhere">
             Welcome back, {staffDetails?.name || user.profile?.name || 'Receptionist'}!
           </h2>
           <p className="text-gray-600 mt-1">
@@ -141,7 +141,7 @@ export default function ReceptionDashboardPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           <StatCard
             title="Today's Appointments"
             value={stats.todayAppointments}
@@ -174,8 +174,8 @@ export default function ReceptionDashboardPage() {
 
         {/* Quick Actions Grid */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6">
             {menuItems.map((item) => {
               const Icon = item.icon
               const colorClasses = {
@@ -189,10 +189,10 @@ export default function ReceptionDashboardPage() {
                   <Card className={`cursor-pointer transition-all hover:shadow-lg ${colorClasses[item.color]}`}>
                     <CardHeader>
                       <div className="flex items-center justify-between">
-                        <Icon className="h-8 w-8" />
+                        <Icon className="h-6 w-6 sm:h-8 sm:w-8" />
                         <ArrowRight className="h-5 w-5 opacity-50" />
                       </div>
-                      <CardTitle className="text-xl">{item.label}</CardTitle>
+                      <CardTitle className="text-lg sm:text-xl">{item.label}</CardTitle>
                       <CardDescription>{item.description}</CardDescription>
                     </CardHeader>
                   </Card>
@@ -218,15 +218,16 @@ function StatCard({ title, value, icon: Icon, color, trend }) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
-            <Icon className="h-5 w-5" />
+        <div className="flex items-center justify-between gap-2">
+          <div className={`p-2 sm:p-3 rounded-lg ${colorClasses[color]}`}>
+            <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
           </div>
-          <span className="text-xs text-gray-500">{trend}</span>
+          <span className="hidden sm:inline text-xs text-gray-500 text-right">{trend}</span>
         </div>
-        <div className="mt-4">
-          <h3 className="text-3xl font-bold text-gray-900">{value}</h3>
-          <p className="text-sm text-gray-600 mt-1">{title}</p>
+        <div className="mt-3 sm:mt-4 min-w-0">
+          <h3 className="text-xl sm:text-3xl font-bold text-gray-900 wrap-anywhere">{value}</h3>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">{title}</p>
+          <p className="sm:hidden text-[11px] text-gray-500 mt-1">{trend}</p>
         </div>
       </CardHeader>
     </Card>

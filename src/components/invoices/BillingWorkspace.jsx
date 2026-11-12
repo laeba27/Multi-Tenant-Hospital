@@ -316,16 +316,16 @@ export function BillingWorkspace() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Billing & Payments</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Billing & Payments</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">
               Manage invoices, payments, and financial transactions
             </p>
           </div>
-          <Button onClick={() => setShowCreateDialog(true)} className="bg-indigo-600">
+          <Button onClick={() => setShowCreateDialog(true)} className="bg-indigo-600 w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             New Invoice
           </Button>
@@ -342,14 +342,14 @@ export function BillingWorkspace() {
 
         {/* Stats */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
                 <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.total}</div>
+                <div className="text-xl sm:text-2xl font-bold">{stats.total}</div>
               </CardContent>
             </Card>
 
@@ -359,7 +359,7 @@ export function BillingWorkspace() {
                 <CheckCircle className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{stats.paid}</div>
+                <div className="text-xl sm:text-2xl font-bold text-green-600">{stats.paid}</div>
               </CardContent>
             </Card>
 
@@ -369,7 +369,7 @@ export function BillingWorkspace() {
                 <Clock className="h-4 w-4 text-yellow-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">{stats.partially_paid}</div>
+                <div className="text-xl sm:text-2xl font-bold text-yellow-600">{stats.partially_paid}</div>
               </CardContent>
             </Card>
 
@@ -379,17 +379,17 @@ export function BillingWorkspace() {
                 <AlertCircle className="h-4 w-4 text-red-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">{stats.unpaid}</div>
+                <div className="text-xl sm:text-2xl font-bold text-red-600">{stats.unpaid}</div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="col-span-2 md:col-span-1">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Due</CardTitle>
                 <DollarSign className="h-4 w-4 text-red-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">₹{stats.totalDue.toLocaleString()}</div>
+                <div className="text-xl sm:text-2xl font-bold text-red-600">₹{stats.totalDue.toLocaleString()}</div>
               </CardContent>
             </Card>
           </div>
@@ -398,20 +398,20 @@ export function BillingWorkspace() {
         {/* Filters and Search */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <CardTitle>Invoice History</CardTitle>
-              <div className="flex gap-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Search by invoice ID, patient name..."
-                    className="pl-10 w-64"
+                    className="pl-10 w-full sm:w-64"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
                 <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-full sm:w-48">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -438,44 +438,44 @@ export function BillingWorkspace() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-medium text-gray-700">Invoice ID</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700">Patient</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700">Total</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700">Paid</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700">Due</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                      <th className="text-left py-2.5 px-2 sm:py-3 sm:px-4 font-medium text-gray-700">Invoice ID</th>
+                      <th className="text-left py-2.5 px-2 sm:py-3 sm:px-4 font-medium text-gray-700">Patient</th>
+                      <th className="hidden md:table-cell text-left py-2.5 px-2 sm:py-3 sm:px-4 font-medium text-gray-700">Date</th>
+                      <th className="hidden lg:table-cell text-left py-2.5 px-2 sm:py-3 sm:px-4 font-medium text-gray-700">Total</th>
+                      <th className="hidden lg:table-cell text-left py-2.5 px-2 sm:py-3 sm:px-4 font-medium text-gray-700">Paid</th>
+                      <th className="text-left py-2.5 px-2 sm:py-3 sm:px-4 font-medium text-gray-700">Due</th>
+                      <th className="text-left py-2.5 px-2 sm:py-3 sm:px-4 font-medium text-gray-700">Status</th>
+                      <th className="text-left py-2.5 px-2 sm:py-3 sm:px-4 font-medium text-gray-700">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredInvoices.map((invoice) => (
                       <tr key={invoice.id} className="border-b hover:bg-gray-50">
-                        <td className="py-3 px-4">
+                        <td className="py-2.5 px-2 sm:py-3 sm:px-4">
                           <div className="font-mono text-sm">{invoice.id}</div>
                           {invoice.description && (
-                            <div className="text-xs text-gray-500 max-w-[220px] truncate" title={invoice.description}>
+                            <div className="text-xs text-gray-500 max-w-[140px] sm:max-w-[220px] truncate" title={invoice.description}>
                               {invoice.description}
                             </div>
                           )}
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-2.5 px-2 sm:py-3 sm:px-4">
                           <div>
                             <div className="font-medium">{invoice.patients?.profile?.name || 'N/A'}</div>
                             <div className="text-sm text-gray-500">{invoice.patients?.profile?.mobile || ''}</div>
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-sm">
+                        <td className="hidden md:table-cell py-2.5 px-2 sm:py-3 sm:px-4 text-sm">
                           {new Date(invoice.created_at).toLocaleDateString()}
                         </td>
-                        <td className="py-3 px-4 font-medium">₹{invoice.total_amount?.toLocaleString()}</td>
-                        <td className="py-3 px-4 text-green-600">₹{invoice.paid_amount?.toLocaleString()}</td>
-                        <td className="py-3 px-4 text-red-600 font-medium">
+                        <td className="hidden lg:table-cell py-2.5 px-2 sm:py-3 sm:px-4 font-medium">₹{invoice.total_amount?.toLocaleString()}</td>
+                        <td className="hidden lg:table-cell py-2.5 px-2 sm:py-3 sm:px-4 text-green-600">₹{invoice.paid_amount?.toLocaleString()}</td>
+                        <td className="py-2.5 px-2 sm:py-3 sm:px-4 text-red-600 font-medium">
                           ₹{invoice.due_amount?.toLocaleString()}
                         </td>
-                        <td className="py-3 px-4">{getPaymentStatusBadge(invoice.payment_status)}</td>
-                        <td className="py-3 px-4">
-                          <div className="flex gap-2">
+                        <td className="py-2.5 px-2 sm:py-3 sm:px-4">{getPaymentStatusBadge(invoice.payment_status)}</td>
+                        <td className="py-2.5 px-2 sm:py-3 sm:px-4">
+                          <div className="flex flex-col gap-1.5 sm:flex-row sm:gap-2">
                             <Button
                               size="sm"
                               variant="outline"
@@ -511,7 +511,7 @@ export function BillingWorkspace() {
 
       {/* Create Invoice Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-4xl! w-full h-[85vh] flex flex-col overflow-hidden">
+        <DialogContent className="sm:max-w-4xl sm:h-[85vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5">
               Create New Invoice
@@ -526,7 +526,7 @@ export function BillingWorkspace() {
             </DialogTitle>
             <DialogDescription>Create a new invoice for billing</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 mt-4 flex-1 overflow-y-auto min-h-0">
+          <div className="space-y-4 sm:mt-4 flex-1 overflow-y-auto min-h-0 -mx-1 px-1">
             <div>
               <Label htmlFor="patient_id">Patient ID</Label>
               <Input
@@ -594,7 +594,7 @@ export function BillingWorkspace() {
                 onChange={(e) => setNewInvoice({ ...newInvoice, notes: e.target.value })}
               />
             </div>
-            <div className="flex gap-2 justify-end">
+            <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-2">
               <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
                 Cancel
               </Button>
@@ -608,7 +608,7 @@ export function BillingWorkspace() {
 
       {/* Payment Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="max-w-4xl! w-full h-[85vh] flex flex-col overflow-hidden">
+        <DialogContent className="sm:max-w-4xl sm:h-[85vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5">
               Record Payment
@@ -625,7 +625,7 @@ export function BillingWorkspace() {
               Invoice: {selectedInvoice?.id} | Due: ₹{selectedInvoice?.due_amount?.toLocaleString()}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 mt-4 flex-1 overflow-y-auto min-h-0">
+          <div className="space-y-4 sm:mt-4 flex-1 overflow-y-auto min-h-0 -mx-1 px-1">
             <div>
               <Label htmlFor="payment_amount">Payment Amount (₹)</Label>
               <Input
@@ -662,7 +662,7 @@ export function BillingWorkspace() {
                 onChange={(e) => setPaymentForm({ ...paymentForm, reference_id: e.target.value })}
               />
             </div>
-            <div className="flex gap-2 justify-end">
+            <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-2">
               <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
                 Cancel
               </Button>
@@ -677,9 +677,9 @@ export function BillingWorkspace() {
       {/* Invoice View Dialog */}
       {selectedInvoiceForView && (
         <Dialog open={!!selectedInvoiceForView} onOpenChange={() => setSelectedInvoiceForView(null)}>
-          <DialogContent className="max-w-4xl! w-full h-[85vh] flex flex-col overflow-hidden p-0">
-            <DialogHeader className="px-4 sm:px-6 pt-6 pb-2 pr-10">
-              <DialogTitle className="flex items-center gap-1.5 text-left">
+          <DialogContent fullScreenOnMobile className="sm:max-w-4xl h-[85vh] flex flex-col overflow-hidden p-0 sm:p-0">
+            <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 pr-12">
+              <DialogTitle className="flex items-center gap-1.5 text-left text-base sm:text-lg break-all">
                 Invoice Details - {selectedInvoiceForView.id}
                 <HelpHint
                   title="Invoice"

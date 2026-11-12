@@ -42,9 +42,9 @@ export function splitAppointments(appointments) {
 
 export function Section({ title, icon: Icon, action, children }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2">
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 sm:p-5">
+      <div className="flex items-center justify-between gap-3 mb-3 sm:mb-4">
+        <div className="flex items-center gap-2 min-w-0">
           {Icon && <Icon className="h-4 w-4 text-indigo-600" />}
           <h2 className="text-sm font-bold text-gray-900">{title}</h2>
         </div>
@@ -61,22 +61,22 @@ export function Empty({ children }) {
 
 export function Stat({ icon: Icon, label, value, color }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-      <div className={`h-9 w-9 rounded-lg flex items-center justify-center mb-2 ${color}`}>
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 sm:p-4 min-w-0">
+      <div className={`h-8 w-8 sm:h-9 sm:w-9 rounded-lg flex items-center justify-center mb-2 ${color}`}>
         <Icon className="h-4 w-4" />
       </div>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-      <p className="text-xs text-gray-500">{label}</p>
+      <p className="text-xl sm:text-2xl font-bold text-gray-900">{value}</p>
+      <p className="text-[11px] sm:text-xs text-gray-500 truncate">{label}</p>
     </div>
   )
 }
 
 export function Info({ icon: Icon, label, value, mono }) {
   return (
-    <div className="flex items-center gap-2 text-xs">
+    <div className="flex items-center gap-2 text-xs min-w-0">
       <Icon className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-      <span className="text-gray-500">{label}:</span>
-      <span className={`text-gray-900 truncate ${mono ? 'font-mono' : ''}`}>{value || '—'}</span>
+      <span className="text-gray-500 shrink-0">{label}:</span>
+      <span className={`text-gray-900 min-w-0 truncate ${mono ? 'font-mono' : ''}`}>{value || '—'}</span>
     </div>
   )
 }
@@ -89,8 +89,8 @@ export function AppointmentRow({ a, onCancel }) {
   const unpaid = due > 0 && a.payment_status !== 'paid'
 
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-gray-100 bg-white px-4 py-3">
-      <div className="h-10 w-10 rounded-lg bg-indigo-50 text-indigo-600 flex flex-col items-center justify-center shrink-0">
+    <div className="flex items-start gap-3 rounded-lg border border-gray-100 bg-white px-3 py-3 sm:px-4 wrap-anywhere">
+      <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-indigo-50 text-indigo-600 flex flex-col items-center justify-center shrink-0">
         <CalendarDays className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">
@@ -147,8 +147,8 @@ export function AppointmentRow({ a, onCancel }) {
 
 export function HospitalCard({ record }) {
   return (
-    <div className="rounded-lg border border-gray-100 bg-slate-50/60 px-4 py-3">
-      <div className="flex items-center justify-between gap-2">
+    <div className="rounded-lg border border-gray-100 bg-slate-50/60 px-3 py-3 sm:px-4 min-w-0">
+      <div className="flex items-center justify-between gap-2 min-w-0">
         <p className="text-sm font-semibold text-gray-900 truncate">
           {record.hospital?.name || record.hospital_id}
         </p>
@@ -160,7 +160,7 @@ export function HospitalCard({ record }) {
         <MapPin className="h-3 w-3" />
         {[record.hospital?.city, record.hospital?.state].filter(Boolean).join(', ') || '—'}
       </p>
-      <p className="text-[11px] font-mono text-gray-400 mt-1">
+      <p className="text-[11px] font-mono text-gray-400 mt-1 wrap-anywhere">
         Patient No: {record.registration_no}
       </p>
     </div>

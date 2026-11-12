@@ -385,12 +385,12 @@ export function InvoiceView({ invoice, hospital, patient, onClose }) {
   return (
     <div className="flex flex-col w-full space-y-4">
       {/* Action Buttons */}
-      <div className="flex items-center gap-2 justify-end">
-        <Button variant="outline" onClick={handleDownload} className="h-9 px-4 gap-2" title="Download Invoice">
+      <div className="flex flex-wrap items-center gap-2 justify-end">
+        <Button variant="outline" onClick={handleDownload} className="h-9 px-3 sm:px-4 gap-2 flex-1 sm:flex-none" title="Download Invoice">
           <Download className="h-4 w-4" />
           Download
         </Button>
-        <Button onClick={handlePrint} className="h-9 px-4 gap-2 bg-gray-900 hover:bg-gray-800" title="Print Invoice">
+        <Button onClick={handlePrint} className="h-9 px-3 sm:px-4 gap-2 flex-1 sm:flex-none bg-gray-900 hover:bg-gray-800" title="Print Invoice">
           <Printer className="h-4 w-4" />
           Print
         </Button>
@@ -402,7 +402,7 @@ export function InvoiceView({ invoice, hospital, patient, onClose }) {
       </div>
 
       {/* Invoice Display */}
-      <div className="w-full border border-gray-300 rounded-lg overflow-auto max-h-[65vh] bg-white">
+      <div className="w-full border border-gray-300 rounded-lg bg-white sm:overflow-auto sm:max-h-[65vh]">
         <div className="p-2 sm:p-4 md:p-6">
           {invoiceContent}
         </div>

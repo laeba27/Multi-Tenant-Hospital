@@ -85,26 +85,26 @@ export default async function HospitalAdminPage() {
 
   return (
     <DashboardLayout roleLabel="Hospital Administrator" showHeader>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{hospital.name}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 wrap-anywhere">{hospital.name}</h1>
           <p className="text-sm text-gray-500 mt-1">
             Here&apos;s what&apos;s happening at your hospital today.
           </p>
         </div>
 
         {/* Today at a glance */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {stats.map((s) => {
             const card = (
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 h-full">
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 sm:p-5 h-full">
                 <div
                   className={`h-9 w-9 rounded-lg flex items-center justify-center mb-3 ${s.accent}`}
                 >
                   <s.icon className="h-4 w-4" />
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{s.value}</p>
-                <p className="text-sm font-medium text-gray-700 mt-0.5">{s.label}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 wrap-anywhere">{s.value}</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-700 mt-0.5">{s.label}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{s.sub}</p>
               </div>
             )
@@ -118,9 +118,9 @@ export default async function HospitalAdminPage() {
           })}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Quick links */}
-          <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-4 sm:p-5">
             <h2 className="text-sm font-bold text-gray-900 mb-4">Quick Links</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {QUICK_LINKS.map((l) => (
@@ -148,7 +148,7 @@ export default async function HospitalAdminPage() {
           </div>
 
           {/* Notices */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 sm:p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <Megaphone className="h-4 w-4 text-indigo-600" />

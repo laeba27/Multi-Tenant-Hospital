@@ -346,7 +346,7 @@ export default function PatientManagementPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Patient Management</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Patient Management</h1>
         <div className="flex items-center gap-2">
            {/* <Button variant="outline" onClick={() => resetModal(true)}>
              + New Registration Flow
@@ -369,11 +369,11 @@ export default function PatientManagementPage() {
       {/* Main Content */}
       {selectedPatient ? (
         // Patient Details View
-        <Card>
-          <CardHeader>
+        <Card className="gap-4 py-4 sm:gap-6 sm:py-6">
+          <CardHeader className="px-3 sm:px-6">
             <CardTitle>Patient Details</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 sm:px-6">
             <PatientDetails
               patient={selectedPatient}
               userRole={user.profile?.role}
@@ -422,7 +422,8 @@ export default function PatientManagementPage() {
                         // short step (the lookup) collapse to a fraction of the
                         // height of a tall one. On phones it goes full-screen:
                         // a floating box would waste the edges of a small screen.
-                        className="max-w-full! sm:max-w-4xl! w-full h-dvh sm:h-[85vh] rounded-none sm:rounded-lg p-4 sm:p-6 gap-3 sm:gap-4 flex flex-col overflow-hidden"
+                        fullScreenOnMobile
+                        className="sm:max-w-4xl h-[85vh] p-4 sm:p-6 gap-3 sm:gap-4 flex flex-col overflow-hidden"
                       >
                         <DialogHeader>
                           <DialogTitle className="flex items-center gap-1.5 pr-8 text-left">

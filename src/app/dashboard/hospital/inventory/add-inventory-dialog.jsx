@@ -130,7 +130,7 @@ export function AddInventoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-4xl sm:max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Inventory Item</DialogTitle>
           <DialogDescription>
@@ -144,7 +144,7 @@ export function AddInventoryDialog({
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-gray-700">Basic Information</h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="item_name"
@@ -174,7 +174,7 @@ export function AddInventoryDialog({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="category"
@@ -234,7 +234,7 @@ export function AddInventoryDialog({
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-gray-700">Stock Information</h3>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="quantity"
@@ -283,7 +283,7 @@ export function AddInventoryDialog({
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-gray-700">Purchase Information</h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="purchase_price"
@@ -313,7 +313,7 @@ export function AddInventoryDialog({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="purchase_date"

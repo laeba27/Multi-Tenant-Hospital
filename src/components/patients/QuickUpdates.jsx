@@ -43,7 +43,7 @@ export default function QuickUpdates({ limit = 5 }) {
             return (
               <div
                 key={n.id}
-                className="flex items-start gap-3 rounded-lg border border-gray-100 bg-white px-4 py-3"
+                className="flex items-start gap-3 rounded-lg border border-gray-100 bg-white px-3 py-3 sm:px-4 wrap-anywhere"
               >
                 <div className="h-9 w-9 rounded-lg bg-gray-50 text-gray-600 flex items-center justify-center shrink-0">
                   <Icon className="h-4 w-4" />

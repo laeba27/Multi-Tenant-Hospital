@@ -56,9 +56,9 @@ export function PatientDetails({ patient, userRole, onEdit, onClose }) {
       </nav>
 
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-4">
-          <Avatar className="h-16 w-16">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3 sm:gap-4">
+          <Avatar className="h-12 w-12 shrink-0 sm:h-16 sm:w-16">
             <AvatarImage src={profile?.avatar_url} alt={profile?.name} />
             <AvatarFallback>
               {profile?.name
@@ -67,8 +67,8 @@ export function PatientDetails({ patient, userRole, onEdit, onClose }) {
                 .join('')}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <h2 className="text-2xl font-bold">{profile?.name}</h2>
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold wrap-anywhere sm:text-2xl">{profile?.name}</h2>
             {/* Both identifiers, labelled, so it is obvious which is which:
                 the registration number works across hospitals, the patient ID
                 is issued by this hospital alone. */}
@@ -91,15 +91,15 @@ export function PatientDetails({ patient, userRole, onEdit, onClose }) {
           </div>
         </div>
         {canEdit && (
-          <Button onClick={() => onEdit?.(patient)}>Edit</Button>
+          <Button onClick={() => onEdit?.(patient)} className="w-full sm:w-auto">Edit</Button>
         )}
       </div>
 
-      <hr className="my-6 border-gray-200" />
+      <hr className="my-4 border-gray-200 sm:my-6" />
 
       {/* Tabs */}
       <Tabs defaultValue="personal" className="space-y-4">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-4 sm:inline-flex sm:w-fit">
           <TabsTrigger value="personal">Personal</TabsTrigger>
           <TabsTrigger value="medical">Medical</TabsTrigger>
           <TabsTrigger value="contact">Contact</TabsTrigger>
@@ -108,17 +108,17 @@ export function PatientDetails({ patient, userRole, onEdit, onClose }) {
 
         {/* Personal Information */}
         <TabsContent value="personal">
-          <Card>
-            <CardHeader>
+          <Card className="gap-4 py-4 sm:gap-6 sm:py-6">
+            <CardHeader className="px-4 sm:px-6">
               <CardTitle>Personal Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <CardContent className="space-y-4 px-4 wrap-anywhere sm:px-6">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:gap-4">
                 <div>
                   <p className="text-sm text-gray-600">Name</p>
                   <p className="font-medium">{profile?.name}</p>
                 </div>
-                <div>
+                <div className="col-span-2 sm:col-span-1">
                   <p className="text-sm text-gray-600">Email</p>
                   <p className="font-medium">{profile?.email || '-'}</p>
                 </div>
@@ -174,11 +174,11 @@ export function PatientDetails({ patient, userRole, onEdit, onClose }) {
 
         {/* Medical Information */}
         <TabsContent value="medical">
-          <Card>
-            <CardHeader>
+          <Card className="gap-4 py-4 sm:gap-6 sm:py-6">
+            <CardHeader className="px-4 sm:px-6">
               <CardTitle>Medical Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 px-4 wrap-anywhere sm:px-6">
               <div>
                 <p className="text-sm text-gray-600 mb-2">Medical History</p>
                 <p className="font-medium">{patient.chronic_conditions || '-'}</p>
@@ -193,7 +193,7 @@ export function PatientDetails({ patient, userRole, onEdit, onClose }) {
 
               <hr className="my-4 border-gray-200" />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:gap-4">
                 <div>
                   <p className="text-sm text-gray-600">Last Visit</p>
                   <p className="font-medium">
@@ -227,12 +227,12 @@ export function PatientDetails({ patient, userRole, onEdit, onClose }) {
 
         {/* Contact Information */}
         <TabsContent value="contact">
-          <Card>
-            <CardHeader>
+          <Card className="gap-4 py-4 sm:gap-6 sm:py-6">
+            <CardHeader className="px-4 sm:px-6">
               <CardTitle>Emergency Contact</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <CardContent className="space-y-4 px-4 wrap-anywhere sm:px-6">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:gap-4">
                 <div>
                   <p className="text-sm text-gray-600">Contact Name</p>
                   <p className="font-medium">
@@ -252,12 +252,12 @@ export function PatientDetails({ patient, userRole, onEdit, onClose }) {
 
         {/* Insurance Information */}
         <TabsContent value="insurance">
-          <Card>
-            <CardHeader>
+          <Card className="gap-4 py-4 sm:gap-6 sm:py-6">
+            <CardHeader className="px-4 sm:px-6">
               <CardTitle>Insurance Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <CardContent className="space-y-4 px-4 wrap-anywhere sm:px-6">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:gap-4">
                 <div>
                   <p className="text-sm text-gray-600">Insurance Provider</p>
                   <p className="font-medium">

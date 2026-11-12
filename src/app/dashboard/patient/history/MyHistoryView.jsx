@@ -34,7 +34,7 @@ export default function MyHistoryView() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
         <h1 className="text-xl font-bold text-gray-900">My History</h1>
         <p className="text-sm text-gray-500 mt-1">
@@ -67,8 +67,8 @@ export default function MyHistoryView() {
 
 function PrescriptionRow({ p }) {
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-gray-100 bg-white px-4 py-3">
-      <div className="h-10 w-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+    <div className="flex items-start gap-3 rounded-lg border border-gray-100 bg-white px-3 py-3 sm:px-4 wrap-anywhere">
+      <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
         <Pill className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">

@@ -45,16 +45,16 @@ export default function MyAppointmentsView() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">My Appointments</h1>
           <p className="text-sm text-gray-500 mt-1">
             Across every hospital you are registered at.
           </p>
         </div>
-        <Link href="/dashboard/patient/book">
-          <Button className="bg-indigo-600 hover:bg-indigo-700">
+        <Link href="/dashboard/patient/book" className="w-full sm:w-auto">
+          <Button className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700">
             <Plus className="h-4 w-4" /> Book Appointment
           </Button>
         </Link>

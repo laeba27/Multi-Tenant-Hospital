@@ -75,9 +75,9 @@ export default function CompleteProfileForm() {
   }
 
   return (
-    <div className="rounded-xl bg-white p-8 shadow-sm">
+    <div className="rounded-xl bg-white p-5 sm:p-8 shadow-sm">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Finish setting up your account</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Finish setting up your account</h1>
         <p className="mt-2 text-sm text-gray-600">
           You signed in with the temporary password your clinic gave you. Add your email
           address and choose a password to secure your account.
@@ -200,7 +200,7 @@ export default function CompleteProfileForm() {
             </div>
           </div>
 
-          <details className="rounded-lg border border-gray-200 p-4">
+          <details className="rounded-lg border border-gray-200 p-3 sm:p-4">
             <summary className="cursor-pointer text-sm font-semibold text-gray-700">
               Add your address (optional)
             </summary>

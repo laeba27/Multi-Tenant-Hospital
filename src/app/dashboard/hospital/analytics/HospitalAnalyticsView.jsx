@@ -161,13 +161,13 @@ export function HospitalAnalyticsView({ data }) {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
           <p className="text-sm text-gray-500 mt-0.5">{hospital.name} · hospital overview</p>
         </div>
-        <Button variant="outline" onClick={handleExport} className="gap-2">
+        <Button variant="outline" onClick={handleExport} className="gap-2 w-full sm:w-auto">
           <Download className="h-4 w-4" />
           Download report
         </Button>
@@ -196,7 +196,7 @@ export function HospitalAnalyticsView({ data }) {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Revenue trend -- billed against collected, so a widening gap between
             the two lines reads as a collection problem at a glance. */}
         <ChartCard
@@ -287,7 +287,7 @@ export function HospitalAnalyticsView({ data }) {
         <ChartCard title="Invoices by Payment Status" empty={paymentMix.length === 0}>
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
-              <Pie data={paymentMix} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label>
+              <Pie data={paymentMix} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius="70%" label>
                 {paymentMix.map((_, i) => (
                   <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                 ))}
@@ -302,7 +302,7 @@ export function HospitalAnalyticsView({ data }) {
         <ChartCard title="Appointment Types" empty={apptByType.length === 0}>
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
-              <Pie data={apptByType} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label>
+              <Pie data={apptByType} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius="70%" label>
                 {apptByType.map((_, i) => (
                   <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                 ))}
@@ -333,11 +333,11 @@ export function HospitalAnalyticsView({ data }) {
 /** KPI tile, with an optional month-over-month delta. */
 function StatCard({ label, value, icon: Icon, color, trend, trendLabel, hint, compact }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 sm:p-4 min-w-0">
       <span className={`inline-flex rounded-lg p-2 ${color}`}>
         <Icon className="h-4 w-4" />
       </span>
-      <p className={`font-bold text-gray-900 mt-2 ${compact ? 'text-2xl' : 'text-xl'}`}>{value}</p>
+      <p className={`font-bold text-gray-900 mt-2 wrap-anywhere ${compact ? 'text-xl sm:text-2xl' : 'text-xl'}`}>{value}</p>
       <p className="text-xs text-gray-500">{label}</p>
       {trend !== undefined && trend !== null && <TrendPill value={trend} label={trendLabel} />}
       {trend === null && trendLabel && (
@@ -374,7 +374,7 @@ function RateCard({ label, value, good }) {
   const tone = healthy ? 'bg-emerald-500' : value === 0 ? 'bg-gray-300' : 'bg-amber-500'
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 sm:p-4 min-w-0">
       <p className="text-xs text-gray-500">{label}</p>
       <p className="text-xl font-bold text-gray-900 mt-1">{value}%</p>
       <div className="mt-2 h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
@@ -386,7 +386,7 @@ function RateCard({ label, value, good }) {
 
 function ChartCard({ title, subtitle, children, empty, wide }) {
   return (
-    <div className={`bg-white rounded-xl border border-gray-100 shadow-sm p-4 ${wide ? 'lg:col-span-2' : ''}`}>
+    <div className={`bg-white rounded-xl border border-gray-100 shadow-sm p-3 sm:p-4 min-w-0 ${wide ? 'lg:col-span-2' : ''}`}>
       <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
       {subtitle && <p className="text-xs text-gray-400 mb-3">{subtitle}</p>}
       {!subtitle && <div className="mb-3" />}

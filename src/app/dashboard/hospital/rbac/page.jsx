@@ -267,14 +267,14 @@ export default function RbacPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Role-Based Access Control</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Role-Based Access Control</h1>
           <p className="text-gray-600 mt-2">Manage permissions for hospital staff and roles</p>
         </div>
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
           <DialogTrigger asChild>
-            <Button onClick={() => handleOpenDialog(null)}>
+            <Button onClick={() => handleOpenDialog(null)} className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
               Add Rule
             </Button>
@@ -430,11 +430,11 @@ export default function RbacPage() {
               {rules.map((rule) => (
                 <div
                   key={rule.id}
-                  className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                  className="border rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                         {getTargetDisplay(rule)}
                         <Badge variant={rule.is_allowed ? 'default' : 'destructive'}>
                           {rule.is_allowed ? 'Allowed' : 'Denied'}
@@ -442,7 +442,7 @@ export default function RbacPage() {
                       </div>
                       <div className="text-sm">{getPermissionBadges(rule.permissions)}</div>
                     </div>
-                    <div className="flex items-center gap-2 ml-4">
+                    <div className="flex items-center gap-1 sm:gap-2 ml-2 sm:ml-4 shrink-0">
                       <Button
                         variant="ghost"
                         size="sm"

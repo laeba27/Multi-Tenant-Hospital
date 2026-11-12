@@ -134,7 +134,7 @@ export function SharedCalendar({
     const days = []
 
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="h-24 bg-gray-50 border border-gray-200"></div>)
+      days.push(<div key={`empty-${i}`} className="h-14 sm:h-24 bg-gray-50 border border-gray-200"></div>)
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
@@ -151,12 +151,24 @@ export function SharedCalendar({
               setDialogOpen(true)
             }
           }}
-          className={`h-24 border border-gray-200 p-2 ${!readOnly && 'cursor-pointer'} hover:bg-indigo-50 transition ${isToday ? 'bg-indigo-50' : 'bg-white'}`}
+          className={`h-14 sm:h-24 border border-gray-200 p-1 sm:p-2 ${!readOnly && 'cursor-pointer'} hover:bg-indigo-50 transition ${isToday ? 'bg-indigo-50' : 'bg-white'}`}
         >
-          <div className={`text-sm font-semibold mb-1 ${isToday ? 'text-indigo-600' : 'text-gray-900'}`}>
+          <div className={`text-xs sm:text-sm font-semibold mb-1 ${isToday ? 'text-indigo-600' : 'text-gray-900'}`}>
             {day}
           </div>
-          <div className="space-y-0.5 overflow-y-auto max-h-16">
+          {/* Phones: a ~45px-wide cell can't hold event titles, so show a
+              coloured dot per event instead. */}
+          {dayEvents.length > 0 && (
+            <div className="flex flex-wrap gap-0.5 sm:hidden">
+              {dayEvents.slice(0, 3).map(event => (
+                <span
+                  key={event.id}
+                  className={`h-1.5 w-1.5 rounded-full border ${EVENT_COLORS[event.type] || EVENT_COLORS.other}`}
+                />
+              ))}
+            </div>
+          )}
+          <div className="hidden sm:block space-y-0.5 overflow-y-auto max-h-16">
             {dayEvents.slice(0, 2).map(event => (
               <div
                 key={event.id}
@@ -187,8 +199,8 @@ export function SharedCalendar({
           <Button variant="outline" size="sm" onClick={previousMonth}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="text-center min-w-40">
-            <h2 className="text-lg font-bold text-gray-900">
+          <div className="text-center min-w-32 sm:min-w-40">
+            <h2 className="text-base sm:text-lg font-bold text-gray-900">
               {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
             </h2>
           </div>
@@ -220,7 +232,7 @@ export function SharedCalendar({
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-200">
             {WEEKDAYS.map(day => (
-              <div key={day} className="p-2 text-center font-semibold text-gray-900 border-r border-gray-200 last:border-r-0 text-sm">
+              <div key={day} className="p-1 sm:p-2 text-center font-semibold text-gray-900 border-r border-gray-200 last:border-r-0 text-xs sm:text-sm">
                 {day}
               </div>
             ))}

@@ -52,26 +52,26 @@ export default function HospitalIssuesPage() {
   return (
     <DashboardLayout>
       <div className="space-y-5">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
               <TriangleAlert className="h-6 w-6 text-indigo-600" /> Issues
             </h1>
             <p className="text-sm text-gray-500 mt-0.5">Raise issues to the portal super admin and track responses.</p>
           </div>
-          <Button onClick={() => setShowCreate(true)}><Plus className="h-4 w-4" /> Raise Issue</Button>
+          <Button onClick={() => setShowCreate(true)} className="w-full sm:w-auto"><Plus className="h-4 w-4" /> Raise Issue</Button>
         </div>
 
         {loading ? (
           <p className="text-sm text-gray-400">Loading…</p>
         ) : issues.length === 0 ? (
-          <div className="bg-white border border-dashed border-gray-200 rounded-xl p-12 text-center text-gray-400">
+          <div className="bg-white border border-dashed border-gray-200 rounded-xl p-8 sm:p-12 text-center text-gray-400">
             No issues raised yet. Click <span className="font-semibold text-indigo-600">Raise Issue</span> to create one.
           </div>
         ) : (
           <div className="space-y-3">
             {issues.map((i) => (
-              <div key={i.id} className="bg-white border border-gray-200 rounded-xl p-4">
+              <div key={i.id} className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4 wrap-anywhere">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
