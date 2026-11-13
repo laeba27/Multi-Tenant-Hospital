@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { saveDoctorTemplate } from '@/actions/prescriptions'
+import { PrescriptionPresetsPanel } from '@/components/prescriptions/PrescriptionPresetsPanel'
 
 const FIELD_TYPES = [
   { value: 'text', label: 'Text' },
@@ -156,7 +157,7 @@ export function PrescriptionTemplatesPage({ doctor, dbTemplates = [] }) {
               <Building2 className="w-3 h-3" />
               {departmentName}
             </Badge>
-            {templates.length > 0 && (
+            {activeTab === 'customized' && templates.length > 0 && (
               <Select
                 value={currentTemplate?.id || ''}
                 onValueChange={(id) => {
@@ -178,15 +179,17 @@ export function PrescriptionTemplatesPage({ doctor, dbTemplates = [] }) {
               </Select>
             )}
           </div>
-          <Button
-            onClick={saveTemplate}
-            disabled={saving}
-            size="sm"
-            className="h-8 gap-1.5 text-[13px] font-semibold uppercase tracking-wide bg-blue-600 hover:bg-blue-700"
-          >
-            <Save className="w-3.5 h-3.5" />
-            {saving ? 'Saving...' : 'Save'}
-          </Button>
+          {activeTab === 'customized' && (
+            <Button
+              onClick={saveTemplate}
+              disabled={saving}
+              size="sm"
+              className="h-8 gap-1.5 text-[13px] font-semibold uppercase tracking-wide bg-blue-600 hover:bg-blue-700"
+            >
+              <Save className="w-3.5 h-3.5" />
+              {saving ? 'Saving...' : 'Save'}
+            </Button>
+          )}
         </div>
         <div className="max-w-6xl mx-auto px-4 flex gap-0 border-t border-slate-100">
           <TabButton
@@ -196,8 +199,8 @@ export function PrescriptionTemplatesPage({ doctor, dbTemplates = [] }) {
             Customized
           </TabButton>
           <TabButton
-            active={activeTab === 'template'}
-            onClick={() => setActiveTab('template')}
+            active={activeTab === 'presets'}
+            onClick={() => setActiveTab('presets')}
           >
             Presets
           </TabButton>
@@ -223,7 +226,7 @@ export function PrescriptionTemplatesPage({ doctor, dbTemplates = [] }) {
             departmentName={departmentName}
           />
         ) : (
-          <TemplateView />
+          <PrescriptionPresetsPanel templates={templates} />
         )}
       </div>
 
@@ -340,17 +343,6 @@ function CustomizedView({
           </p>
         </div>
       )}
-    </div>
-  )
-}
-
-function TemplateView() {
-  return (
-    <div className="bg-white border border-dashed border-slate-300 rounded-md p-8 text-center">
-      <h3 className="text-[14px] font-semibold uppercase tracking-wide text-slate-700">
-        Preset Templates
-      </h3>
-      <p className="text-[12px] text-slate-500 mt-1">Coming soon.</p>
     </div>
   )
 }

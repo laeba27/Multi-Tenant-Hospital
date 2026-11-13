@@ -6,9 +6,16 @@ import { toast } from 'sonner'
 import { Loader2, Mail, ShieldCheck, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { sendMyEmailOtp, completePatientProfile } from '@/actions/patients'
+import { sendMyEmailOtp, completePatientProfile, changeMyPassword } from '@/actions/patients'
 
-export default function CompleteProfileForm() {
+export default function CompleteProfileForm({ mode = 'full', registrationNo = null }) {
+  return mode === 'password'
+    ? <SetPasswordForm registrationNo={registrationNo} />
+    : <FullSetupForm registrationNo={registrationNo} />
+}
+
+/** No real email yet: verify one by code, then set a password. */
+function FullSetupForm({ registrationNo }) {
   const router = useRouter()
 
   // 'email' -> enter address and request a code; 'verify' -> code + password + details.
@@ -82,6 +89,7 @@ export default function CompleteProfileForm() {
           You signed in with the temporary password your clinic gave you. Add your email
           address and choose a password to secure your account.
         </p>
+        {registrationNo && <LoginNumberNote registrationNo={registrationNo} />}
       </div>
 
       {step === 'email' ? (
@@ -257,6 +265,103 @@ export default function CompleteProfileForm() {
           </Button>
         </form>
       )}
+    </div>
+  )
+}
+
+function LoginNumberNote({ registrationNo }) {
+  return (
+    <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
+      Your login number is <span className="font-mono font-semibold">{registrationNo}</span>.
+      It&apos;s also printed on your prescriptions.
+    </p>
+  )
+}
+
+/**
+ * Email already on file but still on the temporary (phone-number) password:
+ * choose a new one before continuing.
+ */
+function SetPasswordForm({ registrationNo }) {
+  const router = useRouter()
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+
+  async function submit(e) {
+    e.preventDefault()
+    if (password.length < 6) { toast.error('Password must be at least 6 characters.'); return }
+    if (password !== confirmPassword) { toast.error('Passwords do not match.'); return }
+
+    setIsLoading(true)
+    const res = await changeMyPassword(password)
+    setIsLoading(false)
+    if (!res.success) { toast.error(res.error); return }
+
+    toast.success('Password updated')
+    router.replace('/dashboard/patient')
+    router.refresh()
+  }
+
+  return (
+    <div className="rounded-xl bg-white p-5 sm:p-8 shadow-sm">
+      <div className="mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Choose your own password</h1>
+        <p className="mt-2 text-sm text-gray-600">
+          You signed in with a temporary password that the hospital knows. Set a new one
+          only you know before continuing.
+        </p>
+        {registrationNo && <LoginNumberNote registrationNo={registrationNo} />}
+      </div>
+
+      <form onSubmit={submit} className="space-y-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">New Password *</label>
+            <div className="relative">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 6 characters"
+                autoFocus
+                className="h-11 pr-10 text-base"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">Confirm Password *</label>
+            <Input
+              type={showPassword ? 'text' : 'password'}
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Re-enter password"
+              className="h-11 text-base"
+            />
+          </div>
+        </div>
+
+        <Button
+          type="submit"
+          disabled={isLoading}
+          className="flex h-11 w-full items-center justify-center gap-2 bg-indigo-600 text-base font-semibold hover:bg-indigo-700"
+        >
+          {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+          {isLoading ? 'Saving…' : 'Save and continue'}
+        </Button>
+      </form>
     </div>
   )
 }

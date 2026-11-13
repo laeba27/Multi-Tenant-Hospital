@@ -54,7 +54,9 @@ export function usePatientDetails(patientId, hospitalId) {
               registration_no,
               mobile,
               gender,
-              date_of_birth
+              date_of_birth,
+              age_years,
+              age_recorded_on
             )
           `)
           .eq('id', patientId)
@@ -72,6 +74,8 @@ export function usePatientDetails(patientId, hospitalId) {
             mobile: profile?.mobile || 'N/A',
             gender: profile?.gender || 'N/A',
             date_of_birth: profile?.date_of_birth,
+            age_years: profile?.age_years,
+            age_recorded_on: profile?.age_recorded_on,
             height: patientRecord.height,
             weight: patientRecord.weight,
             marital_status: patientRecord.marital_status,
@@ -91,7 +95,7 @@ export function usePatientDetails(patientId, hospitalId) {
         // This is a fallback - just get profile info
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('id, name, registration_no, mobile, gender, date_of_birth')
+          .select('id, name, registration_no, mobile, gender, date_of_birth, age_years, age_recorded_on')
           .eq('id', patientId)
           .single()
 
@@ -106,7 +110,9 @@ export function usePatientDetails(patientId, hospitalId) {
           registration_no: profile.registration_no || 'N/A',
           mobile: profile.mobile || 'N/A',
           gender: profile.gender || 'N/A',
-          date_of_birth: profile.date_of_birth
+          date_of_birth: profile.date_of_birth,
+          age_years: profile.age_years,
+          age_recorded_on: profile.age_recorded_on
         })
       } catch (err) {
         console.error('Error fetching patient details:', err)

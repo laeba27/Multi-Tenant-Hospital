@@ -1,7 +1,9 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { isPlaceholderEmail } from '@/lib/utils/id-generator'
+import { patientAge } from '@/lib/patients/age'
 import {
   getPrescriptionTemplateById,
   getPrescriptionTemplateCatalog,
@@ -71,12 +73,18 @@ function mapAppointment(appointment) {
     patient: {
       id: appointment.patient_id,
       registrationNo: patientRecord.registration_no || patientProfile.registration_no || 'N/A',
+      // The number the patient signs in to the portal with (PATIENT-123456),
+      // as opposed to this hospital's own patient ID above. Printed on the
+      // prescription so the patient always has it.
+      loginNo: patientProfile.registration_no || '',
       name: patientProfile.name || 'Unknown patient',
-      email: patientProfile.email || '',
+      // A patient who hasn't added their email yet holds an internal
+      // placeholder address; never show or print that.
+      email: isPlaceholderEmail(patientProfile.email) ? '' : patientProfile.email || '',
       mobile: patientProfile.mobile || '',
       gender: patientProfile.gender || '',
       dateOfBirth: patientProfile.date_of_birth || '',
-      age: ageFromDob(patientProfile.date_of_birth),
+      age: patientAge(patientProfile),
       address: patientProfile.address || '',
       city: patientProfile.city || '',
       state: patientProfile.state || '',
@@ -85,16 +93,6 @@ function mapAppointment(appointment) {
   }
 }
 
-function ageFromDob(dob) {
-  if (!dob) return ''
-  const birth = new Date(dob)
-  if (Number.isNaN(birth.getTime())) return ''
-  const now = new Date()
-  let age = now.getFullYear() - birth.getFullYear()
-  const m = now.getMonth() - birth.getMonth()
-  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age -= 1
-  return age >= 0 ? String(age) : ''
-}
 
 function mapDbTemplateToComposerTemplate(templateRecord) {
   if (!templateRecord) return null
@@ -670,6 +668,8 @@ export async function getDoctorPrescriptionComposerData(appointmentId) {
             registration_no,
             gender,
             date_of_birth,
+            age_years,
+            age_recorded_on,
             address,
             city,
             state,
@@ -933,6 +933,8 @@ export async function getAppointmentWithPrescriptions(appointmentId) {
             registration_no,
             gender,
             date_of_birth,
+            age_years,
+            age_recorded_on,
             address,
             city,
             state,
@@ -1101,5 +1103,411 @@ export async function updatePrescriptionStatus(prescriptionId, newStatus) {
   } catch (error) {
     console.error('Error updating prescription status:', error)
     throw error
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Patient portal: one of the patient's own prescriptions, ready to render
+// ---------------------------------------------------------------------------
+
+const PATIENT_VISIBLE_STATUSES = ['issued', 'amended']
+
+/**
+ * Everything the prescription preview needs to draw (and print / download) a
+ * prescription, for the signed-in PATIENT -- the same document the doctor
+ * issued.
+ *
+ * Ownership is checked first: the prescription's patient record must be one of
+ * the caller's own (one per hospital). Only then is the service-role client
+ * used, because the template tables are RLS-protected for staff. Drafts and
+ * cancelled prescriptions are never returned.
+ */
+export async function getMyPrescriptionDocument(prescriptionId) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'Not signed in' }
+
+    const admin = await createAdminClient()
+    const { data: links } = await admin.from('patients').select('id').eq('profile_id', user.id)
+    const myPatientIds = (links || []).map((l) => l.id)
+
+    const { data: rx } = await admin
+      .from('prescriptions')
+      .select('id, hospital_id, doctor_id, patient_id, appointment_id, status, issued_at, created_at')
+      .eq('id', prescriptionId)
+      .maybeSingle()
+    if (!rx || !myPatientIds.includes(rx.patient_id) || !PATIENT_VISIBLE_STATUSES.includes(rx.status)) {
+      return { success: false, error: 'Prescription not found' }
+    }
+
+    return await loadPrescriptionDocument(admin, rx)
+  } catch (error) {
+    console.error('getMyPrescriptionDocument failed:', error)
+    return { success: false, error: 'Could not load this prescription.' }
+  }
+}
+
+/**
+ * The same document for the DOCTOR who wrote it -- used by the Patients page
+ * so a past prescription opens as the real printed prescription (download,
+ * print, share) rather than a list of fields. Only the prescribing doctor,
+ * and only while they hold view_prescription.
+ */
+export async function getDoctorPrescriptionDocument(prescriptionId) {
+  try {
+    const { requirePermission } = await import('@/actions/rbac')
+    const gate = await requirePermission('view_prescription')
+    if (!gate.allowed) return { success: false, error: gate.error || 'You cannot view prescriptions.' }
+
+    const { doctorRecord } = await getDoctorWorkspace()
+    if (!doctorRecord?.id) return { success: false, error: 'Doctor not found' }
+
+    const admin = await createAdminClient()
+    const { data: rx } = await admin
+      .from('prescriptions')
+      .select('id, hospital_id, doctor_id, patient_id, appointment_id, status, issued_at, created_at')
+      .eq('id', prescriptionId)
+      .maybeSingle()
+    if (!rx || rx.doctor_id !== doctorRecord.id || rx.status === 'cancelled') {
+      return { success: false, error: 'Prescription not found' }
+    }
+
+    return await loadPrescriptionDocument(admin, rx)
+  } catch (error) {
+    console.error('getDoctorPrescriptionDocument failed:', error)
+    return { success: false, error: 'Could not load this prescription.' }
+  }
+}
+
+/** Builds the preview data for a prescription row the caller may already see. */
+async function loadPrescriptionDocument(admin, rx) {
+    const { data: values, error: valuesError } = await admin
+      .from('prescription_values')
+      .select('field_id, section_key, value, sort_order')
+      .eq('prescription_id', rx.id)
+      .order('sort_order', { ascending: true })
+    if (valuesError) throw valuesError
+
+    // The sections and fields the values were written against. Looked up by
+    // the ids stored on the values, so the document reads exactly as issued
+    // even if the doctor has edited the template since.
+    const sectionIds = [...new Set((values || []).map((v) => v.section_key).filter(Boolean))]
+    let sections = []
+    if (sectionIds.length) {
+      const { data, error } = await admin
+        .from('prescription_template_sections')
+        .select(`
+          id, section_key, title, description, sort_order, is_required,
+          prescription_template_fields(
+            id, field_key, label, field_type, placeholder, sort_order, is_required, ui_config
+          )
+        `)
+        .in('id', sectionIds)
+      if (error) throw error
+      sections = data || []
+    }
+    const template = mapDbTemplateToPageTemplate({
+      id: null,
+      name: '',
+      prescription_template_versions: [{ id: null, version_number: 1, prescription_template_sections: sections }],
+    })
+
+    // Rows per section, the same way the doctor's composer rebuilds them.
+    const rows = {}
+    for (const v of values || []) {
+      const colValues = Array.isArray(v.value) ? v.value : [v.value]
+      if (!rows[v.section_key]) rows[v.section_key] = []
+      colValues.forEach((cell, i) => {
+        if (!rows[v.section_key][i]) rows[v.section_key][i] = {}
+        rows[v.section_key][i][v.field_id] = cell
+      })
+    }
+
+    const patientSelect = `
+      id,
+      registration_no,
+      profile:profiles!profile_id (
+        id, name, email, mobile, registration_no, gender, date_of_birth,
+        age_years, age_recorded_on, address, city, state, pincode
+      )`
+
+    const [apptRes, patientRes, hospitalRes, doctorRes] = await Promise.all([
+      rx.appointment_id
+        ? admin
+            .from('appointments')
+            .select(`
+              id, patient_id, appointment_date, appointment_slot, appointment_type, reason,
+              patients:patient_id (${patientSelect}),
+              departments:department_id ( id, name )
+            `)
+            .eq('id', rx.appointment_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      admin.from('patients').select(patientSelect).eq('id', rx.patient_id).maybeSingle(),
+      admin
+        .from('hospitals')
+        .select('registration_no, name, address, city, state, postal_code, phone, email')
+        .eq('registration_no', rx.hospital_id)
+        .maybeSingle(),
+      rx.doctor_id
+        ? admin.from('staff').select('name, department_id').eq('id', rx.doctor_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ])
+
+    let departmentName = null
+    if (doctorRes.data?.department_id) {
+      const { data: dept } = await admin
+        .from('departments')
+        .select('name')
+        .eq('id', doctorRes.data.department_id)
+        .maybeSingle()
+      departmentName = dept?.name || null
+    }
+
+    // mapAppointment builds the patient block (name, IDs, login number, age...)
+    // the printed prescription expects; without an appointment, feed it the
+    // patient record alone.
+    const appointment = mapAppointment(
+      apptRes.data || { id: null, patient_id: rx.patient_id, patients: patientRes.data }
+    )
+
+    return {
+      success: true,
+      prescriptionId: rx.id,
+      template,
+      rows,
+      hospital: hospitalRes.data || null,
+      doctor: {
+        name: doctorRes.data?.name?.trim() || 'N/A',
+        departmentName: departmentName || appointment?.department || null,
+      },
+      patient: appointment.patient,
+      appointment: apptRes.data ? appointment : null,
+      appointmentId: rx.appointment_id,
+      issuedAt: rx.issued_at || rx.created_at,
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Prescription presets: a doctor's saved, reusable prescriptions
+// ---------------------------------------------------------------------------
+//
+// A preset is a filled-in prescription saved under a name ("Common cold"), to
+// load into the composer for the next patient with the same problem and then
+// adjust. Stored in prescription_presets / prescription_preset_values.
+//
+// Editing a template creates a NEW version whose sections and fields get new
+// ids, so a preset can't rely on field ids alone. Every value is also kept in
+// metadata.entries with its section_key + field_key, which survive a
+// template edit; the composer matches by id first and by keys second.
+
+const PRESET_NAME_MAX = 80
+
+async function getPresetOwner() {
+  const { profile, doctorRecord } = await getDoctorWorkspace()
+  if (!doctorRecord?.id || !profile?.hospital_id) throw new Error('Doctor not found')
+  return { profile, doctorRecord, admin: await createAdminClient() }
+}
+
+function mapPreset(p) {
+  const section = p.metadata?.scope === 'section' ? p.metadata.section || null : null
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description || '',
+    templateId: p.template_id,
+    // 'full': the whole prescription. 'section': one section only (e.g. just
+    // Medications), loaded into that section without touching the others.
+    scope: section ? 'section' : 'full',
+    section, // { id, key, name } when scope is 'section'
+    entries: Array.isArray(p.metadata?.entries) ? p.metadata.entries : [],
+    updatedAt: p.updated_at,
+  }
+}
+
+/** The signed-in doctor's presets, most recently updated first. */
+export async function getMyPrescriptionPresets() {
+  try {
+    const { doctorRecord, admin } = await getPresetOwner()
+    const { data, error } = await admin
+      .from('prescription_presets')
+      .select('id, name, description, template_id, metadata, updated_at')
+      .eq('doctor_id', doctorRecord.id)
+      .eq('visibility', 'doctor')
+      .is('deleted_at', null)
+      .order('updated_at', { ascending: false })
+    if (error) throw error
+    return { success: true, presets: (data || []).map(mapPreset) }
+  } catch (error) {
+    console.error('getMyPrescriptionPresets failed:', error)
+    return { success: false, error: 'Could not load your presets.', presets: [] }
+  }
+}
+
+/**
+ * Save the composer's current prescription as a preset, or overwrite one of
+ * the doctor's own presets (presetId).
+ *
+ * @param {object} input
+ * @param {string} input.name
+ * @param {string} [input.description]
+ * @param {string} input.templateId
+ * @param {string} [input.templateVersionId]
+ * @param {Array<{sectionId, sectionKey, fieldId, fieldKey, value: any[]}>} input.entries
+ *   one per field that has a value; `value` holds that field's value for each row
+ * @param {string} [input.presetId]
+ * @param {{id, key, name}} [input.section]  set for a one-section preset; every
+ *   entry must then belong to that section
+ */
+export async function savePrescriptionPreset({ name, description = '', templateId, templateVersionId = null, entries = [], presetId = null, section = null }) {
+  try {
+    const { profile, doctorRecord, admin } = await getPresetOwner()
+
+    const cleanName = String(name || '').trim().slice(0, PRESET_NAME_MAX)
+    if (cleanName.length < 2) return { success: false, error: 'Give the preset a name.' }
+    if (!templateId) return { success: false, error: 'Choose a template first.' }
+
+    const cleanEntries = (Array.isArray(entries) ? entries : [])
+      .filter((e) => e && e.fieldId && Array.isArray(e.value) && e.value.length > 0)
+      .map((e) => ({
+        sectionId: String(e.sectionId || ''),
+        sectionKey: String(e.sectionKey || ''),
+        fieldId: String(e.fieldId),
+        fieldKey: String(e.fieldKey || ''),
+        sectionName: String(e.sectionName || ''),
+        fieldLabel: String(e.fieldLabel || ''),
+        value: e.value,
+      }))
+    if (cleanEntries.length === 0) {
+      return { success: false, error: 'Fill in at least one field before saving a preset.' }
+    }
+
+    const cleanSection = section?.id
+      ? { id: String(section.id), key: String(section.key || ''), name: String(section.name || '').trim() }
+      : null
+    if (cleanSection && cleanEntries.some((e) => e.sectionId !== cleanSection.id)) {
+      return { success: false, error: 'A section preset can only hold that section.' }
+    }
+
+    // The template must be one this doctor can use.
+    const { data: template } = await admin
+      .from('prescription_templates')
+      .select('id, doctor_id, hospital_id')
+      .eq('id', templateId)
+      .maybeSingle()
+    if (!template || (template.doctor_id && template.doctor_id !== doctorRecord.id)) {
+      return { success: false, error: 'That template is not available.' }
+    }
+
+    // Duplicate names are confusing in the same picker. A whole-prescription
+    // preset and a Medications preset may share a name ("Common cold"); two
+    // Medications presets may not.
+    const { data: sameName } = await admin
+      .from('prescription_presets')
+      .select('id, metadata')
+      .eq('doctor_id', doctorRecord.id)
+      .is('deleted_at', null)
+      .ilike('name', cleanName)
+    const samePicker = (p) => {
+      const other = mapPreset(p)
+      if (!cleanSection) return other.scope === 'full'
+      if (other.scope !== 'section') return false
+      return (
+        other.section?.id === cleanSection.id ||
+        (cleanSection.key && other.section?.key === cleanSection.key) ||
+        (cleanSection.name && other.section?.name?.toLowerCase() === cleanSection.name.toLowerCase())
+      )
+    }
+    if ((sameName || []).some((p) => p.id !== presetId && samePicker(p))) {
+      return {
+        success: false,
+        error: cleanSection
+          ? `You already have a ${cleanSection.name || 'section'} preset called "${cleanName}".`
+          : `You already have a preset called "${cleanName}".`,
+      }
+    }
+
+    const row = {
+      name: cleanName,
+      description: String(description || '').trim() || null,
+      template_id: templateId,
+      template_version_id: templateVersionId || null,
+      metadata: cleanSection
+        ? { scope: 'section', section: cleanSection, entries: cleanEntries }
+        : { scope: 'full', entries: cleanEntries },
+      updated_at: new Date().toISOString(),
+    }
+
+    let id = presetId
+    if (presetId) {
+      const { data: existing } = await admin
+        .from('prescription_presets')
+        .select('id')
+        .eq('id', presetId)
+        .eq('doctor_id', doctorRecord.id)
+        .maybeSingle()
+      if (!existing) return { success: false, error: 'Preset not found.' }
+      const { error } = await admin.from('prescription_presets').update(row).eq('id', presetId)
+      if (error) throw error
+    } else {
+      const slug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'preset'
+      const { data: created, error } = await admin
+        .from('prescription_presets')
+        .insert({
+          ...row,
+          hospital_id: profile.hospital_id,
+          doctor_id: doctorRecord.id,
+          created_by: profile.id,
+          visibility: 'doctor',
+          is_favorite: false,
+          preset_key: `${slug}-${Date.now().toString(36)}`,
+        })
+        .select('id')
+        .single()
+      if (error) throw error
+      id = created.id
+    }
+
+    // Normalised copy, one row per field. Only fields that still exist can be
+    // referenced (the FK); metadata.entries above is the complete record.
+    await admin.from('prescription_preset_values').delete().eq('preset_id', id)
+    const fieldIds = [...new Set(cleanEntries.map((e) => e.fieldId))]
+    const { data: liveFields } = await admin
+      .from('prescription_template_fields')
+      .select('id')
+      .in('id', fieldIds)
+    const live = new Set((liveFields || []).map((f) => f.id))
+    const valueRows = cleanEntries
+      .filter((e) => live.has(e.fieldId))
+      .map((e) => ({ preset_id: id, field_id: e.fieldId, value: e.value }))
+    if (valueRows.length) {
+      const { error } = await admin.from('prescription_preset_values').insert(valueRows)
+      if (error) throw error
+    }
+
+    return { success: true, presetId: id, message: presetId ? 'Preset updated.' : 'Preset saved.' }
+  } catch (error) {
+    console.error('savePrescriptionPreset failed:', error)
+    return { success: false, error: 'Could not save the preset.' }
+  }
+}
+
+/** Delete one of the signed-in doctor's own presets. */
+export async function deletePrescriptionPreset(presetId) {
+  try {
+    const { doctorRecord, admin } = await getPresetOwner()
+    const { data, error } = await admin
+      .from('prescription_presets')
+      .delete()
+      .eq('id', presetId)
+      .eq('doctor_id', doctorRecord.id)
+      .select('id')
+    if (error) throw error
+    if (!data?.length) return { success: false, error: 'Preset not found.' }
+    return { success: true, message: 'Preset deleted.' }
+  } catch (error) {
+    console.error('deletePrescriptionPreset failed:', error)
+    return { success: false, error: 'Could not delete the preset.' }
   }
 }

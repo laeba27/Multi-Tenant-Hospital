@@ -5,7 +5,9 @@ import { revalidatePath } from 'next/cache'
 import {
   PERMISSION_KEYS,
   SUPER_ROLES,
+  ASSIGNABLE_ROLES,
   defaultsForRole,
+  resolvePermissions,
 } from '@/lib/rbac/permissions'
 
 /**
@@ -44,9 +46,7 @@ export async function getRbacRules(hospitalId) {
  * unconfigured; the RBAC page overrides them.
  */
 export async function getPermissionsFor(hospitalId, staffId, role) {
-  const resolved = defaultsForRole(role)
-
-  if (SUPER_ROLES.includes(role)) return resolved
+  if (SUPER_ROLES.includes(role)) return defaultsForRole(role)
 
   try {
     const supabase = await createAdminClient()
@@ -57,32 +57,10 @@ export async function getPermissionsFor(hospitalId, staffId, role) {
       .eq('hospital_id', hospitalId)
       .eq('is_allowed', true)
 
-    if (!rules?.length) return resolved
-
-    // Apply least-specific first so the most specific rule wins.
-    const order = ['all', 'role', 'user']
-    const applicable = rules
-      .filter((r) => {
-        if (r.target_type === 'all') return true
-        if (r.target_type === 'role') return r.role === role
-        if (r.target_type === 'user') return staffId && r.staff_id === staffId
-        return false
-      })
-      .sort((a, b) => order.indexOf(a.target_type) - order.indexOf(b.target_type))
-
-    for (const rule of applicable) {
-      const perms = rule.permissions || {}
-      for (const key of PERMISSION_KEYS) {
-        // Only keys the rule actually mentions override the default -- a rule
-        // that predates a new permission must not silently revoke it.
-        if (key in perms) resolved[key] = perms[key] === true
-      }
-    }
-
-    return resolved
+    return resolvePermissions({ role, staffId, rules: rules || [] })
   } catch (error) {
     console.error('getPermissionsFor error:', error)
-    return resolved
+    return defaultsForRole(role)
   }
 }
 
@@ -203,7 +181,27 @@ export async function upsertRbacRule(ruleData, hospitalId) {
     const supabaseAdmin = auth.adminClient
     hospitalId = auth.hospitalId
 
-    const { target_type, staff_id, role, permissions, is_allowed } = ruleData
+    const { target_type, staff_id, role, permissions } = ruleData
+
+    if (!['all', 'role', 'user'].includes(target_type)) {
+      return { success: false, data: null, error: 'Choose who this rule applies to.' }
+    }
+    if (target_type === 'role' && !ASSIGNABLE_ROLES.includes(role)) {
+      return { success: false, data: null, error: 'Choose a valid role.' }
+    }
+    if (target_type === 'user') {
+      // The staff member must belong to this hospital, or the rule would be
+      // written against someone the admin has no say over.
+      const { data: member } = await supabaseAdmin
+        .from('staff')
+        .select('id')
+        .eq('id', staff_id || '')
+        .eq('hospital_id', hospitalId)
+        .maybeSingle()
+      if (!member) {
+        return { success: false, data: null, error: 'Choose a staff member from your hospital.' }
+      }
+    }
 
     // Keep only keys the catalogue defines, coerced to real booleans -- the
     // permissions object arrives as free-form JSON from the client and is
@@ -215,13 +213,23 @@ export async function upsertRbacRule(ruleData, hospitalId) {
       ])
     )
 
+    // A rule that changes nothing would just sit in the list looking like an
+    // override. Removing the rule is how you go back to the defaults.
+    if (Object.keys(cleanPermissions).length === 0) {
+      return {
+        success: false,
+        data: null,
+        error: 'Set at least one permission to Allow or Deny.',
+      }
+    }
+
     // Check if rule already exists
     const existingQuery = supabaseAdmin
       .from('rbac')
       .select('*')
 
     if (target_type === 'user' && staff_id) {
-      existingQuery.eq('staff_id', staff_id)
+      existingQuery.eq('target_type', 'user').eq('staff_id', staff_id)
     } else if (target_type === 'role' && role) {
       existingQuery.eq('target_type', 'role').eq('role', role)
     } else if (target_type === 'all') {
@@ -237,10 +245,12 @@ export async function upsertRbacRule(ruleData, hospitalId) {
       // Update existing rule
       const { data, error } = await supabaseAdmin
         .from('rbac')
+        // No updated_at: the rbac table has no such column, and naming it made
+        // every edit of an existing rule fail. is_allowed is forced on --
+        // the screen no longer offers a switch that silently disabled a rule.
         .update({
           permissions: cleanPermissions,
-          is_allowed,
-          updated_at: new Date().toISOString()
+          is_allowed: true,
         })
         .eq('id', existing.id)
         .select()
@@ -259,7 +269,7 @@ export async function upsertRbacRule(ruleData, hospitalId) {
             staff_id: target_type === 'user' ? staff_id : null,
             role: target_type === 'role' ? role : null,
             permissions: cleanPermissions,
-            is_allowed
+            is_allowed: true
           }
         ])
         .select()

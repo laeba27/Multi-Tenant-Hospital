@@ -16,18 +16,19 @@ import {
   Stethoscope,
   ClipboardList,
   Eye,
+  Loader2,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { getDoctorPatientDetail } from '@/actions/doctor-patients'
+import { getDoctorPrescriptionDocument } from '@/actions/prescriptions'
+import {
+  PrescriptionPreviewModal,
+  buildPreviewSections,
+} from '@/components/prescriptions/AppointmentCustomPrescriptionComposer'
+import { toast } from 'sonner'
 
 const APPT_TYPE_LABEL = {
   consultation: 'Consultation',
@@ -201,7 +202,16 @@ function PatientDetail({ detail }) {
   const ageSex = [patient.age ? `${patient.age} yrs` : '', patient.gender].filter(Boolean).join(' / ')
   const address = [patient.address, patient.city, patient.state, patient.pincode].filter(Boolean).join(', ')
 
-  const [viewRx, setViewRx] = useState(null)
+  const [viewDoc, setViewDoc] = useState(null)
+  const [openingRx, setOpeningRx] = useState(null)
+
+  const openPrescription = async (rx) => {
+    setOpeningRx(rx.id)
+    const res = await getDoctorPrescriptionDocument(rx.id)
+    setOpeningRx(null)
+    if (!res.success) { toast.error(res.error || 'Could not open the prescription'); return }
+    setViewDoc(res)
+  }
 
   // Map appointment id -> type so each prescription can show its visit type.
   const apptTypeById = {}
@@ -281,9 +291,12 @@ function PatientDetail({ detail }) {
                           size="sm"
                           variant="outline"
                           className="h-7 gap-1 text-[12px] text-indigo-700 border-indigo-200 hover:bg-indigo-50"
-                          onClick={() => setViewRx(rx)}
+                          onClick={() => openPrescription(rx)}
+                          disabled={openingRx === rx.id}
                         >
-                          <Eye className="h-3.5 w-3.5" /> View
+                          {openingRx === rx.id
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <Eye className="h-3.5 w-3.5" />} View
                         </Button>
                       </td>
                     </tr>
@@ -328,30 +341,21 @@ function PatientDetail({ detail }) {
         </section>
       </div>
 
-      {/* Prescription view modal */}
-      <Dialog open={!!viewRx} onOpenChange={(open) => !open && setViewRx(null)}>
-        <DialogContent className="max-w-2xl sm:max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pill className="h-4 w-4 text-indigo-600" />
-              Prescription
-              {viewRx && (
-                <Badge
-                  className={cn(
-                    'text-[10px] uppercase tracking-wide font-semibold',
-                    RX_BADGE[viewRx.status] || 'bg-slate-100 text-slate-600'
-                  )}
-                >
-                  {viewRx.status}
-                </Badge>
-              )}
-            </DialogTitle>
-          </DialogHeader>
-          {viewRx && (
-            <PrescriptionDetail rx={viewRx} type={apptTypeLabel(apptTypeById[viewRx.appointmentId])} />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Prescription view: the same printed prescription as the editor's
+          preview, with download / print / share. */}
+      {viewDoc && (
+        <PrescriptionPreviewModal
+          title="Prescription"
+          onClose={() => setViewDoc(null)}
+          previewSections={buildPreviewSections(viewDoc.template, viewDoc.rows)}
+          hospital={viewDoc.hospital}
+          doctor={viewDoc.doctor}
+          patient={viewDoc.patient}
+          appointment={viewDoc.appointment}
+          appointmentId={viewDoc.appointmentId}
+          issuedAt={viewDoc.issuedAt}
+        />
+      )}
     </div>
   )
 }
@@ -364,56 +368,6 @@ function Stat({ icon: Icon, label, value }) {
         <p className="text-base font-bold text-gray-900 leading-none">{value}</p>
         <p className="text-[10px] uppercase tracking-wide text-gray-400">{label}</p>
       </div>
-    </div>
-  )
-}
-
-function PrescriptionDetail({ rx, type }) {
-  const items = rx.values.filter((v) => v.rendered)
-
-  return (
-    <div className="space-y-4">
-      {/* Meta row */}
-      <div className="grid grid-cols-3 gap-2">
-        <MetaCell label="Prescribed" value={fmtDate(rx.issuedAt || rx.createdAt)} />
-        <MetaCell label="Type" value={type} />
-        <MetaCell label="Follow-up" value={rx.followUpDate ? fmtDate(rx.followUpDate) : '—'} />
-      </div>
-
-      {/* Field values as a clean table */}
-      {items.length === 0 ? (
-        <p className="text-[13px] text-gray-400">No recorded details.</p>
-      ) : (
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
-          <table className="w-full text-[13px]">
-            <tbody>
-              {items.map((v, i) => (
-                <tr key={i} className="border-b border-gray-50 last:border-b-0">
-                  <td className="px-3 py-2 text-gray-500 w-2/5 align-top">{v.label}</td>
-                  <td className="px-3 py-2 font-medium text-gray-900 align-top">{v.rendered}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {rx.appointmentId && (
-        <div className="flex justify-end pt-1">
-          <Button asChild size="sm" variant="outline" className="h-8 text-[12px] text-indigo-700 border-indigo-200 hover:bg-indigo-50">
-            <Link href={`/dashboard/doctor/appointments/${rx.appointmentId}/prescribe`}>Open in editor</Link>
-          </Button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function MetaCell({ label, value }) {
-  return (
-    <div className="rounded-lg border border-gray-200 bg-slate-50/60 px-3 py-2">
-      <p className="text-[10px] uppercase tracking-wide text-gray-400">{label}</p>
-      <p className="text-[13px] font-semibold text-gray-900 mt-0.5">{value}</p>
     </div>
   )
 }

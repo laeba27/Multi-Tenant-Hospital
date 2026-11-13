@@ -159,14 +159,14 @@ export function Navbar({ onMenuToggle }) {
                                 className={`mt-0.5 inline-flex rounded-md p-1.5 ${
                                   n.kind === 'issue'
                                     ? 'bg-amber-50 text-amber-600'
-                                    : n.kind?.startsWith('appointment')
+                                    : (n.kind?.startsWith('appointment') || n.kind === 'follow_up_reminder')
                                       ? 'bg-emerald-50 text-emerald-600'
                                       : 'bg-indigo-50 text-indigo-600'
                                 }`}
                               >
                                 {n.kind === 'issue' ? (
                                   <MessageSquare size={14} />
-                                ) : n.kind?.startsWith('appointment') ? (
+                                ) : (n.kind?.startsWith('appointment') || n.kind === 'follow_up_reminder') ? (
                                   <CalendarCheck size={14} />
                                 ) : (
                                   <Megaphone size={14} />

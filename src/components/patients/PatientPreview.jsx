@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle, Calendar } from 'lucide-react'
-import { ageFromDob } from '@/lib/patients/age'
+import { patientAge } from '@/lib/patients/age'
 
 export function PatientPreview({ patient, onConfirm, onEdit, isLoading }) {
   if (!patient) {
@@ -60,7 +60,7 @@ export function PatientPreview({ patient, onConfirm, onEdit, isLoading }) {
             <div>
               <p className="text-gray-600">Age</p>
               <p className="font-semibold text-gray-900">
-                {ageFromDob(profile.date_of_birth) || 'N/A'}
+                {patientAge(profile) || 'N/A'}
               </p>
             </div>
           </div>

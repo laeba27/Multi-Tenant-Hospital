@@ -10,6 +10,7 @@ import {
   isPlaceholderEmail,
 } from '@/lib/utils/id-generator'
 import { sendPatientEmailOtp } from '@/lib/email/send-email'
+import { ageToStore } from '@/lib/patients/age'
 
 /**
  * Build the temporary password issued to a newly-onboarded patient: their
@@ -108,6 +109,8 @@ export async function getHospitalPatients(hospitalId) {
           mobile,
           gender,
           date_of_birth,
+          age_years,
+          age_recorded_on,
           avatar_url,
           registration_no
         )
@@ -165,6 +168,15 @@ export async function onboardPatient(patientData, hospitalId, currentUserId) {
   let isNewProfile = false
   let registrationNo = null
 
+  // Age is compulsory (a date of birth is optional and, when given, decides
+  // the age). Checked here as well as in the form, because /api/patients
+  // calls this directly.
+  const ageYears = ageToStore(patientData)
+  if (ageYears === null) {
+    throw new Error('Age is required: enter the patient\'s age in whole years (0-150).')
+  }
+  const today = new Date().toISOString().slice(0, 10)
+
   try {
     // ---- Step 1: Find an existing GLOBAL patient profile -------------------
     // A patient is one global profile (hospital_id = null) that can be linked
@@ -205,6 +217,19 @@ export async function onboardPatient(patientData, hospitalId, currentUserId) {
     if (existingProfile) {
       patientId = existingProfile.id
       registrationNo = existingProfile.registration_no || null
+
+      // A returning patient: reception has just asked their age, so record it
+      // (and a birth date, if one was given now).
+      const { error: ageError } = await adminClient
+        .from('profiles')
+        .update({
+          age_years: ageYears,
+          age_recorded_on: today,
+          ...(patientData.date_of_birth ? { date_of_birth: patientData.date_of_birth } : {}),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', patientId)
+      if (ageError) throw ageError
     }
 
     // ---- Step 1b: Create a new global profile if none matched -------------
@@ -254,6 +279,8 @@ export async function onboardPatient(patientData, hospitalId, currentUserId) {
           email_verified: hasRealEmail,
           gender: patientData.gender || null,
           date_of_birth: patientData.date_of_birth || null,
+          age_years: ageYears,
+          age_recorded_on: today,
           address: patientData.address || null,
           city: patientData.city || null,
           state: patientData.state || null,
@@ -991,6 +1018,148 @@ export async function getMyPrescriptionHistory() {
 }
 
 /**
+ * Patient self-service: the History page. Every appointment the patient has
+ * had, at every hospital, each with the invoice raised for it and the
+ * prescription issued at it. Prescriptions and invoices not tied to an
+ * appointment come back separately so nothing is hidden.
+ *
+ * Only the patient's own records are read: every query is scoped to the
+ * caller's patient ids, which come from their session.
+ */
+export async function getMyVisitHistory() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Not signed in' }
+
+  try {
+    const admin = await createAdminClient()
+    const { data: links } = await admin
+      .from('patients')
+      .select('id, hospital_id')
+      .eq('profile_id', user.id)
+    const patientIds = (links || []).map((l) => l.id)
+    if (patientIds.length === 0) {
+      return { success: true, visits: [], otherPrescriptions: [], otherInvoices: [] }
+    }
+
+    const [apptRes, rxRes, invRes] = await Promise.all([
+      admin
+        .from('appointments')
+        .select(`
+          id, hospital_id, appointment_date, appointment_slot, appointment_type, status, reason,
+          payment_status, amount_due, cancellation_reason,
+          hospital:hospitals!appointments_hospital_fkey ( name, city ),
+          department:departments!appointments_department_fkey ( name ),
+          doctor:staff!appointments_doctor_fkey ( name )
+        `)
+        .in('patient_id', patientIds)
+        .order('appointment_date', { ascending: false }),
+      admin
+        .from('prescriptions')
+        .select(`
+          id, hospital_id, appointment_id, status, clinical_summary, follow_up_date, issued_at, created_at,
+          hospital:hospitals!prescriptions_hospital_id_fkey ( name, city ),
+          doctor:staff!prescriptions_doctor_id_fkey ( name )
+        `)
+        .in('patient_id', patientIds)
+        .in('status', ['issued', 'amended'])
+        .order('issued_at', { ascending: false, nullsFirst: false }),
+      admin
+        .from('invoices')
+        .select('id, hospital_id, appointment_id, total_amount, paid_amount, due_amount, payment_status, created_at')
+        .in('patient_id', patientIds)
+        .order('created_at', { ascending: false }),
+    ])
+    for (const res of [apptRes, rxRes, invRes]) if (res.error) throw res.error
+
+    const byAppt = (rows) => {
+      const map = {}
+      for (const r of rows || []) if (r.appointment_id) (map[r.appointment_id] ||= []).push(r)
+      return map
+    }
+    const rxByAppt = byAppt(rxRes.data)
+    const invByAppt = byAppt(invRes.data)
+    const apptIds = new Set((apptRes.data || []).map((a) => a.id))
+
+    const visits = (apptRes.data || []).map((a) => ({
+      ...a,
+      prescriptions: rxByAppt[a.id] || [],
+      invoices: invByAppt[a.id] || [],
+    }))
+
+    return {
+      success: true,
+      visits,
+      otherPrescriptions: (rxRes.data || []).filter((p) => !p.appointment_id || !apptIds.has(p.appointment_id)),
+      otherInvoices: (invRes.data || []).filter((i) => !i.appointment_id || !apptIds.has(i.appointment_id)),
+    }
+  } catch (error) {
+    console.error('getMyVisitHistory failed:', error)
+    return { success: false, error: 'Could not load your history.' }
+  }
+}
+
+/**
+ * Patient self-service: one of the patient's own invoices, in the shape the
+ * shared InvoiceView renders (so the patient gets the same document reception
+ * prints). Ownership is checked before anything is returned.
+ */
+export async function getMyInvoice(invoiceId) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Not signed in' }
+
+  try {
+    const admin = await createAdminClient()
+    const { data: links } = await admin.from('patients').select('id').eq('profile_id', user.id)
+    const patientIds = (links || []).map((l) => l.id)
+
+    const { data: invoice, error } = await admin
+      .from('invoices')
+      .select(`
+        *,
+        appointments:appointment_id(
+          id, appointment_date, appointment_slot, appointment_type, status, reason,
+          consultation_fee_snapshot, treatment_details,
+          doctors:doctor_id( name, specialization ),
+          departments:department_id( name )
+        ),
+        patients:patient_id(
+          id, registration_no,
+          profile:profile_id( name, email, mobile, address, city, state, pincode )
+        ),
+        invoice_payments( id, payment_method, amount, reference_id, paid_at )
+      `)
+      .eq('id', invoiceId)
+      .maybeSingle()
+    if (error) throw error
+    if (!invoice || !patientIds.includes(invoice.patient_id)) {
+      return { success: false, error: 'Invoice not found' }
+    }
+
+    // Never print the internal placeholder address on the patient's copy.
+    if (invoice.patients?.profile && isPlaceholderEmail(invoice.patients.profile.email)) {
+      invoice.patients.profile.email = null
+    }
+
+    const { data: hospital } = await admin
+      .from('hospitals')
+      .select('*')
+      .eq('registration_no', invoice.hospital_id)
+      .maybeSingle()
+
+    return { success: true, invoice, hospital: hospital || null }
+  } catch (error) {
+    console.error('getMyInvoice failed:', error)
+    return { success: false, error: 'Could not load this invoice.' }
+  }
+}
+
+/**
  * Patient self-service: set a new password and clear the temporary-password
  * flag so the portal stops prompting them.
  */
@@ -1421,6 +1590,8 @@ export async function searchPatientForHospital(hospitalId, searchValue, limit = 
         mobile,
         gender,
         date_of_birth,
+        age_years,
+        age_recorded_on,
         avatar_url,
         registration_no
       )

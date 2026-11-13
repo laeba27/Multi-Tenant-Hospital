@@ -7,7 +7,7 @@ import { getTreatments } from '@/actions/treatments'
 import { useHospitalDoctorsAndDepartments } from '@/hooks/useHospitalDoctorsAndDepartments'
 import { usePatientDetails } from '@/hooks/usePatientDetails'
 import { useUserDetails } from '@/hooks/use-user-details'
-import { ageFromDob } from '@/lib/patients/age'
+import { patientAge } from '@/lib/patients/age'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -41,6 +41,8 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
     mobile: passedPatient.profile?.mobile || passedPatient.mobile || 'N/A',
     gender: passedPatient.profile?.gender || passedPatient.gender || 'N/A',
     date_of_birth: passedPatient.profile?.date_of_birth || passedPatient.date_of_birth,
+    age_years: passedPatient.profile?.age_years ?? passedPatient.age_years,
+    age_recorded_on: passedPatient.profile?.age_recorded_on || passedPatient.age_recorded_on,
     blood_group: passedPatient.blood_group,
     avatar_url: passedPatient.profile?.avatar_url,
     height: passedPatient.height,
@@ -303,7 +305,7 @@ export function BookAppointment({ hospitalId: hospitalIdProp, patientId, patient
                       <div>
                         <p className="text-gray-500">Age</p>
                         <p className="font-semibold text-gray-900">
-                          {ageFromDob(patient.date_of_birth || patient.profile?.date_of_birth) || 'N/A'}
+                          {patientAge(patient) || patientAge(patient.profile) || 'N/A'}
                         </p>
                       </div>
                       <div>

@@ -70,6 +70,7 @@ export async function middleware(request) {
           access_granted,
           hospital_id,
           must_complete_profile,
+          must_change_password,
           hospitals:hospital_id(
             account_status
           )
@@ -105,23 +106,22 @@ export async function middleware(request) {
     return redirectTo('/dashboard')
   }
 
-  // A patient onboarded by reception holds a placeholder email and the phone
-  // number as their password. Force them to supply + verify a real email and
-  // set a password before anything else in the portal is reachable. Exclude the
+  // A patient onboarded by reception holds the phone number as their password
+  // (and, without an email, a placeholder address). Before anything else in
+  // the portal is reachable they must add + verify a real email if they have
+  // none, and choose their own password. must_change_password is part of the
+  // gate because reception knows the phone-number password. Exclude the
   // completion page itself, or this redirects to itself forever.
   const completePath = '/dashboard/patient/complete-profile'
-  if (
-    user &&
+  const patientMustFinish =
     profile?.role === 'patient' &&
-    profile?.must_complete_profile === true &&
-    pathname.startsWith('/dashboard') &&
-    pathname !== completePath
-  ) {
+    (profile?.must_complete_profile === true || profile?.must_change_password === true)
+  if (user && patientMustFinish && pathname.startsWith('/dashboard') && pathname !== completePath) {
     return redirectTo(completePath)
   }
 
   // Once complete, the completion page has nothing left to do.
-  if (user && pathname === completePath && profile && profile.must_complete_profile !== true) {
+  if (user && pathname === completePath && profile && !patientMustFinish) {
     return redirectTo('/dashboard/patient')
   }
 

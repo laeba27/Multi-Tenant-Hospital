@@ -22,12 +22,14 @@ import {
   UserRoundCog,
   X,
   ChevronLeft,
+  ChevronDown,
   Pill,
   Hospital,
   TriangleAlert,
   UserPlus,
   CalendarPlus,
   Megaphone,
+  CalendarClock,
 } from 'lucide-react'
 import { useUserDetails } from '@/hooks/use-user-details'
 import { useRbac } from '@/hooks/use-rbac'
@@ -44,38 +46,71 @@ const roleBasedSidebarItems = {
   doctor: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/doctor' },
     { icon: Calendar, label: 'Appointments', href: '/dashboard/doctor/appointments' },
+    {
+      icon: Users,
+      label: 'Patients',
+      children: [
+        { icon: Users, label: 'My Patients', href: '/dashboard/doctor/patients' },
+        { icon: CalendarClock, label: 'Follow-ups', href: '/dashboard/doctor/follow-ups' },
+      ],
+    },
     { icon: Pill, label: 'Prescriptions', href: '/dashboard/doctor/prescriptions', permission: 'view_prescription' },
-    { icon: Users, label: 'Patients', href: '/dashboard/doctor/patients' },
     { icon: CreditCard, label: 'Billing & Payment', href: '/dashboard/doctor/billing', permission: 'manage_billing' },
     { icon: Clock, label: 'Calendar', href: '/dashboard/doctor/calendar' },
     { icon: Bell, label: 'Notifications', href: '/dashboard/doctor/notifications' },
-    { icon: UserCircle, label: 'My Profile', href: '/dashboard/profiles' },
     { icon: BarChart3, label: 'Data Analytics', href: '/dashboard/doctor/analytics' },
+    { icon: UserCircle, label: 'My Profile', href: '/dashboard/profiles' },
   ],
   hospital_admin: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/hospital' },
-    { icon: Building2, label: 'Departments', href: '/dashboard/hospital/departments' },
-    { icon: UserStar, label: 'Staff Management', href: '/dashboard/hospital/staff' },
-    { icon: Clock, label: 'Shifts & Slots', href: '/dashboard/hospital/schedules' },
-    { icon: UserCircle, label: 'My Profile', href: '/dashboard/profiles' },
-     { icon: Users2, label: 'Patient Management', href: '/dashboard/hospital/patient-management' },
-    { icon: Megaphone, label: 'Quick Updates', href: '/dashboard/hospital/updates' },
+    {
+      icon: Users2,
+      label: 'Patient Management',
+      children: [
+        { icon: Users2, label: 'Patients', href: '/dashboard/hospital/patient-management' },
+        { icon: CalendarClock, label: 'Follow-ups', href: '/dashboard/hospital/follow-ups' },
+      ],
+    },
     { icon: Calendar, label: 'Calendar', href: '/dashboard/hospital/calendar' },
-    { icon: UserRoundCog, label: 'Roles', href: '/dashboard/hospital/rbac' }, 
+    {
+      icon: UserStar,
+      label: 'Staff Management',
+      children: [
+        { icon: UserStar, label: 'Staff', href: '/dashboard/hospital/staff' },
+        { icon: Clock, label: 'Shifts & Slots', href: '/dashboard/hospital/schedules' },
+        { icon: UserRoundCog, label: 'Roles & Access', href: '/dashboard/hospital/rbac' },
+      ],
+    },
+    {
+      icon: Building2,
+      label: 'Hospital Setup',
+      children: [
+        { icon: Building2, label: 'Departments', href: '/dashboard/hospital/departments' },
+        { icon: ClipboardPlus, label: 'Treatments', href: '/dashboard/hospital/treatments' },
+        { icon: NotebookPen, label: 'Inventory', href: '/dashboard/hospital/inventory' },
+      ],
+    },
     { icon: CreditCard, label: 'Billing & Finance', href: '/dashboard/hospital/finance' },
-    { icon: ClipboardPlus, label: 'Treatments', href: '/dashboard/hospital/treatments' },
     { icon: BarChart3, label: 'Data Analytics', href: '/dashboard/hospital/analytics' },
-    { icon: NotebookPen, label: 'Inventory', href: '/dashboard/hospital/inventory' },
+    { icon: Megaphone, label: 'Quick Updates', href: '/dashboard/hospital/updates' },
     { icon: TriangleAlert, label: 'Issues', href: '/dashboard/hospital/issues' },
+    { icon: UserCircle, label: 'My Profile', href: '/dashboard/profiles' },
   ],
   receptionist: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/reception' },
     { icon: Calendar, label: 'Calendar', href: '/dashboard/reception/calendar' },
-    { icon: Users2, label: 'Patient Management', href: '/dashboard/reception/patient-management', permission: 'book_appointment' },
-    { icon: Megaphone, label: 'Quick Updates', href: '/dashboard/reception/updates' },
-    { icon: UserCircle, label: 'My Profile', href: '/dashboard/profiles' },
+    {
+      icon: Users2,
+      label: 'Patient Management',
+      children: [
+        { icon: Users2, label: 'Patients', href: '/dashboard/reception/patient-management', permission: 'book_appointment' },
+        { icon: CalendarClock, label: 'Follow-ups', href: '/dashboard/reception/follow-ups' },
+      ],
+    },
     { icon: CreditCard, label: 'Billing & Payment', href: '/dashboard/reception/billing', permission: 'manage_billing' },
+    { icon: Megaphone, label: 'Quick Updates', href: '/dashboard/reception/updates' },
     { icon: BarChart3, label: 'Data Analytics', href: '/dashboard/reception/analytics' },
+    { icon: UserCircle, label: 'My Profile', href: '/dashboard/profiles' },
   ],
   staff: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/staff' },
@@ -116,9 +151,15 @@ export function Sidebar({ isOpen = false, onClose = () => {} }) {
   // billing was revoked loses it. Wait for RBAC to resolve before filtering --
   // otherwise every gated item flashes away and back on each load.
   const roleItems = mounted && !isLoading ? (roleBasedSidebarItems[profile?.role] || []) : []
-  const sidebarItems = rbacLoading
-    ? roleItems.filter((item) => !item.permission)
-    : roleItems.filter((item) => !item.permission || can(item.permission))
+  const allowed = (item) => !item.permission || (!rbacLoading && can(item.permission))
+  // Groups keep only the children this person may open, and disappear when
+  // none are left -- an empty heading would just be a dead click.
+  const sidebarItems = roleItems
+    .map((item) => (item.children ? { ...item, children: item.children.filter(allowed) } : item))
+    .filter((item) => (item.children ? item.children.length > 0 : allowed(item)))
+
+  // Every clickable link, groups flattened, for working out which is active.
+  const leafItems = sidebarItems.flatMap((item) => item.children || [item])
 
   // Helper function to determine if a route is active
   // Returns the length of the matching href for specificity, or -1 if no match
@@ -133,10 +174,28 @@ export function Sidebar({ isOpen = false, onClose = () => {} }) {
   }
 
   // Find the most specific (longest) matching href
-  const activeMatch = sidebarItems.reduce((max, item) => {
+  const activeMatch = leafItems.reduce((max, item) => {
     const match = getActiveMatch(item.href)
     return match > max ? match : max
   }, -1)
+
+  const isActiveHref = (href) => activeMatch === href.length && getActiveMatch(href) !== -1
+  const groupHasActive = (group) => group.children.some((c) => isActiveHref(c.href))
+
+  // Which groups are expanded. The group holding the current page always opens
+  // on navigation, so you can see where you are; others stay as you left them.
+  const [openGroups, setOpenGroups] = useState(() => new Set())
+  const activeGroupLabel = sidebarItems.find((item) => item.children && groupHasActive(item))?.label
+  useEffect(() => {
+    if (!activeGroupLabel) return
+    setOpenGroups((prev) => (prev.has(activeGroupLabel) ? prev : new Set(prev).add(activeGroupLabel)))
+  }, [activeGroupLabel])
+  const toggleGroup = (label) =>
+    setOpenGroups((prev) => {
+      const next = new Set(prev)
+      next.has(label) ? next.delete(label) : next.add(label)
+      return next
+    })
 
   // Collapsing is a desktop affordance. The phone drawer always shows labels,
   // even if the sidebar was collapsed on a wider screen.
@@ -226,24 +285,74 @@ export function Sidebar({ isOpen = false, onClose = () => {} }) {
             <nav className="space-y-1">
               {sidebarItems.map((item) => {
                 const IconComponent = item.icon
-                // An item is active only if its href matches the longest match found
-                const isActive = activeMatch === item.href.length && getActiveMatch(item.href) !== -1
+
+                if (item.children) {
+                  // Icon-only mode has no room for a sub-list, so the children
+                  // are shown as their own icons with the group's name in the
+                  // tooltip.
+                  if (collapsed) {
+                    return item.children.map((child) => (
+                      <NavLink
+                        key={child.href}
+                        item={child}
+                        active={isActiveHref(child.href)}
+                        collapsed
+                        title={`${item.label}: ${child.label}`}
+                        onClick={onClose}
+                      />
+                    ))
+                  }
+
+                  const open = openGroups.has(item.label)
+                  const hasActive = groupHasActive(item)
+                  const groupId = `nav-group-${item.label.replace(/\W+/g, '-').toLowerCase()}`
+                  return (
+                    <div key={item.label}>
+                      <button
+                        type="button"
+                        onClick={() => toggleGroup(item.label)}
+                        aria-expanded={open}
+                        aria-controls={groupId}
+                        className={`flex w-full items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${
+                          hasActive && !open
+                            ? 'bg-indigo-50 text-indigo-600'
+                            : hasActive
+                              ? 'text-indigo-600 hover:bg-gray-100'
+                              : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <IconComponent size={20} className="shrink-0" />
+                        <span className="text-sm truncate flex-1 text-left">{item.label}</span>
+                        <ChevronDown
+                          size={16}
+                          className={`shrink-0 text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+                      {open && (
+                        <div id={groupId} className="mt-1 ml-6 space-y-1 border-l border-gray-200 pl-3">
+                          {item.children.map((child) => (
+                            <NavLink
+                              key={child.href}
+                              item={child}
+                              active={isActiveHref(child.href)}
+                              nested
+                              onClick={onClose}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                }
 
                 return (
-                  <Link
+                  <NavLink
                     key={item.href}
-                    href={item.href}
+                    item={item}
+                    active={isActiveHref(item.href)}
+                    collapsed={collapsed}
                     onClick={onClose}
-                    className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-4 py-3 rounded-lg font-medium transition-colors ${
-                      isActive
-                        ? 'bg-indigo-100 text-indigo-600'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                    title={collapsed ? item.label : ''}
-                  >
-                    <IconComponent size={20} className="shrink-0" />
-                    {!collapsed && <span className="text-sm truncate">{item.label}</span>}
-                  </Link>
+                  />
                 )
               })}
             </nav>
@@ -251,5 +360,25 @@ export function Sidebar({ isOpen = false, onClose = () => {} }) {
         </div>
       </aside>
     </>
+  )
+}
+
+function NavLink({ item, active, collapsed = false, nested = false, title, onClick }) {
+  const IconComponent = item.icon
+  return (
+    <Link
+      href={item.href}
+      onClick={onClick}
+      aria-current={active ? 'page' : undefined}
+      className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'} ${
+        nested ? 'px-3 py-2' : 'px-4 py-3'
+      } rounded-lg font-medium transition-colors ${
+        active ? 'bg-indigo-100 text-indigo-600' : 'text-gray-700 hover:bg-gray-100'
+      }`}
+      title={collapsed ? title || item.label : ''}
+    >
+      <IconComponent size={nested ? 16 : 20} className="shrink-0" />
+      {!collapsed && <span className="text-sm truncate">{item.label}</span>}
+    </Link>
   )
 }

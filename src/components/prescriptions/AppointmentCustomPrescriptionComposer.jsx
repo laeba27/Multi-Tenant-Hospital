@@ -25,11 +25,25 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
-import { ChevronDown, ChevronUp, Plus, Trash2, Save, FileText, Eye, Printer, X, Check, Download, Share2, Mail, MessageCircle } from 'lucide-react'
+import { ChevronDown, ChevronUp, Plus, Trash2, Save, FileText, Eye, Printer, X, Check, Download, Share2, Mail, MessageCircle, BookmarkPlus, Bookmark, Settings2, Loader2 } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
-import { createPrescriptionFromAppointment, addFieldOption } from '@/actions/prescriptions'
+import {
+  createPrescriptionFromAppointment,
+  addFieldOption,
+  getMyPrescriptionPresets,
+  savePrescriptionPreset,
+  deletePrescriptionPreset,
+} from '@/actions/prescriptions'
 
-const emptyDraft = (section) => {
+export const emptyDraft = (section) => {
   const draft = {}
   ;(section.fields || []).forEach((field) => {
     draft[field.id] = field.type === 'multi_select' ? [] : ''
@@ -61,6 +75,87 @@ export function AppointmentCustomPrescriptionComposer({
   const [showPreview, setShowPreview] = useState(false)
   const [showUpdateConfirm, setShowUpdateConfirm] = useState(false)
   const [isPending, startTransition] = useTransition()
+
+  // Presets: the doctor's saved prescriptions ("Common cold") to start from.
+  const [presets, setPresets] = useState([])
+  const [appliedPresetId, setAppliedPresetId] = useState(null)
+  // { [sectionId]: presetId } -- the section preset last loaded into each section
+  const [appliedSectionPresets, setAppliedSectionPresets] = useState({})
+  // null | { section: null } (whole prescription) | { section } (one section)
+  const [saveTarget, setSaveTarget] = useState(null)
+  const [showManagePresets, setShowManagePresets] = useState(false)
+
+  const loadPresets = async () => {
+    const res = await getMyPrescriptionPresets()
+    if (res.success) setPresets(res.presets)
+  }
+  useEffect(() => { loadPresets() }, [])
+
+  /** Committed rows plus any half-typed draft row that has a value. */
+  const rowsWithDrafts = () => {
+    const out = {}
+    ;(selectedTemplate?.sections || []).forEach((section) => {
+      const committed = rows[section.id] || []
+      const draft = drafts[section.id] || {}
+      const draftFilled = (section.fields || []).some((f) => isFilled(draft[f.id]))
+      out[section.id] = draftFilled ? [...committed, draft] : committed
+    })
+    return out
+  }
+
+  const hasEnteredAnything = () =>
+    Object.values(rowsWithDrafts()).some((list) => list.length > 0)
+
+  const fullPresets = presets.filter((p) => p.scope !== 'section')
+
+  /** Add a one-section preset's rows to that section; other sections are untouched. */
+  const applySectionPreset = (preset, section = null) => {
+    if (!preset || !selectedTemplate) return
+    const { seedRows, matched, section: target } = presetToRows(preset, selectedTemplate, section)
+    if (!target) {
+      toast.error(`This template has no "${preset.section?.name || 'matching'}" section.`)
+      return
+    }
+    const added = seedRows[target.id] || []
+    if (matched === 0 || added.length === 0) {
+      toast.error(`"${preset.name}" doesn't match the fields in ${target.name}.`)
+      return
+    }
+    setRows((prev) => ({ ...prev, [target.id]: [...(prev[target.id] || []), ...added] }))
+    setExpandedSections((prev) => ({ ...prev, [target.id]: true }))
+    setAppliedSectionPresets((prev) => ({ ...prev, [target.id]: preset.id }))
+    toast.success(
+      `Added ${added.length} ${added.length === 1 ? 'entry' : 'entries'} from "${preset.name}" to ${target.name}.`
+    )
+  }
+
+  const sectionHasData = (section) => {
+    const draft = drafts[section.id] || {}
+    return (
+      (rows[section.id] || []).length > 0 ||
+      (section.fields || []).some((f) => isFilled(draft[f.id]))
+    )
+  }
+
+  const applyPreset = (preset) => {
+    if (!preset) return
+    if (preset.scope === 'section') { applySectionPreset(preset); return }
+    // The preset's own template if the doctor still has it; otherwise the one
+    // open now, matched field by field on their keys.
+    const target = templates.find((t) => t.id === preset.templateId) || selectedTemplate
+    if (!target) return
+    if (hasEnteredAnything() && !confirm(`Replace what you've entered with "${preset.name}"?`)) return
+
+    const { seedRows, matched } = presetToRows(preset, target)
+    if (matched === 0) {
+      toast.error(`"${preset.name}" doesn't match this template's fields.`)
+      return
+    }
+    initializeTemplate(target, seedRows)
+    setAppliedPresetId(preset.id)
+    setAppliedSectionPresets({})
+    toast.success(`Loaded "${preset.name}". Add or remove anything for this patient.`)
+  }
 
   useEffect(() => {
     if (dbTemplates.length > 0) {
@@ -385,6 +480,62 @@ export function AppointmentCustomPrescriptionComposer({
         </div>
       )}
       {selectedTemplate && (
+        <div className="bg-white border border-slate-200 rounded-md p-2 flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-wide text-slate-500 shrink-0 flex items-center gap-1">
+            <Bookmark className="h-3.5 w-3.5" /> Preset
+          </Label>
+          <Select
+            value={appliedPresetId || ''}
+            onValueChange={(id) => applyPreset(fullPresets.find((p) => p.id === id))}
+            disabled={fullPresets.length === 0}
+          >
+            <SelectTrigger className="h-8 text-[13px] border-slate-200 sm:flex-1">
+              <SelectValue placeholder={fullPresets.length ? 'Load a whole-prescription preset…' : 'No whole-prescription presets yet'} />
+            </SelectTrigger>
+            <SelectContent>
+              {fullPresets.map((p) => (
+                <SelectItem key={p.id} value={p.id} className="text-[13px]">
+                  {p.name}
+                  {templates.length > 1 && p.templateId !== selectedTemplate.id
+                    ? ` (${templates.find((t) => t.id === p.templateId)?.name || 'other template'})`
+                    : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 flex-1 sm:flex-none gap-1.5 text-[12px]"
+              onClick={() => {
+                if (!hasEnteredAnything()) {
+                  toast.error('Fill in the prescription first, then save it as a preset.')
+                  return
+                }
+                setSaveTarget({ section: null })
+              }}
+            >
+              <BookmarkPlus className="h-3.5 w-3.5" /> Save as preset
+            </Button>
+            {presets.length > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0 shrink-0"
+                onClick={() => setShowManagePresets(true)}
+                title="Manage presets"
+                aria-label="Manage presets"
+              >
+                <Settings2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+      {selectedTemplate && (
         <>
           <div className="space-y-3">
             {selectedTemplate.sections && selectedTemplate.sections.length > 0 ? (
@@ -404,6 +555,16 @@ export function AppointmentCustomPrescriptionComposer({
                   onAdd={() => addRow(section)}
                   onRemoveRow={(idx) => removeRow(section.id, idx)}
                   renderCellValue={renderCellValue}
+                  sectionPresets={presets.filter((p) => sectionPresetMatches(p, section))}
+                  appliedSectionPresetId={appliedSectionPresets[section.id] || null}
+                  onApplySectionPreset={(p) => applySectionPreset(p, section)}
+                  onSaveSectionPreset={() => {
+                    if (!sectionHasData(section)) {
+                      toast.error(`Fill in ${section.name} first, then save it as a preset.`)
+                      return
+                    }
+                    setSaveTarget({ section })
+                  }}
                 />
               ))
             ) : (
@@ -476,6 +637,53 @@ export function AppointmentCustomPrescriptionComposer({
         />
       )}
 
+      <SavePresetDialog
+        open={Boolean(saveTarget)}
+        section={saveTarget?.section || null}
+        onClose={() => setSaveTarget(null)}
+        appliedPreset={
+          presets.find((p) =>
+            p.id === (saveTarget?.section ? appliedSectionPresets[saveTarget.section.id] : appliedPresetId)
+          ) || null
+        }
+        onSave={async ({ name, description, overwrite }) => {
+          const section = saveTarget?.section || null
+          const appliedId = section ? appliedSectionPresets[section.id] : appliedPresetId
+          const res = await savePrescriptionPreset({
+            name,
+            description,
+            templateId: selectedTemplate.id,
+            templateVersionId: selectedTemplate.version_id || null,
+            entries: rowsToPresetEntries(selectedTemplate, rowsWithDrafts(), section?.id || null),
+            presetId: overwrite ? appliedId : null,
+            section: section ? { id: section.id, key: section.key || '', name: section.name } : null,
+          })
+          if (!res.success) { toast.error(res.error); return false }
+          toast.success(res.message)
+          if (section) setAppliedSectionPresets((prev) => ({ ...prev, [section.id]: res.presetId }))
+          else setAppliedPresetId(res.presetId)
+          setSaveTarget(null)
+          loadPresets()
+          return true
+        }}
+      />
+
+      <ManagePresetsDialog
+        open={showManagePresets}
+        onClose={() => setShowManagePresets(false)}
+        presets={presets}
+        templates={templates}
+        onApply={(p) => { setShowManagePresets(false); applyPreset(p) }}
+        onDelete={async (p) => {
+          if (!confirm(`Delete the preset "${p.name}"? Prescriptions already issued are not affected.`)) return
+          const res = await deletePrescriptionPreset(p.id)
+          if (!res.success) { toast.error(res.error); return }
+          toast.success(res.message)
+          if (appliedPresetId === p.id) setAppliedPresetId(null)
+          loadPresets()
+        }}
+      />
+
       <AlertDialog open={showUpdateConfirm} onOpenChange={setShowUpdateConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -504,11 +712,250 @@ export function AppointmentCustomPrescriptionComposer({
 }
 
 /**
+ * Composer rows -> preset entries: one per field that has a value in any row,
+ * holding that field's value for each row (the same column-per-field shape
+ * prescriptions are saved in), plus the section/field keys and names so the
+ * preset still lines up after the template is edited, or in another template
+ * with a section of the same name.
+ *
+ * `onlySectionId` limits it to one section (a section preset).
+ */
+export function rowsToPresetEntries(template, rowsBySection, onlySectionId = null) {
+  const entries = []
+  ;(template?.sections || []).forEach((section) => {
+    if (onlySectionId && section.id !== onlySectionId) return
+    const sectionRows = (rowsBySection[section.id] || []).filter((row) =>
+      (section.fields || []).some((f) => isFilledValue(row[f.id]))
+    )
+    if (sectionRows.length === 0) return
+    ;(section.fields || []).forEach((field) => {
+      const column = sectionRows.map((row) => (row[field.id] === undefined ? '' : row[field.id]))
+      if (!column.some(isFilledValue)) return
+      entries.push({
+        sectionId: section.id,
+        sectionKey: section.key || '',
+        sectionName: section.name || '',
+        fieldId: field.id,
+        fieldKey: field.key || '',
+        fieldLabel: field.label || '',
+        value: column,
+      })
+    })
+  })
+  return entries
+}
+
+const norm = (s) => String(s || '').trim().toLowerCase()
+
+/** Does a one-section preset belong to `section` (same id, key, or name)? */
+export function sectionPresetMatches(preset, section) {
+  if (preset?.scope !== 'section' || !preset.section || !section) return false
+  const ps = preset.section
+  return (
+    ps.id === section.id ||
+    (ps.key && section.key && ps.key === section.key) ||
+    (ps.name && norm(ps.name) === norm(section.name))
+  )
+}
+
+/**
+ * Preset -> composer rows for `template`. Each field is matched by id; or,
+ * when the template has since been edited and ids changed, by its section and
+ * field keys; or, last, by section name and field label. Returns how many
+ * fields matched.
+ *
+ * A section preset is poured into its matching section only (or into
+ * `intoSection` when given), whatever that section is called now.
+ */
+export function presetToRows(preset, template, intoSection = null) {
+  const byId = new Map()
+  const byKey = new Map()
+  const byName = new Map()
+  const byLabel = new Map() // section presets: field label alone
+  for (const e of preset.entries || []) {
+    byId.set(e.fieldId, e)
+    if (e.sectionKey && e.fieldKey) byKey.set(`${e.sectionKey}::${e.fieldKey}`, e)
+    if (e.sectionName && e.fieldLabel) byName.set(`${norm(e.sectionName)}::${norm(e.fieldLabel)}`, e)
+    if (e.fieldLabel) byLabel.set(norm(e.fieldLabel), e)
+  }
+
+  const isSectionPreset = preset.scope === 'section'
+  const targetSection = isSectionPreset
+    ? intoSection || (template.sections || []).find((s) => sectionPresetMatches(preset, s)) || null
+    : null
+
+  const seedRows = {}
+  let matched = 0
+  ;(template.sections || []).forEach((section) => {
+    if (isSectionPreset && section.id !== targetSection?.id) return
+    const columns = []
+    ;(section.fields || []).forEach((field) => {
+      const entry =
+        byId.get(field.id) ||
+        (section.key && field.key ? byKey.get(`${section.key}::${field.key}`) : null) ||
+        byName.get(`${norm(section.name)}::${norm(field.label)}`) ||
+        (isSectionPreset ? byLabel.get(norm(field.label)) : null)
+      if (entry) { columns.push([field.id, entry.value]); matched++ }
+    })
+    const count = Math.max(0, ...columns.map(([, v]) => v.length))
+    const sectionRows = []
+    for (let i = 0; i < count; i++) {
+      const row = {}
+      columns.forEach(([fieldId, values]) => {
+        if (isFilledValue(values[i])) row[fieldId] = values[i]
+      })
+      if (Object.keys(row).length) sectionRows.push(row)
+    }
+    seedRows[section.id] = sectionRows
+  })
+  return { seedRows, matched, section: targetSection }
+}
+
+function SavePresetDialog({ open, onClose, appliedPreset, onSave, section = null }) {
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [overwrite, setOverwrite] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setOverwrite(Boolean(appliedPreset))
+    setName(appliedPreset?.name || '')
+    setDescription(appliedPreset?.description || '')
+  }, [open, appliedPreset])
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    await onSave({ name, description, overwrite: overwrite && Boolean(appliedPreset) })
+    setSaving(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader className="text-left pr-6">
+          <DialogTitle>{section ? `Save ${section.name} as a preset` : 'Save as preset'}</DialogTitle>
+          <DialogDescription>
+            {section
+              ? `Saves only what's in ${section.name} now. Load it into ${section.name} for the next patient; the other sections stay as you write them.`
+              : 'Saves everything filled in now (complaints, medicines, advice…). Load it for the next patient with the same problem, then add or remove what you need.'}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          {appliedPreset && (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {[
+                { value: true, label: `Update "${appliedPreset.name}"` },
+                { value: false, label: 'Save as a new preset' },
+              ].map((o) => (
+                <button
+                  key={String(o.value)}
+                  type="button"
+                  onClick={() => {
+                    setOverwrite(o.value)
+                    setName(o.value ? appliedPreset.name : '')
+                    setDescription(o.value ? appliedPreset.description : '')
+                  }}
+                  className={cn(
+                    'rounded-md border px-3 py-2 text-left text-[13px] font-medium transition-colors',
+                    overwrite === o.value
+                      ? 'border-blue-600 bg-blue-50 text-blue-700'
+                      : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                  )}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <Label htmlFor="preset-name">Name *</Label>
+            <Input
+              id="preset-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={section ? `e.g. Cold ${section.name.toLowerCase()}` : 'e.g. Common cold'}
+              maxLength={80}
+              required
+              autoFocus
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="preset-desc">Note (optional)</Label>
+            <Input
+              id="preset-desc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g. Adults, no fever"
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button type="submit" disabled={saving || name.trim().length < 2} className="gap-1.5">
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              {overwrite && appliedPreset ? 'Update preset' : 'Save preset'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function ManagePresetsDialog({ open, onClose, presets, templates, onApply, onDelete }) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader className="text-left pr-6">
+          <DialogTitle>Your presets</DialogTitle>
+          <DialogDescription>
+            Only you can see and use these. You can also edit them on the Prescription Templates
+            page, Presets tab.
+          </DialogDescription>
+        </DialogHeader>
+        {presets.length === 0 ? (
+          <p className="py-6 text-center text-sm text-slate-500">No presets yet.</p>
+        ) : (
+          <ul className="divide-y rounded-md border">
+            {presets.map((p) => (
+              <li key={p.id} className="flex items-center gap-3 px-3 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-slate-900 wrap-anywhere">{p.name}</p>
+                  <p className="text-xs text-slate-500 wrap-anywhere">
+                    {[
+                      p.scope === 'section' ? `${p.section?.name || 'Section'} only` : 'Whole prescription',
+                      p.description,
+                      templates.length > 1 ? templates.find((t) => t.id === p.templateId)?.name : null,
+                      `${p.entries.length} field${p.entries.length === 1 ? '' : 's'}`,
+                    ].filter(Boolean).join(' · ')}
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" className="h-8" onClick={() => onApply(p)}>Load</Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={() => onDelete(p)}
+                  aria-label={`Delete ${p.name}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/**
  * Assemble the data the preview should render: for each section, the committed
  * rows plus any in-progress draft row that has at least one filled field.
  * Each row is normalised to a list of { label, value } using the unit rules.
  */
-function buildPreviewSections(template, rows, drafts) {
+export function buildPreviewSections(template, rows, drafts = {}) {
   return (template.sections || [])
     .map((section) => {
       const fields = section.fields || []
@@ -546,7 +993,7 @@ function buildPreviewSections(template, rows, drafts) {
     .filter(Boolean)
 }
 
-function SectionBlock({
+export function SectionBlock({
   section,
   draft,
   rows,
@@ -558,8 +1005,15 @@ function SectionBlock({
   onAdd,
   onRemoveRow,
   renderCellValue,
+  // Optional: one-section presets for this section (the composer passes them;
+  // the preset editor does not).
+  sectionPresets = [],
+  appliedSectionPresetId = null,
+  onApplySectionPreset = null,
+  onSaveSectionPreset = null,
 }) {
   const fields = section.fields || []
+  const showPresetBar = Boolean(onApplySectionPreset || onSaveSectionPreset)
 
   return (
     <div className="bg-white border border-slate-200 rounded-md">
@@ -594,6 +1048,49 @@ function SectionBlock({
 
       {expanded && fields.length > 0 && (
         <div className="p-3 space-y-3">
+          {showPresetBar && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 rounded border border-dashed border-slate-200 bg-slate-50/60 p-1.5">
+              {sectionPresets.length > 0 ? (
+                <Select
+                  value=""
+                  onValueChange={(id) => onApplySectionPreset?.(sectionPresets.find((p) => p.id === id))}
+                >
+                  <SelectTrigger className="h-8 text-[13px] border-slate-200 bg-white sm:flex-1">
+                    <span className="flex items-center gap-1.5 text-slate-500 truncate">
+                      <Bookmark className="h-3.5 w-3.5 shrink-0" />
+                      Add from a {section.name} preset…
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sectionPresets.map((p) => (
+                      <SelectItem key={p.id} value={p.id} className="text-[13px]">
+                        {p.name}
+                        {p.id === appliedSectionPresetId ? ' (added)' : ''}
+                        {p.description ? ` · ${p.description}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-[12px] text-slate-500 px-1.5 sm:flex-1 flex items-center gap-1.5">
+                  <Bookmark className="h-3.5 w-3.5 shrink-0" />
+                  Write {section.name} often? Fill it in once and save it as a preset.
+                </p>
+              )}
+              {onSaveSectionPreset && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onSaveSectionPreset}
+                  className="h-8 gap-1.5 text-[12px] bg-white shrink-0"
+                >
+                  <BookmarkPlus className="h-3.5 w-3.5" />
+                  Save {section.name} as preset
+                </Button>
+              )}
+            </div>
+          )}
           {/* Composer row — labeled inputs share the row equally */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:items-end gap-2">
             {fields.map((field) => (
@@ -687,7 +1184,7 @@ function SectionBlock({
   )
 }
 
-function isFilledValue(v) {
+export function isFilledValue(v) {
   return v !== undefined && v !== null && (Array.isArray(v) ? v.length > 0 : String(v).trim() !== '')
 }
 
@@ -1036,7 +1533,7 @@ function formatDate(dateStr, withTime = false) {
   return new Date(dateStr).toLocaleDateString('en-IN', opts)
 }
 
-function PrescriptionPreviewModal({
+export function PrescriptionPreviewModal({
   onClose,
   previewSections,
   hospital,
@@ -1044,9 +1541,15 @@ function PrescriptionPreviewModal({
   patient,
   appointment,
   appointmentId,
+  // When the prescription was actually issued. The doctor's live preview has
+  // none yet, so it shows today; a patient opening an old one sees its date.
+  issuedAt = null,
+  // The patient's own copy has no "share to the patient" step.
+  allowShare = true,
+  title = 'Prescription Preview',
 }) {
-  const today = new Date()
-  const issuedDate = today.toLocaleDateString('en-IN', {
+  const issuedOn = issuedAt ? new Date(issuedAt) : new Date()
+  const issuedDate = issuedOn.toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -1332,7 +1835,7 @@ function PrescriptionPreviewModal({
         {/* Toolbar */}
         <div className="flex items-center justify-between gap-2 px-3 sm:px-4 h-12 border-b border-slate-200 sticky top-0 bg-white sm:rounded-t-md z-10">
           <h2 className="text-[13px] sm:text-[14px] font-semibold uppercase tracking-tight text-slate-900 truncate">
-            Prescription Preview
+            {title}
           </h2>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Button
@@ -1345,17 +1848,19 @@ function PrescriptionPreviewModal({
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">{busy ? 'Preparing…' : 'Download'}</span>
             </Button>
-            <Button
-              onClick={handleShare}
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              className="h-9 sm:h-8 px-2.5 sm:px-3 gap-1.5 text-[13px] font-semibold uppercase tracking-wide"
-              title="Share"
-            >
-              <Share2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Share</span>
-            </Button>
+            {allowShare && (
+              <Button
+                onClick={handleShare}
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                className="h-9 sm:h-8 px-2.5 sm:px-3 gap-1.5 text-[13px] font-semibold uppercase tracking-wide"
+                title="Share"
+              >
+                <Share2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Share</span>
+              </Button>
+            )}
             <Button
               onClick={handlePrint}
               size="sm"
@@ -1377,7 +1882,7 @@ function PrescriptionPreviewModal({
         </div>
 
         {/* Share fallback — shown when the browser can't attach the file natively */}
-        {showShareFallback && (
+        {allowShare && showShareFallback && (
           <div className="flex flex-wrap items-center gap-2 px-3 sm:px-4 py-2 border-b border-slate-200 bg-slate-50">
             <span className="w-full sm:w-auto text-[12px] text-slate-600 mr-1">Share the downloaded PDF via:</span>
             <Button
@@ -1562,6 +2067,7 @@ function buildPrescriptionHtml({
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:${accent};margin-bottom:3px">Patient</div>
           ${kv('Name', patient?.name)}
           ${kv('Patient ID', patient?.registrationNo || patient?.id)}
+          ${patient?.loginNo && patient.loginNo !== patient?.registrationNo ? kv('Login No.', patient.loginNo) : ''}
           ${kv('Age / Sex', ageGender)}
           ${kv('Phone', patient?.mobile)}
           ${kv('Email', patient?.email)}

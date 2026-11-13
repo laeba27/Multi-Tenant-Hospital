@@ -5,6 +5,7 @@ import {
   updatePatient,
 } from '@/actions/patients'
 import { createAdminClient } from '@/lib/supabase/server'
+import { ageToStore } from '@/lib/patients/age'
 
 export async function GET(request) {
   try {
@@ -87,6 +88,14 @@ export async function POST(request) {
     if (!patientData.name || !patientData.mobile) {
       return NextResponse.json(
         { error: 'Name and mobile are required' },
+        { status: 400 }
+      )
+    }
+
+    // Age is compulsory, as on the registration form (a date of birth counts).
+    if (ageToStore(patientData) === null) {
+      return NextResponse.json(
+        { error: 'Age is required (whole years, 0-150), or a valid date of birth' },
         { status: 400 }
       )
     }

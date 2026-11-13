@@ -18,6 +18,7 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs'
 import { ChevronLeft } from 'lucide-react'
+import { patientAge } from '@/lib/patients/age'
 
 
 export function PatientDetails({ patient, userRole, onEdit, onClose }) {
@@ -129,6 +130,10 @@ export function PatientDetails({ patient, userRole, onEdit, onClose }) {
                 <div>
                   <p className="text-sm text-gray-600">Gender</p>
                   <p className="font-medium">{profile?.gender || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Age</p>
+                  <p className="font-medium">{patientAge(profile) ? `${patientAge(profile)} yrs` : '-'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Date of Birth</p>

@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { patientAge } from '@/lib/patients/age'
 
 /**
  * Resolve the logged-in doctor (staff row + hospital).
@@ -42,7 +43,7 @@ function fmtPatient(patientRecord) {
     mobile: p.mobile || '',
     gender: p.gender || '',
     dateOfBirth: p.date_of_birth || '',
-    age: ageFromDob(p.date_of_birth),
+    age: patientAge(p),
     address: p.address || '',
     city: p.city || '',
     state: p.state || '',
@@ -51,16 +52,6 @@ function fmtPatient(patientRecord) {
   }
 }
 
-function ageFromDob(dob) {
-  if (!dob) return ''
-  const birth = new Date(dob)
-  if (Number.isNaN(birth.getTime())) return ''
-  const now = new Date()
-  let age = now.getFullYear() - birth.getFullYear()
-  const m = now.getMonth() - birth.getMonth()
-  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age -= 1
-  return age >= 0 ? String(age) : ''
-}
 
 /**
  * All patients this doctor has seen (i.e. have an appointment with them),
@@ -81,7 +72,7 @@ export async function getDoctorPatients() {
         id,
         registration_no,
         profile:profiles!profile_id (
-          id, name, email, mobile, gender, date_of_birth,
+          id, name, email, mobile, gender, date_of_birth, age_years, age_recorded_on,
           address, city, state, pincode, avatar_url, registration_no
         )
       ),
@@ -139,7 +130,7 @@ export async function getDoctorPatientDetail(identifier) {
       registration_no,
       hospital_id,
       profile:profiles!profile_id (
-        id, name, email, mobile, gender, date_of_birth,
+        id, name, email, mobile, gender, date_of_birth, age_years, age_recorded_on,
         address, city, state, pincode, avatar_url, registration_no
       )
     `)

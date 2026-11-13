@@ -100,6 +100,9 @@ export function AppointmentDetailsView({
                 </div>
                 <div className="text-[12px] text-slate-500 font-mono leading-tight mt-0.5">
                   {patient.registrationNo || 'N/A'}
+                  {patient.loginNo && patient.loginNo !== patient.registrationNo && (
+                    <span className="ml-2 text-slate-400">Login {patient.loginNo}</span>
+                  )}
                 </div>
                 <div className="md:hidden text-[12px] text-slate-500 leading-tight mt-1 truncate">
                   {[patient.mobile, formatDate(appointment?.appointmentDate)].filter(Boolean).join(' · ')}

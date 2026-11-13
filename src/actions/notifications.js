@@ -165,6 +165,7 @@ const NOTIFICATION_BADGES = {
   appointment_confirmed: 'Confirmed',
   appointment_cancelled: 'Cancelled',
   appointment_rescheduled: 'Rescheduled',
+  follow_up_reminder: 'Follow-up',
 }
 
 /**
