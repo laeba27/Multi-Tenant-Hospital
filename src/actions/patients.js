@@ -936,6 +936,12 @@ export async function updateMyProfileDetails(details = {}) {
  * patient_notices already restricts rows to platform-wide notices plus the
  * hospitals this patient is registered at, and drops expired ones -- so a
  * plain select returns exactly what they may see.
+ *
+ * patient_notices is a VIEW over `notices` since migration 031 (and runs the
+ * base table's RLS since 038). A view has no foreign keys of its own, so the
+ * hospital join must not name one: PostgREST infers it from
+ * notices.hospital_id. The old hint (patient_notices_hospital_id_fkey) made
+ * every call fail with PGRST200.
  */
 export async function getMyNotices({ limit = 20 } = {}) {
   const supabase = await createClient()
@@ -956,7 +962,7 @@ export async function getMyNotices({ limit = 20 } = {}) {
       is_pinned,
       published_at,
       expires_at,
-      hospital:hospitals!patient_notices_hospital_id_fkey ( name )
+      hospital:hospitals ( name )
     `)
     .order('is_pinned', { ascending: false })
     .order('published_at', { ascending: false })

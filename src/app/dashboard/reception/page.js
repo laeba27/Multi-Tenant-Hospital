@@ -15,6 +15,7 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import Link from 'next/link'
+import TodayFollowUpsCard from '@/components/follow-ups/TodayFollowUpsCard'
 
 export default function ReceptionDashboardPage() {
   const { user, loading: userLoading } = useUser()
@@ -171,6 +172,9 @@ export default function ReceptionDashboardPage() {
             trend="+8% vs last month"
           />
         </div>
+
+        {/* Follow-ups due today, per doctor */}
+        <TodayFollowUpsCard variant="reception" href="/dashboard/reception/follow-ups?range=today" />
 
         {/* Quick Actions Grid */}
         <div>

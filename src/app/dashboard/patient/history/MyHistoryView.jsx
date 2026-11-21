@@ -108,6 +108,12 @@ export default function MyHistoryView() {
     const res = await getMyPrescriptionDocument(id)
     setOpening(null)
     if (!res.success) { toast.error(res.error || 'Could not open the prescription'); return }
+    if (buildPreviewSections(res.template, res.rows).length === 0) {
+      toast.info('No details were recorded on this prescription', {
+        description: 'Please ask your doctor to issue it again.',
+      })
+      return
+    }
     setRxDoc(res)
   }
 

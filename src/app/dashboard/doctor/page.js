@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { getDoctorDashboard } from '@/actions/doctor-dashboard'
+import TodayFollowUpsCard from '@/components/follow-ups/TodayFollowUpsCard'
 import {
   CalendarClock,
   ClipboardList,
@@ -93,6 +94,9 @@ export default async function DoctorPage() {
           )
         })}
       </div>
+
+      {/* Patients asked to come back today, and whether they said they're coming */}
+      <TodayFollowUpsCard variant="doctor" href="/dashboard/doctor/follow-ups?range=today" />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent patients */}

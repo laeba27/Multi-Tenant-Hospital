@@ -17,6 +17,7 @@ import { getMyHospitalRecords, getMyAppointments, changeMyPassword } from '@/act
 import QuickUpdates from '@/components/patients/QuickUpdates'
 import EmergencyContacts from '@/components/patients/EmergencyContacts'
 import WelcomeGuide from '@/components/patients/WelcomeGuide'
+import MyFollowUpsCard from '@/components/patients/MyFollowUpsCard'
 import {
   Section, Empty, Stat, Info, AppointmentRow, HospitalCard, splitAppointments,
 } from '@/components/patients/portal-ui'
@@ -73,6 +74,9 @@ export default function PatientDashboard() {
           </Button>
         </div>
       )}
+
+      {/* Follow-up visits the doctor asked for, with "are you coming?" */}
+      <MyFollowUpsCard />
 
       {/* First-run guide */}
       <WelcomeGuide />

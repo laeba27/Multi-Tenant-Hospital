@@ -383,6 +383,13 @@ export function AppointmentCustomPrescriptionComposer({
       clinicalSummaryParts.push(`${section.name}:\n  - ${lines.join('\n  - ')}`)
     })
 
+    // Nothing filled in: issuing would leave an empty prescription (and, on an
+    // update, wipe the one already issued). Stop here instead.
+    if (prescriptionValues.length === 0) {
+      toast.error('Add at least one entry before issuing the prescription')
+      return
+    }
+
     const clinicalSummary = clinicalSummaryParts.join('\n')
 
     // Find a follow-up date anywhere in the template (field key/label or type 'date').

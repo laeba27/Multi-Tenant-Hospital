@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server'
 
 async function getActor() {
   const supabase = await createClient()
@@ -47,7 +47,9 @@ export async function notify({
   }
 
   try {
-    const adminClient = await createAdminClient()
+    // Service role for real: createAdminClient() would insert as the signed-in
+    // user, and a patient isn't allowed to insert notifications.
+    const adminClient = createServiceRoleClient()
     const { error } = await adminClient.from('notifications').insert({
       recipient_id: recipientId,
       recipient_role: recipientRole,
@@ -166,6 +168,9 @@ const NOTIFICATION_BADGES = {
   appointment_cancelled: 'Cancelled',
   appointment_rescheduled: 'Rescheduled',
   follow_up_reminder: 'Follow-up',
+  follow_up_today: 'Follow-up today',
+  follow_up_digest: 'Follow-ups',
+  follow_up_response: 'Follow-up reply',
 }
 
 /**

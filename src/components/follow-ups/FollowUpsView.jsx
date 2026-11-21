@@ -111,6 +111,13 @@ export default function FollowUpsView() {
 
   useEffect(() => { load() }, [])
 
+  // Dashboard and notification links open the page on a range, e.g.
+  // ?range=today. Read once on mount; the filters take over from there.
+  useEffect(() => {
+    const r = new URLSearchParams(window.location.search).get('range')
+    if (r && r !== 'custom' && RANGES.some((x) => x.value === r)) setRange(r)
+  }, [])
+
   const today = data?.today
   const isDoctor = data?.role === 'doctor'
   const all = data?.followUps || []
@@ -356,6 +363,20 @@ export default function FollowUpsView() {
                     <Badge className={cn('text-[10px] uppercase', STATUS[f.status].className)}>
                       {STATUS[f.status].label}
                     </Badge>
+                    {f.response && (
+                      <p
+                        className={cn(
+                          'mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium',
+                          f.response.value === 'coming' ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'
+                        )}
+                        title={f.response.note || undefined}
+                      >
+                        {f.response.value === 'coming' ? 'Patient: coming' : "Patient: can't come"}
+                      </p>
+                    )}
+                    {f.response?.note && (
+                      <p className="mt-0.5 text-[11px] text-gray-500 wrap-anywhere">{f.response.note}</p>
+                    )}
                     {f.appointment && (
                       <p className="mt-1 text-xs text-gray-500 lg:hidden whitespace-nowrap">
                         {prettyDate(f.appointment.date).replace(/, \d{4}$/, '')}{f.appointment.slot ? ` · ${f.appointment.slot}` : ''}

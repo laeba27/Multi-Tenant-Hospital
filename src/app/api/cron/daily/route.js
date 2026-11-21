@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { sendFollowUpReminders } from '@/lib/cron/followUpReminders'
+import { sendFollowUpDayNotifications } from '@/lib/cron/followUpToday'
 
 /**
  * Daily job, run by Vercel Cron (see vercel.json).
@@ -17,6 +18,9 @@ import { sendFollowUpReminders } from '@/lib/cron/followUpReminders'
  * Jobs:
  *   - follow-up reminders: patients whose prescription follow-up is 2 days
  *     away (or tomorrow, if a run was missed) get a notification.
+ *   - follow-up day: patients due TODAY are told so (and asked if they're
+ *     coming); each doctor and receptionist gets today's count -- reception
+ *     broken down by doctor.
  */
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -43,7 +47,22 @@ export async function GET(request) {
       failed: followUps.failed.length,
     }))
 
-    return Response.json({ ok: followUps.failed.length === 0, dryRun, followUps })
+    // Runs even if the reminders above had per-row failures; each job dedupes
+    // on its own, so a retry of the whole route is always safe.
+    const followUpDay = await sendFollowUpDayNotifications(supabase, { dryRun })
+
+    console.log('[cron/daily] follow-up day', JSON.stringify({
+      dryRun,
+      today: followUpDay.today,
+      followUps: followUpDay.followUps,
+      patients: { sent: followUpDay.patients.sent, alreadySent: followUpDay.patients.alreadySent, skipped: followUpDay.patients.skipped.length },
+      doctors: { sent: followUpDay.doctors.sent, alreadySent: followUpDay.doctors.alreadySent, skipped: followUpDay.doctors.skipped.length },
+      reception: followUpDay.reception,
+      failed: followUpDay.failed.length,
+    }))
+
+    const ok = followUps.failed.length === 0 && followUpDay.failed.length === 0
+    return Response.json({ ok, dryRun, followUps, followUpDay })
   } catch (error) {
     console.error('[cron/daily] failed:', error)
     return Response.json({ ok: false, error: error.message }, { status: 500 })

@@ -1,7 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { isPlaceholderEmail } from '@/lib/utils/id-generator'
 import { patientAge } from '@/lib/patients/age'
 import {
@@ -765,6 +765,13 @@ export async function createPrescriptionFromAppointment({
       return s ? s : null
     }
 
+    // An issued prescription must carry something. Checked before the update
+    // path below deletes the existing values, so an empty save can't wipe a
+    // prescription the patient already has.
+    if (status === 'issued' && !(Array.isArray(prescriptionValues) && prescriptionValues.length > 0)) {
+      throw new Error('Add at least one entry before issuing the prescription')
+    }
+
     // Is there already a (non-cancelled) prescription for this appointment?
     const { data: existing } = await supabase
       .from('prescriptions')
@@ -1128,7 +1135,7 @@ export async function getMyPrescriptionDocument(prescriptionId) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: 'Not signed in' }
 
-    const admin = await createAdminClient()
+    const admin = createServiceRoleClient()
     const { data: links } = await admin.from('patients').select('id').eq('profile_id', user.id)
     const myPatientIds = (links || []).map((l) => l.id)
 
@@ -1163,7 +1170,7 @@ export async function getDoctorPrescriptionDocument(prescriptionId) {
     const { doctorRecord } = await getDoctorWorkspace()
     if (!doctorRecord?.id) return { success: false, error: 'Doctor not found' }
 
-    const admin = await createAdminClient()
+    const admin = createServiceRoleClient()
     const { data: rx } = await admin
       .from('prescriptions')
       .select('id, hospital_id, doctor_id, patient_id, appointment_id, status, issued_at, created_at')

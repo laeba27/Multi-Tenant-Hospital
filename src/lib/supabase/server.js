@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
 /**
@@ -45,6 +46,26 @@ export async function createClient() {
         },
       },
     }
+  )
+}
+
+/**
+ * A client that really is the service role: it bypasses RLS, always.
+ *
+ * createAdminClient() below is NOT that. It reads the request's auth cookies,
+ * and supabase-js sends a signed-in user's access token in place of the key
+ * whenever it finds a session -- so for a logged-in user it runs under RLS as
+ * that user. For a patient that meant prescription_values (staff-only) came
+ * back empty and their prescriptions printed blank.
+ *
+ * Every query made with this client must scope itself (by patient, doctor or
+ * hospital) and check ownership first: nothing in the database will.
+ */
+export function createServiceRoleClient() {
+  return createSupabaseClient(
+    requireEnv('NEXT_PUBLIC_SUPABASE_URL'),
+    requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
+    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
   )
 }
 
