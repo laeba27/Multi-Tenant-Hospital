@@ -1342,7 +1342,9 @@ export async function getMyPrescriptionPresets() {
       .select('id, name, description, template_id, metadata, updated_at')
       .eq('doctor_id', doctorRecord.id)
       .eq('visibility', 'doctor')
-      .is('deleted_at', null)
+      // No deleted_at filter: presets are hard-deleted (deletePrescriptionPreset),
+      // and the column only exists where migration 020 was applied -- this
+      // database doesn't have it, so the filter made every load fail.
       .order('updated_at', { ascending: false })
     if (error) throw error
     return { success: true, presets: (data || []).map(mapPreset) }
@@ -1414,7 +1416,6 @@ export async function savePrescriptionPreset({ name, description = '', templateI
       .from('prescription_presets')
       .select('id, metadata')
       .eq('doctor_id', doctorRecord.id)
-      .is('deleted_at', null)
       .ilike('name', cleanName)
     const samePicker = (p) => {
       const other = mapPreset(p)
