@@ -4,16 +4,12 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   Building2, CalendarDays, Phone, Mail, ShieldAlert, KeyRound,
-  Clock, BadgeCheck, ArrowRight, CalendarPlus,
+  Clock, BadgeCheck, ArrowRight, CalendarPlus, UserPen,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog'
-import { getMyHospitalRecords, getMyAppointments, changeMyPassword } from '@/actions/patients'
+import { getMyHospitalRecords, getMyAppointments } from '@/actions/patients'
+import ChangePasswordDialog from '@/components/patients/ChangePasswordDialog'
 import QuickUpdates from '@/components/patients/QuickUpdates'
 import EmergencyContacts from '@/components/patients/EmergencyContacts'
 import WelcomeGuide from '@/components/patients/WelcomeGuide'
@@ -146,14 +142,22 @@ export default function PatientDashboard() {
             <Info icon={Mail} label="Email" value={profile?.email} />
             <Info icon={BadgeCheck} label="Patient ID" value={profile?.registration_no} mono />
           </div>
-          <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => setShowPwDialog(true)}>
-            <KeyRound className="h-4 w-4" /> Change password
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Link href="/dashboard/patient/profile" className="w-full sm:w-auto">
+              <Button size="sm" className="w-full bg-indigo-600 hover:bg-indigo-700">
+                <UserPen className="h-4 w-4" /> Edit my details
+              </Button>
+            </Link>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => setShowPwDialog(true)}>
+              <KeyRound className="h-4 w-4" /> Change password
+            </Button>
+          </div>
         </div>
       </Section>
 
       <ChangePasswordDialog
         open={showPwDialog}
+        temporary={mustChange}
         onClose={() => setShowPwDialog(false)}
         onChanged={() => { setMustChange(false); setShowPwDialog(false) }}
       />
@@ -169,49 +173,5 @@ function SeeAll({ href }) {
     >
       See all <ArrowRight className="h-3 w-3" />
     </Link>
-  )
-}
-
-function ChangePasswordDialog({ open, onClose, onChanged }) {
-  const [pw, setPw] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [saving, setSaving] = useState(false)
-
-  const submit = async (e) => {
-    e.preventDefault()
-    if (pw.length < 6) { toast.error('Password must be at least 6 characters.'); return }
-    if (pw !== confirm) { toast.error('Passwords do not match.'); return }
-    setSaving(true)
-    const res = await changeMyPassword(pw)
-    setSaving(false)
-    if (res.success) {
-      toast.success(res.message || 'Password updated')
-      setPw(''); setConfirm('')
-      onChanged()
-    } else {
-      toast.error(res.error || 'Failed to update password')
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader><DialogTitle>Change Password</DialogTitle></DialogHeader>
-        <form onSubmit={submit} className="space-y-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-gray-700">New Password</Label>
-            <Input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="At least 6 characters" autoFocus />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-gray-700">Confirm Password</Label>
-            <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Re-enter password" />
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Update Password'}</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
   )
 }

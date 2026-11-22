@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Building2, User, Edit2, Save, X, Upload, AlertCircle, Loader } from 'lucide-react'
 import { useUserDetails } from '@/hooks/use-user-details'
 import { toast } from 'sonner'
@@ -20,6 +21,7 @@ import {
 
 export default function ProfilePage() {
   const { profile, hospital, isLoading, error } = useUserDetails()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState('personal')
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -58,6 +60,12 @@ export default function ProfilePage() {
   })
 
   const isHospitalAdmin = profile?.role === 'hospital_admin'
+
+  // Patients have their own, fuller profile page (personal, contact, health,
+  // emergency contact, email and password).
+  useEffect(() => {
+    if (profile?.role === 'patient') router.replace('/dashboard/patient/profile')
+  }, [profile?.role, router])
 
   // Initialize data when loaded
   useEffect(() => {

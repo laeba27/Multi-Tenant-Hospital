@@ -30,6 +30,8 @@ import {
   CalendarPlus,
   Megaphone,
   CalendarClock,
+  IndianRupee,
+  History,
 } from 'lucide-react'
 import { useUserDetails } from '@/hooks/use-user-details'
 import { useRbac } from '@/hooks/use-rbac'
@@ -39,6 +41,9 @@ const roleBasedSidebarItems = {
   super_admin: [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard/super-admin' },
     { icon: Hospital, label: 'Hospitals', href: '/dashboard/super-admin/hospitals' },
+    { icon: IndianRupee, label: 'Hospital Payments', href: '/dashboard/super-admin/payments' },
+    { icon: BarChart3, label: 'Analytics', href: '/dashboard/super-admin/analytics' },
+    { icon: History, label: 'Activity Log', href: '/dashboard/super-admin/activity' },
     { icon: TriangleAlert, label: 'Issues', href: '/dashboard/super-admin/issues' },
     { icon: UserPlus, label: 'Add Member', href: '/dashboard/super-admin/add-member' },
     { icon: UserCircle, label: 'My Profile', href: '/dashboard/profiles' },
@@ -127,7 +132,7 @@ const roleBasedSidebarItems = {
     { icon: Hospital, label: 'Hospitals', href: '/dashboard/patient/hospitals' },
     { icon: Calendar, label: 'Appointments', href: '/dashboard/patient/appointments' },
     { icon: Clock, label: 'History', href: '/dashboard/patient/history' },
-    { icon: UserCircle, label: 'Profile', href: '/dashboard/profiles' },
+    { icon: UserCircle, label: 'My Profile', href: '/dashboard/patient/profile' },
   ],
 }
 

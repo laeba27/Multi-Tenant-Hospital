@@ -10,6 +10,10 @@ import {
   Search,
   ShieldCheck,
   Bell,
+  IndianRupee,
+  BarChart3,
+  History,
+  ChevronRight,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import DashboardLayout from '@/components/layout/DashboardLayout'
@@ -21,6 +25,9 @@ import {
   getSuperAdminDashboardData,
   getGlobalNotices,
 } from '@/actions/super-admin'
+import { getSubscriptionsOverview } from '@/actions/platform'
+
+const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
 
 function normalizeStatus(status) {
   return (status || '').trim().toLowerCase()
@@ -71,12 +78,15 @@ export default function SuperAdminPage() {
     pendingApprovalHospitals: [],
   })
   const [notices, setNotices] = useState([])
+  const [subs, setSubs] = useState(null)
 
   const loadDashboardData = async () => {
-    const [dashResult, noticesResult] = await Promise.all([
+    const [dashResult, noticesResult, subsResult] = await Promise.all([
       getSuperAdminDashboardData(''),
       getGlobalNotices(),
+      getSubscriptionsOverview().catch(() => null),
     ])
+    setSubs(subsResult?.success ? subsResult.summary : null)
 
     if (!dashResult.success) {
       toast.error(dashResult.error || 'Failed to load dashboard data')
@@ -150,6 +160,34 @@ export default function SuperAdminPage() {
               </Card>
             )
           })}
+        </div>
+
+        {/* Shortcuts: payments, analytics, activity */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            {
+              href: '/dashboard/super-admin/payments',
+              icon: IndianRupee,
+              tone: subs && subs.overdue > 0 ? 'text-rose-600 bg-rose-50' : 'text-emerald-600 bg-emerald-50',
+              title: 'Hospital payments',
+              text: subs
+                ? subs.overdue + subs.due > 0
+                  ? `${subs.overdue} overdue · ${subs.due} due · ${inr(subs.outstanding)} owed`
+                  : `${inr(subs.collectedThisMonth)} collected this month${subs.noPlan ? ` · ${subs.noPlan} without a plan` : ''}`
+                : 'Plans, payments, who has paid',
+            },
+            { href: '/dashboard/super-admin/analytics', icon: BarChart3, tone: 'text-indigo-600 bg-indigo-50', title: 'Analytics', text: 'Most and least active hospitals' },
+            { href: '/dashboard/super-admin/activity', icon: History, tone: 'text-blue-600 bg-blue-50', title: 'Activity log', text: 'Who did what, and when' },
+          ].map((c) => (
+            <Link key={c.href} href={c.href} className="group bg-white border border-gray-200 rounded-xl p-3.5 flex items-center gap-3 hover:border-indigo-200 hover:shadow-sm transition">
+              <span className={cn('inline-flex rounded-lg p-2', c.tone)}><c.icon className="h-4 w-4" /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13px] font-semibold text-gray-900">{c.title}</span>
+                <span className="block text-[12px] text-gray-500 truncate">{c.text}</span>
+              </span>
+              <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-indigo-500" />
+            </Link>
+          ))}
         </div>
 
         {/* Master-detail: hospitals (left) + notices (right) */}
