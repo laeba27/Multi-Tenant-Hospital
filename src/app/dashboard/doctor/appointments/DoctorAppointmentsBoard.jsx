@@ -220,12 +220,12 @@ function AppointmentRow({ appointment, onReschedule, onDelete, onViewProfile }) 
           className={cn(
             'h-10 md:h-9 flex-1 md:flex-none font-semibold',
             hasRx
-              ? 'bg-violet-600 hover:bg-violet-700 text-white'
-              : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              : 'bg-blue-600 hover:bg-blue-700 text-white'
           )}
         >
           <Link href={`/dashboard/doctor/appointments/${appointment.id}/prescribe`}>
-            {hasRx ? 'Update Rx' : 'Prescribe'}
+            {hasRx ? 'Update prescription' : 'Prescribe'}
           </Link>
         </Button>
         <DropdownMenu>
@@ -328,7 +328,7 @@ export function DoctorAppointmentsBoard({ appointments = [] }) {
         <div className="hidden md:grid grid-cols-12 gap-4 bg-slate-50/80 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
           <span className="col-span-4">Patient</span>
           <span className="col-span-3">Date &amp; Time</span>
-          <span className="col-span-2">Status / Rx</span>
+          <span className="col-span-2">Status / Prescription</span>
           <span className="col-span-3 text-right">Actions</span>
         </div>
         {items.map((appointment) => (

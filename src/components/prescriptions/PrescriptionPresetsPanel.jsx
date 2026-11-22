@@ -10,6 +10,7 @@ import {
   Bookmark,
   BookmarkPlus,
   Edit2,
+  Eye,
   Loader2,
   Lock,
   Plus,
@@ -36,6 +37,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   SectionBlock,
   emptyDraft,
@@ -72,6 +81,7 @@ export function PrescriptionPresetsPanel({ templates = [] }) {
   // null = list; { preset: null } = new; { preset } = editing
   const [editing, setEditing] = useState(null)
   const [toDelete, setToDelete] = useState(null)
+  const [viewing, setViewing] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
   const load = async () => {
@@ -197,6 +207,7 @@ export function PrescriptionPresetsPanel({ templates = [] }) {
                     key={p.id}
                     preset={p}
                     templates={templates}
+                    onView={() => setViewing(p)}
                     onEdit={() => setEditing({ preset: p })}
                     onDelete={() => setToDelete(p)}
                   />
@@ -205,6 +216,13 @@ export function PrescriptionPresetsPanel({ templates = [] }) {
             </div>
           ))
       )}
+
+      <PresetViewDialog
+        preset={viewing}
+        templates={templates}
+        onClose={() => setViewing(null)}
+        onEdit={() => { const p = viewing; setViewing(null); setEditing({ preset: p }) }}
+      />
 
       <AlertDialog open={Boolean(toDelete)} onOpenChange={(o) => !o && !deleting && setToDelete(null)}>
         <AlertDialogContent>
@@ -248,14 +266,21 @@ function presetSummary(preset, templates) {
   return { template, sections: [...bySection.entries()] }
 }
 
-function PresetCard({ preset, templates, onEdit, onDelete }) {
+function PresetCard({ preset, templates, onView, onEdit, onDelete }) {
   const { template, sections } = presetSummary(preset, templates)
   const updated = preset.updatedAt
     ? new Date(preset.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
     : null
 
   return (
-    <div className="bg-white border border-slate-200 rounded-md hover:border-blue-200 transition-colors flex flex-col">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onView}
+      onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onView() } }}
+      title={`View ${preset.name}`}
+      className="bg-white border border-slate-200 rounded-md hover:border-blue-300 hover:shadow-sm transition cursor-pointer flex flex-col focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+    >
       <div className="px-3 py-2.5 flex items-start justify-between gap-2 border-b border-slate-100">
         <div className="min-w-0">
           <h3 className="text-[14px] font-semibold text-slate-900 wrap-anywhere">
@@ -275,7 +300,16 @@ function PresetCard({ preset, templates, onEdit, onDelete }) {
             <p className="text-[12px] text-slate-500 wrap-anywhere">{preset.description}</p>
           )}
         </div>
-        <div className="flex items-center gap-0.5 shrink-0">
+        <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={onView}
+            title="View preset"
+            aria-label={`View ${preset.name}`}
+            className="h-7 w-7 inline-flex items-center justify-center rounded text-slate-500 hover:text-blue-700 hover:bg-blue-50"
+          >
+            <Eye className="w-3.5 h-3.5" />
+          </button>
           <button
             type="button"
             onClick={onEdit}
@@ -312,6 +346,135 @@ function PresetCard({ preset, templates, onEdit, onDelete }) {
         {updated && <span>· Updated {updated}</span>}
       </div>
     </div>
+  )
+}
+
+/**
+ * A preset's contents, section by section, laid out the way the prescription
+ * will be: one table per section, one row per entry (e.g. per medicine).
+ * Entries are stored per field as a column of values, so row i is value[i] of
+ * every field in that section.
+ */
+function presetDetails(preset, templates) {
+  const template = templates.find((t) => t.id === preset.templateId)
+  const sections = new Map()
+  for (const e of preset.entries || []) {
+    const tSection = (template?.sections || []).find(
+      (x) => x.id === e.sectionId || (e.sectionKey && x.key === e.sectionKey)
+    )
+    const sKey = tSection?.id || e.sectionId || e.sectionKey || e.sectionName
+    if (!sections.has(sKey)) {
+      sections.set(sKey, {
+        key: sKey,
+        name: tSection?.name || e.sectionName || e.sectionKey || 'Section',
+        order: tSection ? template.sections.indexOf(tSection) : 999,
+        tSection,
+        fields: [],
+      })
+    }
+    const tField = (tSection?.fields || []).find(
+      (f) => f.id === e.fieldId || (e.fieldKey && f.key === e.fieldKey)
+    )
+    sections.get(sKey).fields.push({
+      label: tField?.label || e.fieldLabel || e.fieldKey || 'Field',
+      order: tField ? tSection.fields.indexOf(tField) : 999,
+      values: Array.isArray(e.value) ? e.value : [e.value],
+    })
+  }
+  return [...sections.values()]
+    .sort((a, b) => a.order - b.order)
+    .map((s) => {
+      const fields = [...s.fields].sort((a, b) => a.order - b.order)
+      const rowCount = Math.max(0, ...fields.map((f) => f.values.length))
+      const rows = Array.from({ length: rowCount }, (_, i) => fields.map((f) => f.values[i]))
+        .filter((r) => r.some(isFilledValue))
+      return { key: s.key, name: s.name, fields, rows }
+    })
+    .filter((s) => s.rows.length > 0)
+}
+
+const displayValue = (v) =>
+  !isFilledValue(v) ? '—' : Array.isArray(v) ? v.join(', ') : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v)
+
+function PresetViewDialog({ preset, templates, onClose, onEdit }) {
+  const sections = preset ? presetDetails(preset, templates) : []
+  const template = preset ? templates.find((t) => t.id === preset.templateId) : null
+  const updated = preset?.updatedAt
+    ? new Date(preset.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    : null
+
+  return (
+    <Dialog open={Boolean(preset)} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex flex-wrap items-center gap-2 text-left">
+            <Bookmark className="w-4 h-4 text-blue-600" />
+            <span className="wrap-anywhere">{preset?.name}</span>
+            <span
+              className={cn(
+                'inline-flex items-center rounded px-1.5 h-5 text-[10px] font-semibold uppercase tracking-wide',
+                preset?.scope === 'section'
+                  ? 'bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-200'
+                  : 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200'
+              )}
+            >
+              {preset?.scope === 'section' ? `${preset?.section?.name || 'Section'} only` : 'Whole prescription'}
+            </span>
+          </DialogTitle>
+          <DialogDescription className="text-left">
+            {preset?.description ? <span className="block text-slate-700">{preset.description}</span> : null}
+            <span className="block text-[12px] text-slate-400">
+              {template ? `Template: ${template.name}` : 'Its template has since changed'}
+              {updated ? ` · Updated ${updated}` : ''}
+            </span>
+          </DialogDescription>
+        </DialogHeader>
+
+        {sections.length === 0 ? (
+          <p className="text-[13px] text-slate-500 py-4 text-center">This preset has nothing filled in.</p>
+        ) : (
+          <div className="space-y-4">
+            {sections.map((s) => (
+              <div key={s.key} className="space-y-1.5">
+                <h4 className="text-[12px] font-semibold uppercase tracking-wide text-slate-600">
+                  {s.name} <span className="text-slate-400">({s.rows.length})</span>
+                </h4>
+                <div className="overflow-x-auto rounded-md border border-slate-200">
+                  <table className="w-full text-[13px]">
+                    <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
+                      <tr>
+                        <th className="px-2.5 py-1.5 text-left font-semibold w-8">#</th>
+                        {s.fields.map((f, i) => (
+                          <th key={i} className="px-2.5 py-1.5 text-left font-semibold whitespace-nowrap">{f.label}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {s.rows.map((row, r) => (
+                        <tr key={r}>
+                          <td className="px-2.5 py-1.5 text-slate-400">{r + 1}</td>
+                          {row.map((v, c) => (
+                            <td key={c} className="px-2.5 py-1.5 text-slate-800 wrap-anywhere">{displayValue(v)}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose} className="h-9">Close</Button>
+          <Button onClick={onEdit} className="h-9 gap-1.5 bg-blue-600 hover:bg-blue-700">
+            <Edit2 className="w-3.5 h-3.5" />
+            Edit preset
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
